@@ -1,0 +1,162 @@
+// Gratitude cards — Phase 0 schema
+// Auth/directory/mail providers are swap-ready for Azure AD + Graph later.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TemplateVisibility {
+  PRIVATE
+  SHARED
+}
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CatalogType {
+  CARD
+  GIFT
+}
+
+model User {
+  id          String   @id @default(cuid())
+  /// Azure AD object id later; for now a stable fake oid
+  aadOid      String   @unique @map("aad_oid")
+  email       String   @unique
+  displayName String   @map("display_name")
+  role        Role     @default(USER)
+  /// Directory entries appear in recipient picker even if they never logged in
+  isDirectory Boolean  @default(true) @map("is_directory")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ownedTemplates Template[]     @relation("TemplateOwner")
+  auditEvents    AuditEvent[]
+  draftJobs      DraftJob[]
+
+  @@map("users")
+}
+
+model Template {
+  id          String             @id @default(cuid())
+  name        String
+  catalogType CatalogType        @default(CARD) @map("catalog_type")
+  visibility  TemplateVisibility @default(PRIVATE)
+  status      TemplateStatus     @default(DRAFT)
+  ownerId     String             @map("owner_id")
+  owner       User               @relation("TemplateOwner", fields: [ownerId], references: [id])
+  /// Optional HTML blocks outside the freeform canvas
+  headerHtml  String?            @map("header_html")
+  footerHtml  String?            @map("footer_html")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  versions TemplateVersion[]
+  assets    TemplateAsset[]
+  draftJobs DraftJob[]
+
+  @@map("templates")
+}
+
+model TemplateVersion {
+  id           String   @id @default(cuid())
+  templateId   String   @map("template_id")
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version      Int
+  /// Freeform designer state (Fabric/Konva JSON later)
+  designJson   Json     @default("{}") @map("design_json")
+  compiledHtml String?  @map("compiled_html")
+  previewUrl   String?  @map("preview_url")
+  createdById  String?  @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  draftJobs DraftJob[]
+
+  @@unique([templateId, version])
+  @@map("template_versions")
+}
+
+model TemplateAsset {
+  id           String   @id @default(cuid())
+  templateId   String   @map("template_id")
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fileName     String   @map("file_name")
+  mimeType     String   @map("mime_type")
+  byteSize     Int      @map("byte_size")
+  width        Int?
+  height       Int?
+  /// user upload vs designer flatten output
+  kind         String   @default("source")
+  /// Relative path under uploads/, e.g. templates/<id>/<file>
+  storageKey   String   @map("storage_key")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([templateId, kind])
+  @@map("template_assets")
+}
+
+model DraftJob {
+  id                String   @id @default(cuid())
+  requesterId       String   @map("requester_id")
+  requester         User     @relation(fields: [requesterId], references: [id])
+  templateId        String   @map("template_id")
+  template          Template @relation(fields: [templateId], references: [id])
+  templateVersionId String   @map("template_version_id")
+  templateVersion   TemplateVersion @relation(fields: [templateVersionId], references: [id])
+  status            String   @default("pending")
+  total             Int      @default(0)
+  completed         Int      @default(0)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  drafts OutboundDraft[]
+
+  @@map("draft_jobs")
+}
+
+model OutboundDraft {
+  id              String   @id @default(cuid())
+  jobId           String   @map("job_id")
+  job             DraftJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  recipientOid    String?  @map("recipient_oid")
+  recipientEmail  String   @map("recipient_email")
+  recipientName   String?  @map("recipient_name")
+  subject         String
+  /// Mock mode stores HTML here; Graph mode may store message id
+  bodyHtml        String?  @map("body_html")
+  graphMessageId  String?  @map("graph_message_id")
+  status          String   @default("mock_created")
+  error           String?
+  previewSnapshot String?  @map("preview_snapshot")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("outbound_drafts")
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  payload    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_events")
+}

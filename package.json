@@ -1,0 +1,17 @@
+{
+  "name": "project-grat",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Intranet gratitude cards — Phase 0 scaffold",
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev --prefix api\" \"npm run dev --prefix web\"",
+    "dev:api": "npm run dev --prefix api",
+    "dev:web": "npm run dev --prefix web",
+    "db:migrate": "npm run db:migrate --prefix api",
+    "db:seed": "npm run db:seed --prefix api",
+    "db:generate": "npm run db:generate --prefix api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}
