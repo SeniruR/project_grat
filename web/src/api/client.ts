@@ -38,6 +38,49 @@ export type TemplateSummary = {
   }>;
 };
 
+export type DirectoryPerson = {
+  aadOid: string;
+  email: string;
+  displayName: string;
+};
+
+export type OutboundDraft = {
+  id: string;
+  recipientOid: string | null;
+  recipientEmail: string;
+  recipientName: string | null;
+  subject: string;
+  bodyHtml: string | null;
+  graphMessageId: string | null;
+  status: string;
+  error: string | null;
+  createdAt: string;
+};
+
+export type DraftJobDetail = {
+  id: string;
+  status: string;
+  total: number;
+  completed: number;
+  createdAt: string;
+  updatedAt: string;
+  template: { id: string; name: string };
+  templateVersion: { id: string; version: number };
+  requester: { id: string; displayName: string; email: string };
+  drafts: OutboundDraft[];
+};
+
+export type DraftJobSummary = {
+  id: string;
+  status: string;
+  total: number;
+  completed: number;
+  createdAt: string;
+  template: { id: string; name: string };
+  templateVersion: { id: string; version: number };
+  _count: { drafts: number };
+};
+
 function authHeaders(
   token?: string | null,
   withJsonContentType = false,
@@ -226,6 +269,36 @@ export const api = {
       mode: string;
       people: Array<{ aadOid: string; email: string; displayName: string }>;
     }>(`/directory/search?q=${encodeURIComponent(q)}`, { token }),
+
+  createDraftJob: (
+    token: string,
+    body: {
+      templateId: string;
+      templateVersionId?: string;
+      subject: string;
+      recipients: Array<{
+        aadOid?: string;
+        email: string;
+        displayName?: string;
+      }>;
+    },
+  ) =>
+    request<{ job: DraftJobDetail; mailMode: string }>("/draft-jobs", {
+      method: "POST",
+      token,
+      body: JSON.stringify(body),
+    }),
+
+  draftJob: (token: string, id: string) =>
+    request<{ job: DraftJobDetail; mailMode: string }>(`/draft-jobs/${id}`, {
+      token,
+    }),
+
+  draftJobs: (token: string) =>
+    request<{
+      jobs: DraftJobSummary[];
+      mailMode: string;
+    }>("/draft-jobs", { token }),
 
   adminStats: (token: string) =>
     request<{

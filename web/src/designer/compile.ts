@@ -99,13 +99,28 @@ function roundRectPath(
   ctx.closePath();
 }
 
+/** True when HTML is already a full document (has doctype or <html>). */
+export function isFullHtmlDocument(html: string) {
+  return /^\s*<!DOCTYPE\s+html/i.test(html) || /^\s*<html[\s>]/i.test(html);
+}
+
+/** Body inner HTML only — safe to wrap with header/footer or inject into a shell. */
+export function extractEmailBodyHtml(html: string) {
+  const t = html.trim();
+  if (!t) return "";
+  if (!isFullHtmlDocument(t)) return t;
+  const m = /<body[^>]*>([\s\S]*)<\/body>/i.exec(t);
+  return m ? m[1].trim() : t;
+}
+
 /** Apply optional org header/footer around a stored card body. */
 export function wrapWithHeaderFooter(
   bodyHtml: string,
   headerHtml?: string | null,
   footerHtml?: string | null,
 ) {
-  return `${headerHtml?.trim() ?? ""}${bodyHtml}${footerHtml?.trim() ?? ""}`;
+  const body = extractEmailBodyHtml(bodyHtml);
+  return `${headerHtml?.trim() ?? ""}${body}${footerHtml?.trim() ?? ""}`;
 }
 
 export function absoluteUploadUrl(storageKey: string) {

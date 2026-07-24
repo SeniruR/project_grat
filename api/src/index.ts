@@ -11,6 +11,7 @@ import { directoryRoutes } from "./routes/directory.js";
 import { adminRoutes } from "./routes/admin.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { templateRoutes } from "./routes/templates.js";
+import { draftRoutes } from "./routes/drafts.js";
 import { ensureUploadsDir, uploadsRoot } from "./lib/uploads.js";
 
 await ensureUploadsDir();
@@ -33,7 +34,8 @@ await app.register(jwt, {
 });
 
 await app.register(multipart, {
-  limits: { fileSize: 2 * 1024 * 1024 },
+  // Compiled 2× PNG previews can exceed 2MB on detailed cards
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 await app.register(fastifyStatic, {
@@ -48,6 +50,7 @@ await app.register(directoryRoutes);
 await app.register(adminRoutes);
 await app.register(catalogRoutes);
 await app.register(templateRoutes);
+await app.register(draftRoutes);
 
 app.get("/health", async () => ({
   ok: true,

@@ -26,7 +26,11 @@ import {
 import { exportCanvasToEmailHtml } from "../designer/exportHtml";
 import { importEmailHtmlToCanvas } from "../designer/importHtml";
 import { attachAlignmentGuides } from "../designer/alignmentGuides";
-import { bakeScaledTarget, compensateWhileScaling } from "../designer/bakeScale";
+import { bakeScaledTarget, compensateWhileScaling, scaleObjectWithCanvas } from "../designer/bakeScale";
+import {
+  canvasToPreviewPngDataUrl,
+  previewDataUrlToFile,
+} from "../designer/previewPng";
 
 type CtxMenu = {
   clientX: number;
@@ -43,14 +47,16 @@ type CropSession = {
 };
 
 const FONT_OPTIONS = [
+  { label: "IBM Plex Sans", value: "IBM Plex Sans" },
+  { label: "IBM Plex Serif", value: "IBM Plex Serif" },
   { label: "Segoe UI", value: "Segoe UI" },
+  { label: "Calibri", value: "Calibri" },
   { label: "Arial", value: "Arial" },
   { label: "Georgia", value: "Georgia" },
   { label: "Times New Roman", value: "Times New Roman" },
   { label: "Verdana", value: "Verdana" },
   { label: "Trebuchet MS", value: "Trebuchet MS" },
   { label: "Courier New", value: "Courier New" },
-  { label: "Comic Sans MS", value: "Comic Sans MS" },
 ] as const;
 
 function isImage(obj: FabricObject | undefined | null): obj is FabricImage {
@@ -282,6 +288,8 @@ export function DesignerPage() {
   const [frameBorderColor, setFrameBorderColor] = useState("#1c2420");
   const [canvasW, setCanvasW] = useState(DESIGN_WIDTH);
   const [canvasH, setCanvasH] = useState(DESIGN_HEIGHT);
+  /** Visual fit so the full design stays on-screen when the window is small */
+  const [viewScale, setViewScale] = useState(1);
   const [menuStroke, setMenuStroke] = useState("#1c2420");
   const [menuStrokeWidth, setMenuStrokeWidth] = useState(0);
   const [menuDash, setMenuDash] = useState<"none" | "short" | "long">("none");
@@ -454,17 +462,130 @@ export function DesignerPage() {
   const resizeDesignCanvas = useCallback(
     (nextW: number, nextH: number, opts?: { markDirty?: boolean }) => {
       const { w, h } = clampCanvasSize(nextW, nextH);
+      const canvas = fabricRef.current;
+      const prevW = Math.max(1, canvas?.getWidth() || canvasW);
+      const prevH = Math.max(1, canvas?.getHeight() || canvasH);
+      const sx = w / prevW;
+      const sy = h / prevH;
       setCanvasW(w);
       setCanvasH(h);
-      const canvas = fabricRef.current;
       if (canvas) {
+        // Scale every object with the stage so a 600→800 resize doesn't leave
+        // a small card floating in a larger empty canvas (PNG/HTML mismatch).
+        // Bake scale into width/height/radius/fontSize when possible so later
+        // edits and HTML export stay aligned with the PNG.
+        if (
+          Number.isFinite(sx) &&
+          Number.isFinite(sy) &&
+          (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001)
+        ) {
+          for (const obj of canvas.getObjects()) {
+            if ((obj as { gratCropFrame?: boolean }).gratCropFrame) continue;
+            scaleObjectWithCanvas(obj, sx, sy);
+          }
+        }
         canvas.setDimensions({ width: w, height: h });
         canvas.requestRenderAll();
       }
       if (opts?.markDirty !== false) markDirty();
     },
-    [clampCanvasSize, markDirty],
+    [clampCanvasSize, markDirty, canvasW, canvasH],
   );
+
+  // Scale the design to fit the visible stage (does not change design W×H).
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+
+    let timer = 0;
+    const measure = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const pad = 24;
+        const banner = el.querySelector(".crop-banner");
+        const bannerH = banner
+          ? (banner as HTMLElement).getBoundingClientRect().height + 8
+          : 0;
+        const availW = Math.max(120, el.clientWidth - pad);
+        const availH = Math.max(120, el.clientHeight - pad - bannerH);
+        const next = Math.min(1, availW / canvasW, availH / canvasH);
+        const rounded = Math.round(next * 1000) / 1000;
+        setViewScale((prev) =>
+          Math.abs(prev - rounded) < 0.002 ? prev : rounded,
+        );
+      }, 50);
+    };
+
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(timer);
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [canvasW, canvasH, cropping, ready]);
+
+  // Keep Fabric pointer mapping correct after CSS fit-scale changes.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !ready) return;
+    const id = window.requestAnimationFrame(() => {
+      canvas.calcOffset?.();
+      canvas.requestRenderAll();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [viewScale, canvasW, canvasH, ready]);
+
+  /** Stretch current objects so their bounding box fills the canvas (fixes
+   * layouts saved after a size change that didn't scale content). */
+  const fitContentToCanvas = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const objs = canvas
+      .getObjects()
+      .filter((o) => !(o as { gratCropFrame?: boolean }).gratCropFrame);
+    if (!objs.length) return;
+
+    let minL = Infinity;
+    let minT = Infinity;
+    let maxR = -Infinity;
+    let maxB = -Infinity;
+    for (const obj of objs) {
+      const b = obj.getBoundingRect();
+      minL = Math.min(minL, b.left);
+      minT = Math.min(minT, b.top);
+      maxR = Math.max(maxR, b.left + b.width);
+      maxB = Math.max(maxB, b.top + b.height);
+    }
+    const bw = Math.max(1, maxR - minL);
+    const bh = Math.max(1, maxB - minT);
+    const cw = Math.max(1, canvas.getWidth());
+    const ch = Math.max(1, canvas.getHeight());
+    const sx = cw / bw;
+    const sy = ch / bh;
+    if (!Number.isFinite(sx) || !Number.isFinite(sy)) return;
+    if (Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001) {
+      setNotice("Layout already fills the canvas.");
+      return;
+    }
+
+    for (const obj of objs) {
+      obj.set({
+        left: (obj.left ?? 0) - minL,
+        top: (obj.top ?? 0) - minT,
+      });
+    }
+    for (const obj of objs) {
+      scaleObjectWithCanvas(obj, sx, sy);
+    }
+    canvas.requestRenderAll();
+    markDirty();
+    setNotice(
+      "Scaled layout to fill the canvas. Save & compile to update the preview.",
+    );
+  }, [markDirty]);
 
   useLayoutEffect(() => {
     if (!menu || !menuRef.current) return;
@@ -1572,17 +1693,26 @@ export function DesignerPage() {
     setNotice(null);
     try {
       canvas.discardActiveObject();
+      for (const obj of canvas.getObjects()) {
+        if (typeof obj.setCoords === "function") obj.setCoords();
+      }
       canvas.requestRenderAll();
 
       // Let React paint "Saving…" before heavy canvas work blocks the thread
       await new Promise<void>((r) => setTimeout(r, 40));
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+      const stageW = Math.round(canvas.getWidth() || canvasW);
+      const stageH = Math.round(canvas.getHeight() || canvasH);
+      setCanvasW(stageW);
+      setCanvasH(stageH);
 
       const raw = canvas.toObject(["gratField", "gratAssetKey"]);
       const fields = collectFieldNames(raw);
       const designJson: DesignerDesignJson = {
         mode: "designer",
-        width: canvasW,
-        height: canvasH,
+        width: stageW,
+        height: stageH,
         canvas: raw as Record<string, unknown>,
         fields,
         frame: {
@@ -1592,33 +1722,49 @@ export function DesignerPage() {
         },
       };
 
+      const frame = {
+        radius: frameRadius,
+        borderWidth: frameBorderWidth,
+        borderColor: frameBorderColor,
+      };
+
       setBusyLabel("Exporting HTML…");
       await new Promise<void>((r) => setTimeout(r, 20));
 
       const compiledHtml = exportCanvasToEmailHtml(canvas, {
-        width: canvasW,
-        height: canvasH,
-        frame: {
-          radius: frameRadius,
-          borderWidth: frameBorderWidth,
-          borderColor: frameBorderColor,
-        },
+        width: stageW,
+        height: stageH,
+        frame,
         alt: template.name,
       });
+
+      setBusyLabel("Rendering PNG preview…");
+      await new Promise<void>((r) => setTimeout(r, 20));
+      const previewPng = await canvasToPreviewPngDataUrl(canvas, frame);
 
       setBusyLabel("Saving…");
       try {
         await api.purgeCompiledAssets(token, id);
       } catch {
-        // Old JPEG previews are optional to clean up
+        // Old previews are optional to clean up
       }
+
+      const { asset } = await api.uploadTemplateAsset(
+        token,
+        id,
+        previewDataUrlToFile(previewPng, "preview.png"),
+        "compiled",
+      );
+
       await api.saveTemplateVersion(token, id, {
         designJson: designJson as unknown as Record<string, unknown>,
         compiledHtml,
-        previewUrl: null,
+        previewUrl: asset.url,
       });
 
-      setNotice("Saved design and exported full email HTML.");
+      setNotice(
+        "Saved design, email HTML, and 1:1 PNG preview. Click Done to see it on the card page.",
+      );
       clearDirty();
       const { template: fresh } = await api.template(token, id);
       setTemplate(fresh);
@@ -2033,6 +2179,7 @@ export function DesignerPage() {
                     [600, 600, "Square"],
                     [640, 480, "Landscape"],
                     [800, 600, "Wide"],
+                    [800, 800, "Square 800"],
                   ] as const
                 ).map(([w, h, label]) => (
                   <button
@@ -2046,6 +2193,20 @@ export function DesignerPage() {
                   </button>
                 ))}
               </div>
+              <p className="muted small tip">
+                Changing size scales all objects to the new canvas. Then Save
+                &amp; compile so the preview matches.
+              </p>
+              {canEdit && !cropping ? (
+                <button
+                  type="button"
+                  className="ghost small"
+                  onClick={() => fitContentToCanvas()}
+                  title="Stretch the current layout to fill the canvas"
+                >
+                  Fit layout to canvas
+                </button>
+              ) : null}
               <p className="muted small tip">
                 Size is saved with the design and used in exported email HTML
                 (320–1200 × 400–1600).
@@ -2169,16 +2330,40 @@ export function DesignerPage() {
               </div>
             </div>
           ) : null}
-          <div
-            className="designer-frame"
-            style={{
-              borderRadius: frameRadius,
-              borderWidth: frameBorderWidth,
-              borderStyle: frameBorderWidth > 0 ? "solid" : "none",
-              borderColor: frameBorderColor,
-            }}
-          >
-            <canvas ref={canvasEl} />
+          <div className="designer-stage-center">
+            <div
+              className="designer-fit-shell"
+              style={{
+                width: canvasW * viewScale,
+                height: canvasH * viewScale,
+              }}
+            >
+              <div
+                className="designer-fit-scale"
+                style={{
+                  width: canvasW,
+                  height: canvasH,
+                  transform: `scale(${viewScale})`,
+                }}
+              >
+                <div
+                  className="designer-frame"
+                  style={{
+                    borderRadius: frameRadius,
+                    borderWidth: frameBorderWidth,
+                    borderStyle: frameBorderWidth > 0 ? "solid" : "none",
+                    borderColor: frameBorderColor,
+                  }}
+                >
+                  <canvas ref={canvasEl} />
+                </div>
+              </div>
+            </div>
+            {viewScale < 0.995 ? (
+              <p className="designer-fit-label muted small">
+                Fit {Math.round(viewScale * 100)}% · resize window to zoom
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

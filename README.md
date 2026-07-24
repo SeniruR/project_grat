@@ -1,6 +1,6 @@
 # Project Grat — Intranet gratitude cards
 
-Phase 0 scaffold: **dev login** (Azure AD lookalike), Postgres, catalog shell, mock directory, admin audit.
+Phase 0 scaffold + Phases 1–3: templates, designer/compile, **compose → mock drafts**.
 
 Providers are swap-ready:
 
@@ -8,7 +8,29 @@ Providers are swap-ready:
 |----------|-----|--------|
 | `AUTH_MODE` | `dev` | `azure` |
 | `DIRECTORY_MODE` | `mock` | `graph` |
-| `MAIL_MODE` | `mock` | `graph` |
+| `MAIL_MODE` | `mock` | `graph` (Outlook drafts via Graph) |
+
+### Graph Outlook drafts (`MAIL_MODE=graph`)
+
+Works with current **dev login** using an Azure AD **app registration** (client credentials):
+
+1. Register an app in Entra ID → add **Application** permission `Mail.ReadWrite` → grant admin consent.
+2. Create a client secret.
+3. In `api/.env`:
+
+```env
+MAIL_MODE=graph
+AZURE_TENANT_ID=...
+AZURE_CLIENT_ID=...
+AZURE_CLIENT_SECRET=...
+# Optional: put every draft in one shared mailbox
+# GRAPH_MAILBOX_UPN=gratitude@yourtenant.com
+```
+
+4. Sign in with an email that exists as a mailbox in that tenant (or set `GRAPH_MAILBOX_UPN`).
+5. Compose → drafts appear in that mailbox’s **Drafts** folder.
+
+Delegated `/me` (user’s own Drafts without app mailbox rights) needs `AUTH_MODE=azure` + a user Graph token later; the mail provider already accepts an optional `accessToken` for that path.
 
 ## Prerequisites
 
@@ -53,14 +75,16 @@ npm run dev
 
 1. Open the site → **Enter intranet** (dev login).
 2. Open **Cards** — empty templates + seeded directory names.
-3. Open **Admin** (if you checked admin) — stats + login audit.
+3. Design / compile a card, then **Compose** → pick recipients → mock drafts.
+4. Open **Drafts** (or Admin) — job list + audit.
 
 ## Next phases
 
 1. ~~Template CRUD (private/shared) + image upload~~ **done (Phase 1)**  
-2. ~~Freeform designer + compile-to-email image~~ **done (Phase 2)**  
-3. Compose → recipients → mock drafts (then Graph Outlook drafts)  
-4. Richer admin previews  
+2. ~~Freeform designer + compile-to-email HTML~~ **done (Phase 2)**  
+3. ~~Compose → recipients → mock drafts~~ **done (Phase 3)**  
+   - Graph Outlook drafts: set `MAIL_MODE=graph` + Azure app creds (see above)  
+4. Richer admin previews + Azure AD user login (`AUTH_MODE=azure`)  
 
 ## Repo layout
 

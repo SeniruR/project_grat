@@ -7,7 +7,11 @@ import { CardsPage } from "./pages/CardsPage";
 import { NewTemplatePage } from "./pages/NewTemplatePage";
 import { TemplateDetailPage } from "./pages/TemplateDetailPage";
 import { DesignerPage } from "./pages/DesignerPage";
+import { ComposePage } from "./pages/ComposePage";
+import { DraftJobPage } from "./pages/DraftJobPage";
+import { DraftsPage } from "./pages/DraftsPage";
 import { AdminPage } from "./pages/AdminPage";
+import { COMPOSE_ENABLED } from "./features";
 
 export default function App() {
   return (
@@ -20,7 +24,33 @@ export default function App() {
             <Route path="/cards" element={<CardsPage />} />
             <Route path="/cards/new" element={<NewTemplatePage />} />
             <Route path="/cards/:id/designer" element={<DesignerPage />} />
+            <Route
+              path="/cards/:id/compose"
+              element={
+                COMPOSE_ENABLED ? (
+                  <ComposePage />
+                ) : (
+                  <Navigate to="/cards" replace />
+                )
+              }
+            />
             <Route path="/cards/:id" element={<TemplateDetailPage />} />
+            <Route
+              path="/drafts"
+              element={
+                COMPOSE_ENABLED ? <DraftsPage /> : <Navigate to="/" replace />
+              }
+            />
+            <Route
+              path="/drafts/:jobId"
+              element={
+                COMPOSE_ENABLED ? (
+                  <DraftJobPage />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
             <Route path="/admin" element={<AdminPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

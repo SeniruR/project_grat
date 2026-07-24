@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, assetUrl, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -8,10 +8,13 @@ import {
 } from "../lib/htmlAssets";
 import { wrapWithHeaderFooter } from "../designer/compile";
 import {
-  exportDesignJsonToEmailHtml,
+  exportDesignJsonCompiled,
   hasDesignerCanvas,
 } from "../designer/recompile";
-import { OutlookDualPreview } from "../components/OutlookDualPreview";
+import { previewDataUrlToFile } from "../designer/previewPng";
+import { copyHtmlSource } from "../lib/copyEmail";
+import { CanvasPreview } from "../components/CanvasPreview";
+import { COMPOSE_ENABLED, COMPOSE_UNAVAILABLE_REASON } from "../features";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -117,8 +120,10 @@ function htmlUsesAsset(html: string, fileName: string, storageKey: string) {
 
 export function TemplateDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const autoRecompileRef = useRef(false);
   const [template, setTemplate] = useState<TemplateSummary | null>(null);
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
@@ -130,8 +135,6 @@ export function TemplateDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [editSurface, setEditSurface] = useState<"designer" | "html">("html");
-  const [surfaceReady, setSurfaceReady] = useState(false);
   const [assetDeletePrompt, setAssetDeletePrompt] = useState<{
     id: string;
     fileName: string;
@@ -155,23 +158,17 @@ export function TemplateDetailPage() {
     setHeaderHtml(t.headerHtml ?? "");
     setFooterHtml(t.footerHtml ?? "");
     setHtml(t.versions[0]?.compiledHtml ?? "");
-    if (!surfaceReady) {
-      const mode =
-        typeof t.versions[0]?.designJson?.mode === "string"
-          ? t.versions[0].designJson.mode
-          : "blank";
-      setEditSurface(mode === "designer" ? "designer" : "html");
-      setSurfaceReady(true);
-    }
   }
 
   useEffect(() => {
     if (!token || !id) return;
+    autoRecompileRef.current = false;
     reload().catch((err) =>
       setError(err instanceof Error ? err.message : "Failed to load"),
     );
+    // Reload whenever we navigate back from Designer (new location.key).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, id]);
+  }, [token, id, location.key]);
 
   const assets = template?.assets ?? [];
   const latestMode =
@@ -182,6 +179,32 @@ export function TemplateDetailPage() {
     string,
     unknown
   >;
+  // Render the preview at the exact canvas width chosen in the designer so it
+  // matches the design (600 Card, 800 Wide, 640 Landscape, …) instead of a
+  // fixed 600px. Falls back to the max-width baked into the compiled HTML.
+  const designPreviewWidth = useMemo(() => {
+    const fromJson = latestDesignJson.width;
+    if (typeof fromJson === "number" && fromJson >= 200) {
+      return Math.round(fromJson);
+    }
+    const m = html.match(/max-width:\s*(\d+)px/i);
+    if (m) {
+      const w = Number(m[1]);
+      if (Number.isFinite(w) && w >= 200) return w;
+    }
+    return 600;
+  }, [latestDesignJson, html]);
+
+  const designPreviewHeight = useMemo(() => {
+    const fromJson = latestDesignJson.height;
+    if (typeof fromJson === "number" && fromJson >= 200) {
+      return Math.round(fromJson);
+    }
+    return 800;
+  }, [latestDesignJson]);
+
+  /** Compiled PNG from Save & compile — used for Outlook paste. */
+  const previewImageUrl = template?.versions[0]?.previewUrl?.trim() || null;
 
   const previewHtml = useMemo(() => {
     const body = resolveHtmlImageSrcsClient(html, assets, API_URL);
@@ -211,12 +234,9 @@ export function TemplateDetailPage() {
     if (!template) return;
     const saved = (template.versions[0]?.compiledHtml ?? "").trim();
     const draft = html.trim();
-    // Live preview uses the textarea. Prefer that HTML when editing on the HTML
-    // tab or when it differs from the last save — otherwise keep the Fabric canvas.
-    const preferHtml =
-      editSurface === "html" ||
-      latestMode !== "designer" ||
-      draft !== saved;
+    // Prefer Advanced HTML draft when it differs from the last save, or when
+    // there is no designer canvas yet.
+    const preferHtml = latestMode !== "designer" || draft !== saved;
     navigate(`/cards/${template.id}/designer`, {
       state: preferHtml && draft ? { htmlDraft: html } : undefined,
     });
@@ -245,18 +265,21 @@ export function TemplateDetailPage() {
         footerHtml: footerHtml.trim() || null,
       });
 
-      if (editSurface === "html") {
+      const saved = (template?.versions[0]?.compiledHtml ?? "").trim();
+      const draft = html.trim();
+
+      if (draft !== saved) {
         const hadDesigner =
           latestMode === "designer" &&
           latestDesignJson &&
           typeof latestDesignJson === "object" &&
           "canvas" in latestDesignJson;
 
-        // HTML is source of truth when saving from the HTML tab — drop the
-        // Fabric canvas so Designer doesn't reopen the previous layout.
+        // Advanced HTML edits become source of truth — drop Fabric canvas so
+        // Designer doesn't reopen a stale layout.
         const version = await api.saveTemplateVersion(token, id, {
           designJson: {
-            mode: html.trim() ? "html_import" : "blank",
+            mode: draft ? "html_import" : "blank",
             sourceHtml: html,
           },
           compiledHtml: html,
@@ -265,8 +288,8 @@ export function TemplateDetailPage() {
         await reload();
         setNotice(
           hadDesigner
-            ? `Saved HTML (v${version.version}). Designer canvas was cleared — reopen Designer to import shapes back from this HTML (best-effort).`
-            : `Saved HTML (v${version.version}).`,
+            ? `Saved HTML (v${version.version}). Designer canvas was cleared — reopen Designer to import shapes from this HTML (best-effort).`
+            : `Saved (v${version.version}).`,
         );
       } else {
         await reload();
@@ -417,7 +440,7 @@ export function TemplateDetailPage() {
           borderColor: string;
         };
       };
-      const compiledHtml = await exportDesignJsonToEmailHtml(
+      const { compiledHtml, previewPngDataUrl } = await exportDesignJsonCompiled(
         design,
         template.name,
       );
@@ -426,14 +449,22 @@ export function TemplateDetailPage() {
       } catch {
         // optional cleanup
       }
+      const { asset } = await api.uploadTemplateAsset(
+        token,
+        id,
+        previewDataUrlToFile(previewPngDataUrl, "preview.png"),
+        "compiled",
+      );
       await api.saveTemplateVersion(token, id, {
         designJson: latestDesignJson,
         compiledHtml,
-        previewUrl: null,
+        previewUrl: asset.url,
       });
       setHtml(compiledHtml);
       await reload();
-      setNotice("Recompiled email preview from the saved designer canvas.");
+      setNotice(
+        "Recompiled email HTML and PNG preview from the saved designer canvas.",
+      );
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Recompile failed",
@@ -442,6 +473,30 @@ export function TemplateDetailPage() {
       setSaving(false);
     }
   }
+
+  // One-shot: rebuild stored HTML so Outlook gets <font color> (white text).
+  useEffect(() => {
+    if (!token || !id || !template || !canEdit) return;
+    if (autoRecompileRef.current) return;
+    if (latestMode !== "designer") return;
+    if (!hasDesignerCanvas(latestDesignJson)) return;
+    const body = html.trim();
+    if (!body) return;
+    if (/<font\s+color=/i.test(body)) return;
+    if (
+      !/color:\s*#(?:fff|ffffff)\b/i.test(body) &&
+      !/grat-email-card/i.test(body)
+    ) {
+      return;
+    }
+    autoRecompileRef.current = true;
+    void recompilePreview().then(() => {
+      setNotice(
+        "Recompiled preview with Outlook-safe colors (white text on green stays white when pasted).",
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, id, template, html, canEdit, latestMode]);
 
   async function onUpload(file: File | null) {
     if (!token || !id || !file || !canEdit) return;
@@ -503,7 +558,6 @@ export function TemplateDetailPage() {
   }
 
   const latest = template.versions[0];
-
   return (
     <div className="page">
       <p className="back">
@@ -518,36 +572,28 @@ export function TemplateDetailPage() {
             {latestMode === "designer" ? " · has designer layout" : ""}
           </p>
         </div>
+        <div className="surface-actions">
+          {COMPOSE_ENABLED ? (
+            <Link to={`/cards/${template.id}/compose`} className="btn-link">
+              Compose
+            </Link>
+          ) : (
+            <span
+              className="btn-link btn-link-disabled"
+              title={COMPOSE_UNAVAILABLE_REASON}
+              aria-disabled="true"
+            >
+              Compose
+            </span>
+          )}
+        </div>
       </header>
 
       {error ? <p className="error">{error}</p> : null}
       {notice ? <p className="notice">{notice}</p> : null}
 
       <div className="panel form-stack">
-        <div className="tools-tags edit-surface-tags" role="tablist" aria-label="Edit surface">
-          <button
-            type="button"
-            role="tab"
-            className={`tools-tag ${editSurface === "designer" ? "active" : ""}`}
-            aria-selected={editSurface === "designer"}
-            onClick={() => setEditSurface("designer")}
-          >
-            Designer
-          </button>
-          <button
-            type="button"
-            role="tab"
-            className={`tools-tag ${editSurface === "html" ? "active" : ""}`}
-            aria-selected={editSurface === "html"}
-            onClick={() => {
-              setEditSurface("html");
-              setHtml(template.versions[0]?.compiledHtml ?? "");
-            }}
-          >
-            HTML
-          </button>
-        </div>
-
+        <h2 className="card-section-title">Card settings</h2>
         <label>
           Name
           <input
@@ -587,110 +633,23 @@ export function TemplateDetailPage() {
           </label>
         </div>
 
-        {editSurface === "designer" ? (
-          <div className="surface-panel">
-            <p className="muted">
-              Edit shapes, text, and images on the canvas.{" "}
-              <strong>Save &amp; compile</strong> exports the full card as HTML
-              (text, shapes, and images as real markup) and updates the HTML tab.
-            </p>
-            {canEdit ? (
-              <div className="surface-actions">
-                <button type="button" onClick={openDesigner}>
-                  Open designer
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => {
-                    setEditSurface("html");
-                    setHtml(template.versions[0]?.compiledHtml ?? "");
-                  }}
-                >
-                  View compiled HTML
-                </button>
-              </div>
-            ) : (
-              <p className="muted">View only — you don’t own this template.</p>
-            )}
-          </div>
-        ) : (
-          <div className="html-surface">
-            {latestMode === "designer" ? (
-              <div className="compiled-html-note">
-                <p>
-                  This HTML was exported from the designer. Editing here updates
-                  the live preview immediately. Opening Designer imports your
-                  current HTML (save on the card page to store it; Save &amp;
-                  compile in Designer to store a canvas layout).
-                </p>
-                <p className="muted small">
-                  Round-trip works best for designer-exported markup. Complex
-                  hand-written HTML may only partially import.
-                </p>
-                {canEdit ? (
-                  <button
-                    type="button"
-                    className="ghost"
-                    onClick={openDesigner}
-                  >
-                    Edit in designer
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-            <label>
-              Email HTML
-              <span className="field-hint">
-                This is what gets wrapped with header/footer for the preview and
-                drafts. Use <code>src=&quot;filename.jpg&quot;</code> for
-                uploaded images when writing HTML by hand.
-              </span>
-              <textarea
-                value={html}
-                onChange={(e) => setHtml(e.target.value)}
-                rows={14}
-                disabled={!canEdit || saving}
-                spellCheck={false}
-                className="html-code"
-              />
-            </label>
+        <div className="surface-panel">
+          <p className="muted">
+            Design the card on the canvas.{" "}
+            <strong>Save &amp; compile</strong> updates the preview below (PNG +
+            HTML). Use <strong>Copy for Outlook</strong> on the preview to paste
+            into Outlook.
+          </p>
+          {canEdit ? (
             <div className="surface-actions">
-              <button
-                type="button"
-                className="ghost"
-                disabled={!html.trim()}
-                onClick={() => {
-                  void navigator.clipboard.writeText(html);
-                  setNotice("HTML copied to clipboard.");
-                }}
-              >
-                Copy HTML
+              <button type="button" onClick={openDesigner}>
+                Open designer
               </button>
             </div>
-          </div>
-        )}
-
-        <label>
-          Header HTML <span className="optional-tag">(optional)</span>
-          <textarea
-            value={headerHtml}
-            onChange={(e) => setHeaderHtml(e.target.value)}
-            rows={3}
-            disabled={!canEdit || saving}
-            placeholder="Optional company banner"
-          />
-        </label>
-        <label>
-          Footer HTML <span className="optional-tag">(optional)</span>
-          <textarea
-            value={footerHtml}
-            onChange={(e) => setFooterHtml(e.target.value)}
-            rows={3}
-            disabled={!canEdit || saving}
-            placeholder="Optional disclaimer"
-          />
-        </label>
+          ) : (
+            <p className="muted">View only — you don’t own this template.</p>
+          )}
+        </div>
 
         {canEdit ? (
           <div className="actions">
@@ -717,6 +676,16 @@ export function TemplateDetailPage() {
         )}
       </div>
 
+      {(previewImageUrl || previewHtml.trim()) ? (
+        <CanvasPreview
+          width={designPreviewWidth}
+          height={designPreviewHeight}
+          pngUrl={previewImageUrl}
+          html={previewHtml}
+          versionKey={template?.versions[0]?.version}
+        />
+      ) : null}
+
       <section className="panel">
         <h2>Images</h2>
         <p className="muted">Max 2MB · JPEG/PNG/GIF/WebP</p>
@@ -735,13 +704,6 @@ export function TemplateDetailPage() {
             <span className="file-pick-name muted">JPEG, PNG, GIF, or WebP</span>
           </label>
         ) : null}
-        {latestMode === "designer" ? (
-          <p className="muted small tip" style={{ marginTop: "0.75rem" }}>
-            If an image is on the designer card, deleting it asks for confirmation
-            and clears the compiled preview until you recompile (or Save &amp;
-            compile in Designer).
-          </p>
-        ) : null}
         <ul className="asset-list">
           {assets.map((a) => (
             <li key={a.id}>
@@ -757,15 +719,14 @@ export function TemplateDetailPage() {
               </div>
               {canEdit ? (
                 <div className="asset-actions">
-                  {editSurface === "html" ? (
-                    <button
-                      type="button"
-                      className="ghost"
-                      onClick={() => insertImgTag(a.fileName)}
-                    >
-                      Insert into HTML
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => insertImgTag(a.fileName)}
+                    title="Insert into Advanced HTML"
+                  >
+                    Insert into HTML
+                  </button>
                   <button
                     type="button"
                     className="ghost danger-text"
@@ -787,22 +748,10 @@ export function TemplateDetailPage() {
         ) : null}
         {canEdit && hasDesignerCanvas(latestDesignJson) ? (
           <div className="stale-preview-actions">
-            {assets.length === 0 && html.trim() ? (
-              <p className="muted small">
-                A compiled preview is still stored, but there are no source images
-                in this list.
-              </p>
-            ) : !html.trim() ? (
-              <p className="muted small">
-                Preview is empty. Recompile from the saved designer canvas, or
-                open Designer to edit.
-              </p>
-            ) : (
-              <p className="muted small">
-                Rebuild the email preview from the last saved designer layout
-                without opening the canvas.
-              </p>
-            )}
+            <p className="muted small">
+              Rebuild preview from the last saved designer layout without opening
+              the canvas.
+            </p>
             <div className="surface-actions">
               <button
                 type="button"
@@ -827,7 +776,69 @@ export function TemplateDetailPage() {
         ) : null}
       </section>
 
-      {previewHtml.trim() ? <OutlookDualPreview html={previewHtml} /> : null}
+      <details className="panel card-advanced">
+        <summary>Advanced</summary>
+        <div className="card-advanced-body form-stack">
+          <p className="muted small">
+            Power-user HTML. Editing and saving here can clear the designer
+            canvas if the HTML differs from the last compile. Prefer Designer for
+            layout changes.
+          </p>
+          <label>
+            Email HTML
+            <span className="field-hint">
+              Wrapped with header/footer for preview. Use{" "}
+              <code>src=&quot;filename.jpg&quot;</code> for uploaded images.
+            </span>
+            <textarea
+              value={html}
+              onChange={(e) => setHtml(e.target.value)}
+              rows={12}
+              disabled={!canEdit || saving}
+              spellCheck={false}
+              className="html-code"
+            />
+          </label>
+          <div className="surface-actions">
+            <button
+              type="button"
+              className="ghost"
+              disabled={!html.trim()}
+              onClick={() => {
+                void copyHtmlSource(html)
+                  .then(() => setNotice("HTML source copied to clipboard."))
+                  .catch((err) =>
+                    setError(
+                      err instanceof Error ? err.message : "Copy failed",
+                    ),
+                  );
+              }}
+            >
+              Copy HTML source
+            </button>
+          </div>
+          <label>
+            Header HTML <span className="optional-tag">(optional)</span>
+            <textarea
+              value={headerHtml}
+              onChange={(e) => setHeaderHtml(e.target.value)}
+              rows={3}
+              disabled={!canEdit || saving}
+              placeholder="Optional company banner"
+            />
+          </label>
+          <label>
+            Footer HTML <span className="optional-tag">(optional)</span>
+            <textarea
+              value={footerHtml}
+              onChange={(e) => setFooterHtml(e.target.value)}
+              rows={3}
+              disabled={!canEdit || saving}
+              placeholder="Optional disclaimer"
+            />
+          </label>
+        </div>
+      </details>
 
       {assetDeletePrompt ? (
         <div

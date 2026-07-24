@@ -1,7 +1,7 @@
 import type { CreateDraftInput, CreateDraftResult, MailProvider } from "./types.js";
 import { randomUUID } from "node:crypto";
 
-/** Placeholder until Phase 3 wires Graph drafts + outbound_drafts. */
+/** Mock Outlook drafts — persistence is owned by draft-jobs routes. */
 export const mockMailProvider: MailProvider = {
   mode: "mock",
 

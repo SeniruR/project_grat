@@ -5,8 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
-  const [displayName, setDisplayName] = useState("Senir Dev");
-  const [email, setEmail] = useState("senir@contoso.local");
+  const [displayName, setDisplayName] = useState("Seniru");
+  const [email, setEmail] = useState("seniru@slt.com.lk");
   const [asAdmin, setAsAdmin] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

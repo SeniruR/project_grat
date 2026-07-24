@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Link } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
+import { COMPOSE_ENABLED, COMPOSE_UNAVAILABLE_REASON } from "./features";
 
 export function AppShell() {
   const { user, loading, logout } = useAuth();
@@ -22,6 +23,17 @@ export function AppShell() {
         </Link>
         <div className="topnav-links">
           <Link to="/cards">Cards</Link>
+          {COMPOSE_ENABLED ? (
+            <Link to="/drafts">Drafts</Link>
+          ) : (
+            <span
+              className="nav-link-disabled"
+              title={COMPOSE_UNAVAILABLE_REASON}
+              aria-disabled="true"
+            >
+              Drafts
+            </span>
+          )}
           {user.role === "ADMIN" ? <Link to="/admin">Admin</Link> : null}
         </div>
         <div className="topnav-user">

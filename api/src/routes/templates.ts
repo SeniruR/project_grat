@@ -387,7 +387,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Expected multipart file field" });
       }
 
-      const maxBytes = kind === "compiled" ? 3 * 1024 * 1024 : 2 * 1024 * 1024;
+      const maxBytes = kind === "compiled" ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
       const fileStat = await stat(saved.absPath);
       if (fileStat.size > maxBytes) {
         await unlink(saved.absPath);

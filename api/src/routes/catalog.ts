@@ -9,7 +9,7 @@ export const catalogRoutes: FastifyPluginAsync = async (app) => {
         {
           type: "CARD",
           title: "Gratitude cards",
-          description: "Design templates and send appreciation emails.",
+          description: "Design templates and copy appreciation emails for Outlook.",
           available: true,
         },
         {

@@ -164,3 +164,45 @@ export function bakeScaledTarget(target: FabricObject) {
   }
   return bakeScaledShape(target);
 }
+
+/**
+ * Scale an object with a canvas resize (sx/sy), then bake geometry so
+ * width/height/radius/fontSize match the PNG and HTML export.
+ */
+export function scaleObjectWithCanvas(obj: FabricObject, sx: number, sy: number) {
+  const type = (obj.type ?? "").toLowerCase();
+  if (type === "activeselection" || type === "group") return;
+
+  obj.set({
+    left: (obj.left ?? 0) * sx,
+    top: (obj.top ?? 0) * sy,
+    scaleX: (obj.scaleX ?? 1) * sx,
+    scaleY: (obj.scaleY ?? 1) * sy,
+  });
+
+  if (type === "textbox" || type === "i-text" || type === "text") {
+    const text = obj as FabricObject & {
+      width?: number;
+      fontSize?: number;
+      scaleX?: number;
+      scaleY?: number;
+    };
+    const tsx = text.scaleX ?? 1;
+    const tsy = text.scaleY ?? 1;
+    text.set({
+      width: Math.max(1, (text.width ?? 0) * tsx),
+      fontSize: Math.max(1, (text.fontSize ?? 16) * tsy),
+      scaleX: 1,
+      scaleY: 1,
+    });
+    obj.setCoords();
+    return;
+  }
+
+  if (type === "image" || type === "line" || type === "polyline" || type === "polygon") {
+    obj.setCoords();
+    return;
+  }
+
+  bakeScaledShape(obj);
+}

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600;700&display=swap");
 
 :root {
   --ink: #1c2420;
@@ -9,10 +9,12 @@
   --accent: #0f6b5c;
   --accent-deep: #0a4a40;
   --warn: #8a3b2c;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --glow: radial-gradient(1200px 600px at 10% -10%, #d8ece6 0%, transparent 55%),
     radial-gradient(900px 500px at 100% 0%, #efe2c8 0%, transparent 50%),
     linear-gradient(160deg, #eef2ee, #f6f1e6 45%, #ebe4d6);
-  font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   color: var(--ink);
   background: var(--glow);
   line-height: 1.45;
@@ -40,7 +42,7 @@ body {
 h1,
 h2,
 .brand {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -190,6 +192,41 @@ button.ghost {
   flex: 1;
 }
 
+.nav-link-disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.65;
+  user-select: none;
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.1rem;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+
+.btn-link:hover {
+  background: var(--accent-deep);
+}
+
+.btn-link-disabled,
+.btn-link.btn-link-disabled {
+  background: #9aa39c;
+  color: #fff !important;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.btn-link-disabled:hover,
+.btn-link.btn-link-disabled:hover {
+  background: #9aa39c;
+}
+
 .topnav-user {
   display: flex;
   align-items: center;
@@ -314,7 +351,7 @@ button.ghost {
 }
 
 .stats-row strong {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.6rem;
 }
 
@@ -347,21 +384,6 @@ button.ghost {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-}
-
-.btn-link {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.75rem 1.1rem;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #fff !important;
-  font-weight: 600;
-  text-decoration: none !important;
-}
-
-.btn-link:hover {
-  background: var(--accent-deep);
 }
 
 .muted {
@@ -460,6 +482,215 @@ button.ghost {
   pointer-events: none;
 }
 
+.canvas-preview {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.canvas-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.canvas-preview-head h2 {
+  margin: 0 0 0.25rem;
+}
+
+.canvas-preview-head .tip {
+  margin: 0;
+  max-width: 36rem;
+}
+
+.canvas-preview-meta {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 3%, #fff);
+}
+
+.canvas-preview-dim {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.canvas-preview-dim input {
+  width: 4.5rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  text-align: right;
+}
+
+.canvas-preview-dim-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.canvas-preview-unit {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.canvas-preview-times {
+  padding-bottom: 0.45rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.canvas-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.canvas-preview-stages {
+  display: grid;
+  gap: 1.25rem;
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.canvas-preview-stages.is-both {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  justify-items: center;
+}
+
+.canvas-preview-stage {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  min-width: 0;
+}
+
+.canvas-preview-caption {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Fit shell = scaled footprint; inner scale holds true canvas pixels */
+.canvas-preview-fit {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(28, 36, 32, 0.12);
+}
+
+.canvas-preview-scale {
+  transform-origin: top left;
+  will-change: transform;
+}
+
+/* Exact canvas box — PNG and HTML are always the same W×H */
+.canvas-preview-frame {
+  width: var(--canvas-w, 600px);
+  height: var(--canvas-h, 800px);
+  box-sizing: border-box;
+  overflow: hidden;
+  background:
+    linear-gradient(45deg, #ece8df 25%, transparent 25%),
+    linear-gradient(-45deg, #ece8df 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ece8df 75%),
+    linear-gradient(-45deg, transparent 75%, #ece8df 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: #f7f4ec;
+  border: 1px solid var(--line);
+}
+
+.canvas-preview-png {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  object-position: top left;
+  background: #fff;
+}
+
+.canvas-preview-html {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+@media (max-width: 900px) {
+  .canvas-preview-stages.is-both {
+    grid-template-columns: 1fr;
+  }
+}
+
+.canvas-png-preview-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.canvas-png-preview-scroll {
+  max-height: min(85vh, 1100px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    linear-gradient(45deg, #f0eeea 25%, transparent 25%),
+    linear-gradient(-45deg, #f0eeea 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f0eeea 75%),
+    linear-gradient(-45deg, transparent 75%, #f0eeea 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: #f7f5f1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1.25rem;
+  scrollbar-width: thin;
+}
+
+.canvas-png-preview-img {
+  display: block;
+  width: min(100%, var(--png-preview-width, 600px));
+  height: auto;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(28, 36, 32, 0.12);
+}
+
+.outlook-preview-embedded {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.outlook-preview-embedded .outlook-preview-toolbar {
+  padding: 0;
+}
+
 .template-card-frame {
   width: 600px;
   height: 800px;
@@ -468,6 +699,15 @@ button.ghost {
   transform-origin: top center;
   margin-left: 50%;
   translate: -50% 0;
+  background: #fff;
+}
+
+.template-card-png {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
   background: #fff;
 }
 
@@ -707,23 +947,184 @@ button.danger-text {
   margin: 0;
 }
 
+.outlook-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.outlook-preview-toolbar h2 {
+  margin: 0 0 0.25rem;
+}
+
+.outlook-preview-toolbar .tip {
+  margin: 0;
+  max-width: 52rem;
+}
+
+.outlook-preview-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.outlook-copy {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.outlook-copy button {
+  font-size: 0.88rem;
+  padding: 0.55rem 0.85rem;
+}
+
+/* Must beat .app-modal { width: min(420px) } — same element has both classes */
+.app-modal.email-browser-copy-modal {
+  width: min(calc(var(--copy-canvas-w, 600px) + 6rem), 96vw);
+  max-width: 96vw;
+  max-height: min(94vh, 1100px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  /* Only the modal itself may scroll on short screens — not nested preview panes */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.email-browser-copy-modal h2 {
+  margin: 0;
+}
+
+.email-browser-frame-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  /* No scrollbar here — was doubling with the iframe */
+  overflow: hidden;
+  background:
+    linear-gradient(45deg, #ece8df 25%, transparent 25%),
+    linear-gradient(-45deg, #ece8df 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ece8df 75%),
+    linear-gradient(-45deg, transparent 75%, #ece8df 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: #f7f4ec;
+}
+
+.email-browser-frame {
+  display: block;
+  width: var(--copy-canvas-w, 600px);
+  height: var(--copy-canvas-h, 800px);
+  min-width: var(--copy-canvas-w, 600px);
+  min-height: var(--copy-canvas-h, 800px);
+  max-width: var(--copy-canvas-w, 600px);
+  max-height: var(--copy-canvas-h, 800px);
+  border: 0;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(28, 36, 32, 0.12);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.email-browser-copy-modal .app-modal-actions {
+  margin-top: 0.25rem;
+}
+
+.email-browser-copy-modal kbd {
+  font-size: 0.85em;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.outlook-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.outlook-zoom-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 0.35rem;
+}
+
+.outlook-zoom .ghost.small {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.outlook-zoom .ghost.small.active {
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  color: var(--accent-deep);
+}
+
+.outlook-zoom-pct {
+  min-width: 2.5rem;
+  text-align: right;
+  padding: 0 0.35rem;
+}
+
 .outlook-dual-scroll {
-  max-height: min(70vh, 820px);
+  max-height: min(85vh, 1100px);
   overflow: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: color-mix(in srgb, var(--ink) 4%, #fff);
   scrollbar-width: thin;
+  position: relative;
+}
+
+/* Half-width probe for Fit zoom — not affected by email `zoom` */
+.outlook-measure-probe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  height: 1px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Single-client view: probe spans the whole panel so Fit fills the width */
+.outlook-measure-probe.full {
+  width: 100%;
 }
 
 .outlook-dual {
   display: grid;
-  /* Each pane must fit a 600px card — narrower columns let absolute HTML spill across panes */
-  grid-template-columns: minmax(620px, 1fr) minmax(620px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
-  min-width: 1240px;
   align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.outlook-dual.single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .outlook-pane {
@@ -760,12 +1161,46 @@ button.danger-text {
   color: var(--muted);
 }
 
-/* Trap designer z-index so absolute shapes scroll under sticky heads */
+/* Trap designer z-index so absolute shapes scroll under sticky heads.
+   Flex centers the card — CSS `zoom` breaks margin:auto centering, which
+   made the preview look left-aligned with a huge empty gap on the right. */
 .outlook-pane-body {
   position: relative;
   z-index: 0;
   isolation: isolate;
-  overflow: hidden;
+  overflow: auto;
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Scale the design-width card into the pane (Fit may zoom above 100%).
+   Layout width stays at --preview-design-width; only CSS zoom changes the
+   visual size — never let the card's layout width fluidly shrink/grow or
+   absolute email stages drift off their designed positions. */
+.email-preview-scale {
+  --preview-zoom: 1;
+  --preview-design-width: 600px;
+  flex: 0 0 auto;
+  width: calc(var(--preview-design-width) * var(--preview-zoom));
+  max-width: none;
+  overflow: visible;
+}
+
+.email-preview-scale .email-preview {
+  width: var(--preview-design-width);
+  min-width: var(--preview-design-width);
+  max-width: var(--preview-design-width);
+  box-sizing: border-box;
+  zoom: var(--preview-zoom);
+}
+
+/* Force the compiled card to the same fixed design width as the designer */
+.email-preview .grat-email-card {
+  width: var(--preview-design-width) !important;
+  min-width: var(--preview-design-width) !important;
+  max-width: var(--preview-design-width) !important;
 }
 
 .outlook-dual .email-preview {
@@ -775,15 +1210,18 @@ button.danger-text {
   border: none;
   border-radius: 0;
   overflow: hidden;
-  max-width: 100%;
   background: #fff;
 }
 
 /* Classic Outlook (Word) approximations — not pixel-perfect, but flags common breaks */
 .outlook-desktop-sim,
-.outlook-desktop-sim * {
+.outlook-desktop-sim *:not(.grat-email-circle) {
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+.outlook-desktop-sim .grat-email-circle {
+  border-radius: 50% !important;
 }
 
 .outlook-desktop-sim {
@@ -801,8 +1239,7 @@ button.danger-text {
 
 @media (max-width: 900px) {
   .outlook-dual {
-    min-width: 620px;
-    grid-template-columns: minmax(620px, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .outlook-pane {
@@ -816,9 +1253,13 @@ button.danger-text {
 }
 
 .designer-page {
-  width: min(1200px, calc(100% - 1.5rem));
-  margin: 1rem auto 2.5rem;
+  width: min(1400px, calc(100% - 1.5rem));
+  margin: 0.75rem auto 1rem;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 4.5rem);
+  box-sizing: border-box;
 }
 
 .designer-top {
@@ -826,8 +1267,9 @@ button.danger-text {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   align-items: flex-start;
+  flex-shrink: 0;
 }
 
 .designer-top h1 {
@@ -839,7 +1281,9 @@ button.danger-text {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 .designer-tools {
@@ -976,12 +1420,13 @@ button.linkish {
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
   border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 8%, #fff);
   font-size: 0.86rem;
+  flex-shrink: 0;
 }
 
 .crop-banner .crop-actions {
@@ -1193,6 +1638,48 @@ button.danger-tool {
   gap: 0.5rem;
 }
 
+.card-section-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.card-advanced {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.card-advanced > summary {
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 1.05rem;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  user-select: none;
+}
+
+.card-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.card-advanced > summary::before {
+  content: "▸";
+  display: inline-block;
+  transition: transform 0.15s ease;
+  color: var(--muted);
+}
+
+.card-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.card-advanced-body {
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
 .html-surface {
   display: grid;
   gap: 0.85rem;
@@ -1227,13 +1714,15 @@ textarea.html-code {
 }
 
 .designer-stage {
-  overflow-x: auto;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 1rem;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0.75rem;
   position: relative;
+  min-height: min(70dvh, 720px);
+  height: 100%;
   background:
     linear-gradient(45deg, #ece8df 25%, transparent 25%),
     linear-gradient(-45deg, #ece8df 25%, transparent 25%),
@@ -1242,6 +1731,33 @@ textarea.html-code {
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
   background-color: #f7f4ec;
+}
+
+.designer-stage-center {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.designer-fit-shell {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.designer-fit-scale {
+  transform-origin: top left;
+  will-change: transform;
+}
+
+.designer-fit-label {
+  margin: 0;
+  text-align: center;
 }
 
 .designer-stage.is-dragover {
@@ -1301,17 +1817,15 @@ textarea.html-code {
 }
 
 .designer-frame {
-  display: inline-block;
+  display: block;
   line-height: 0;
   overflow: hidden;
   flex-shrink: 0;
   box-sizing: border-box;
-  max-width: 100%;
   box-shadow: 0 10px 30px rgba(28, 36, 32, 0.12);
 }
 
 .designer-stage canvas {
-  max-width: 100%;
   display: block;
   vertical-align: top;
 }
@@ -1531,11 +2045,16 @@ textarea.html-code {
 @media (max-width: 900px) {
   .designer-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(50dvh, 1fr);
   }
 
   .designer-tools {
     position: static;
     max-height: none;
+  }
+
+  .designer-stage {
+    min-height: 50dvh;
   }
 }
 
@@ -1551,4 +2070,191 @@ textarea.html-code {
   .two-col {
     grid-template-columns: 1fr;
   }
+}
+
+/* Phase 3 — compose / drafts */
+.compose-layout {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .compose-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compose-recipients {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.recipient-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 0.25rem;
+}
+
+.recipient-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.recipient-chip em {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.recipient-hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffdf8;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.recipient-hits li + li {
+  border-top: 1px solid var(--line);
+}
+
+.recipient-hits button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  text-align: left;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+  padding: 0.65rem 0.85rem;
+}
+
+.recipient-hits button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.recipient-hits button span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.compose-preview-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.btn-link-ghost {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink) !important;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+
+.draft-list,
+.draft-job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.draft-job-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  text-decoration: none !important;
+  color: inherit;
+}
+
+.draft-job-row:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.draft-job-row .meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-top: 0.15rem;
+}
+
+.draft-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.draft-card-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+  background: transparent;
+  color: var(--ink);
+  border-radius: 0;
+  padding: 0.95rem 1.1rem;
+}
+
+.draft-card-head .meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.draft-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.draft-status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  color: var(--accent-deep);
+}
+
+.draft-status--failed {
+  background: color-mix(in srgb, var(--warn) 16%, #fff);
+  color: var(--warn);
+}
+
+.draft-card-body {
+  padding: 0 1.1rem 1.1rem;
+  border-top: 1px solid var(--line);
 }

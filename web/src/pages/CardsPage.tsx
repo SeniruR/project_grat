@@ -222,12 +222,20 @@ function TemplateCard({
         aria-label={`Open ${template.name}`}
       >
         <div className="template-card-preview" aria-hidden>
-          <iframe
-            title=""
-            className="template-card-frame"
-            sandbox=""
-            srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{margin:0;background:#fff;}</style></head><body>${previewHtml}</body></html>`}
-          />
+          {latest?.previewUrl ? (
+            <img
+              className="template-card-png"
+              src={latest.previewUrl}
+              alt=""
+            />
+          ) : (
+            <iframe
+              title=""
+              className="template-card-frame"
+              sandbox=""
+              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{margin:0;background:#fff;}</style></head><body>${previewHtml}</body></html>`}
+            />
+          )}
         </div>
         <div className="template-card-body">
           <div className="template-card-title-row">

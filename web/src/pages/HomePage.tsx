@@ -50,7 +50,11 @@ export function HomePage() {
               <p>{item.description}</p>
             </Link>
           ) : (
-            <div key={item.type} className="catalog-tile catalog-tile--soon">
+            <div
+              key={item.type}
+              className="catalog-tile catalog-tile--soon"
+              title={item.description}
+            >
               <span className="catalog-type">{item.type}</span>
               <h2>{item.title}</h2>
               <p>{item.description}</p>
