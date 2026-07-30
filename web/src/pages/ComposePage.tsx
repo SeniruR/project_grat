@@ -8,6 +8,12 @@ import {
 import { useAuth } from "../auth/AuthContext";
 import { wrapWithHeaderFooter } from "../lib/emailHtml";
 import { resolveHtmlImageSrcsClient } from "../lib/htmlAssets";
+import {
+  applyMergeFields,
+  buildMergeFieldMap,
+  describeMergeField,
+  detectMergeFields,
+} from "../lib/mergeFields";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -33,6 +39,8 @@ export function ComposePage() {
 
   const [template, setTemplate] = useState<TemplateSummary | null>(null);
   const [subject, setSubject] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<DirectoryPerson[]>([]);
   const [selected, setSelected] = useState<DirectoryPerson[]>([]);
@@ -62,6 +70,12 @@ export function ComposePage() {
   }, [token, id]);
 
   useEffect(() => {
+    if (!user) return;
+    setSenderName((prev) => prev || user.displayName || "");
+    setSenderEmail((prev) => prev || user.email || "");
+  }, [user]);
+
+  useEffect(() => {
     if (!token) return;
     const q = query.trim();
     if (q.length < 1 || EMAIL_RE.test(q)) {
@@ -82,24 +96,47 @@ export function ComposePage() {
   const compiled = (template?.versions[0]?.compiledHtml ?? "").trim();
   const assets = template?.assets ?? [];
 
+  const detectedFields = useMemo(
+    () =>
+      detectMergeFields(
+        [
+          compiled,
+          template?.headerHtml ?? "",
+          template?.footerHtml ?? "",
+        ].join("\n"),
+      ),
+    [compiled, template?.headerHtml, template?.footerHtml],
+  );
+
   const previewHtml = useMemo(() => {
     if (!template || !compiled) return "";
-    const sampleName = selected[0]?.displayName ?? user?.displayName ?? "Alex";
-    const sampleEmail = selected[0]?.email ?? user?.email ?? "alex@example.com";
+    const sampleName = selected[0]?.displayName ?? "Alex";
+    const sampleEmail = selected[0]?.email ?? "alex@example.com";
     let body = resolveHtmlImageSrcsClient(compiled, assets, API_URL);
     body = wrapWithHeaderFooter(
       body,
       template.headerHtml,
       template.footerHtml,
     );
-    body = body
-      .replace(/\{\{\s*name\s*\}\}/gi, sampleName)
-      .replace(/\{\{\s*displayName\s*\}\}/gi, sampleName)
-      .replace(/\{\{\s*recipientName\s*\}\}/gi, sampleName)
-      .replace(/\{\{\s*email\s*\}\}/gi, sampleEmail)
-      .replace(/\{\{\s*recipientEmail\s*\}\}/gi, sampleEmail);
+    body = applyMergeFields(
+      body,
+      buildMergeFieldMap({
+        recipientName: sampleName,
+        recipientEmail: sampleEmail,
+        senderName: senderName.trim() || user?.displayName || "You",
+        senderEmail: senderEmail.trim() || user?.email || "you@example.com",
+      }),
+    );
     return resolveHtmlImageSrcsClient(body, assets, API_URL);
-  }, [template, compiled, assets, selected, user]);
+  }, [
+    template,
+    compiled,
+    assets,
+    selected,
+    senderName,
+    senderEmail,
+    user,
+  ]);
 
   function addPerson(person: DirectoryPerson) {
     setSelected((prev) => {
@@ -139,7 +176,7 @@ export function ComposePage() {
     if (!token || !template || !id) return;
     if (!compiled) {
       setError(
-        "No compiled email HTML yet. Save & compile in Designer (or Recompile preview) first.",
+        "No compiled email HTML yet. Import a Canva ZIP (or HTML) on the card page first.",
       );
       return;
     }
@@ -151,6 +188,14 @@ export function ComposePage() {
       setError("Pick at least one recipient.");
       return;
     }
+    if (!senderName.trim()) {
+      setError("Sender name is required for merge fields.");
+      return;
+    }
+    if (!EMAIL_RE.test(senderEmail.trim())) {
+      setError("Enter a valid sender email.");
+      return;
+    }
 
     setBusy(true);
     setError(null);
@@ -159,6 +204,8 @@ export function ComposePage() {
         templateId: template.id,
         templateVersionId: template.versions[0]?.id,
         subject: subject.trim(),
+        senderName: senderName.trim(),
+        senderEmail: senderEmail.trim().toLowerCase(),
         recipients: selected.map((p) => ({
           aadOid: p.aadOid,
           email: p.email,
@@ -202,12 +249,10 @@ export function ComposePage() {
             {mailMode === "smtp" ? "Send email" : "Create Outlook drafts"}
           </h1>
           <p className="lede">
-            Type an email and press Enter, or search the directory.{" "}
-            {mailMode === "smtp"
-              ? "SMTP mode sends real HTML email via your mail server (e.g. Gmail)."
-              : mailMode === "graph"
-                ? "Graph mode creates real Outlook drafts in the sender mailbox."
-                : "Mock mode stores drafts in the app (set MAIL_MODE=smtp or graph in api/.env)."}
+            Type an email and press Enter, or search the directory. Merge fields
+            in the card HTML (like{" "}
+            <code>{"{{recipientName}}"}</code>) are filled per recipient —
+            the saved template is not changed.
           </p>
         </div>
       </header>
@@ -217,8 +262,8 @@ export function ComposePage() {
       {!compiled ? (
         <p className="notice">
           This card has no compiled HTML yet.{" "}
-          <Link to={`/cards/${template.id}`}>Open the card</Link> and recompile,
-          or use Designer → Save &amp; compile.
+          <Link to={`/cards/${template.id}`}>Open the card</Link> and import a
+          Canva ZIP (or HTML).
         </p>
       ) : null}
 
@@ -233,6 +278,36 @@ export function ComposePage() {
               maxLength={300}
             />
           </label>
+
+          <fieldset className="choice-set compose-sender">
+            <legend>Sender (for merge fields)</legend>
+            <label>
+              Sender name
+              <input
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+                disabled={busy}
+                maxLength={200}
+                placeholder="Your name"
+              />
+            </label>
+            <label>
+              Sender email
+              <input
+                type="email"
+                value={senderEmail}
+                onChange={(e) => setSenderEmail(e.target.value)}
+                disabled={busy}
+                maxLength={320}
+                placeholder="you@example.com"
+              />
+            </label>
+            <p className="muted small">
+              Fills <code>{"{{senderName}}"}</code> and{" "}
+              <code>{"{{senderEmail}}"}</code> in the email. Defaults to your
+              account.
+            </p>
+          </fieldset>
 
           <div className="compose-recipients">
             <label htmlFor="recipient-search">Recipients</label>
@@ -303,10 +378,30 @@ export function ComposePage() {
               </ul>
             ) : null}
             <p className="muted small">
-              Type any email address, or pick from directory search. Merge fields:{" "}
-              <code>{"{{name}}"}</code>, <code>{"{{email}}"}</code> (filled per
-              recipient).
+              Type any email address, or pick from directory search.{" "}
+              <code>{"{{recipientName}}"}</code> /{" "}
+              <code>{"{{recipientEmail}}"}</code> are filled per person.
             </p>
+          </div>
+
+          <div className="merge-fields-panel">
+            <h3 className="card-section-title">Merge fields in this card</h3>
+            {detectedFields.length > 0 ? (
+              <ul className="merge-fields-list">
+                {detectedFields.map((key) => (
+                  <li key={key.toLowerCase()}>
+                    <code>{`{{${key}}}`}</code>
+                    <span className="muted">{describeMergeField(key)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted small">
+                No <code>{"{{…}}"}</code> tokens found. In Canva, type tokens as
+                normal text (e.g. <code>{"{{recipientName}}"}</code>), then
+                re-export the HTML ZIP.
+              </p>
+            )}
           </div>
 
           <div className="surface-actions">
@@ -332,8 +427,13 @@ export function ComposePage() {
         <section className="compose-preview">
           <h2 className="compose-preview-title">Preview</h2>
           <p className="muted small">
-            Sample merge uses{" "}
-            {selected[0]?.displayName ?? user?.displayName ?? "Alex"}.
+            Sample merge uses recipient{" "}
+            <strong>
+              {selected[0]?.displayName ?? "Alex"}
+            </strong>
+            {" · "}
+            sender <strong>{senderName.trim() || user?.displayName || "You"}</strong>.
+            Each send fills tokens per recipient; the template is unchanged.
           </p>
           {previewHtml ? (
             <OutlookDualPreview html={previewHtml} />

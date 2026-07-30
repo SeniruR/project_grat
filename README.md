@@ -116,6 +116,19 @@ For selectable Outlook text when designing in Canva:
 
 **Copy picture for Outlook** = matches Canva. **Copy HTML** = selectable text but Outlook may shift layout. **Compose** = server sends HTML (best for real delivery).
 
+### Merge fields (personalize without editing the template)
+
+In Canva text boxes, type tokens as normal text before you export the ZIP:
+
+| Token | Filled with |
+|-------|-------------|
+| `{{recipientName}}` | Each recipient’s name (`{{name}}` / `{{displayName}}` also work) |
+| `{{recipientEmail}}` | Each recipient’s email (`{{email}}` also works) |
+| `{{senderName}}` | Sender name on Compose (defaults to you) |
+| `{{senderEmail}}` | Sender email on Compose (defaults to you) |
+
+Compose replaces tokens **per send**. The saved template HTML is not changed. Fonts and colors stay because only the text inside the token is swapped.
+
 Do not expect PNG/PDF uploads to become editable selectable HTML — that path is image-in-table only.
 
 In `web/`, run `npm install` (includes `html-to-image` for sharper Canva snapshots).

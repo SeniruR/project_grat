@@ -1453,6 +1453,52 @@ button.danger-text {
   font-size: 0.85rem;
 }
 
+.compose-sender {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.compose-sender legend {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.merge-fields-panel {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 2.5%, #fff);
+}
+
+.merge-fields-panel .card-section-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+
+.merge-fields-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.merge-fields-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.merge-fields-list code,
+.compose-sender code,
+.compose-recipients code,
+.page-header code {
+  font-size: 0.82em;
+}
+
 .compose-preview-title {
   margin: 0 0 0.35rem;
   font-size: 1.15rem;

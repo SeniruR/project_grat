@@ -156,6 +156,12 @@ export function NewTemplatePage() {
               </li>
               <li>Prefer text boxes and layout blocks — not one flattened image.</li>
               <li>
+                For personalization, type merge tokens as normal text, e.g.{" "}
+                <code>{"{{recipientName}}"}</code> or{" "}
+                <code>{"{{senderName}}"}</code>. Styles stay when Compose fills
+                them.
+              </li>
+              <li>
                 <strong>Share → Download → HTML and images</strong> (ZIP).
               </li>
               <li>Upload that ZIP below.</li>

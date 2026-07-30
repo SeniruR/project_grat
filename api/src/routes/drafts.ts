@@ -18,6 +18,10 @@ const createJobBody = z.object({
   templateVersionId: z.string().min(1).optional(),
   subject: z.string().min(1).max(300),
   recipients: z.array(recipientBody).min(1).max(50),
+  /** Optional override for {{senderName}} (defaults to signed-in user). */
+  senderName: z.string().min(1).max(200).optional(),
+  /** Optional override for {{senderEmail}} (defaults to signed-in user). */
+  senderEmail: z.string().email().max(320).optional(),
 });
 
 function canView(
@@ -103,8 +107,19 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid draft job payload" });
       }
 
-      const { templateId, templateVersionId, subject, recipients } =
-        parsed.data;
+      const {
+        templateId,
+        templateVersionId,
+        subject,
+        recipients,
+        senderName,
+        senderEmail,
+      } = parsed.data;
+
+      const sender = {
+        displayName: senderName?.trim() || user.displayName,
+        email: senderEmail?.trim() || user.email,
+      };
 
       // Dedupe by email (case-insensitive)
       const seen = new Set<string>();
@@ -180,6 +195,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             displayName: recipient.displayName,
             email: recipient.email,
           },
+          sender,
         });
 
         let inlineAttachments:

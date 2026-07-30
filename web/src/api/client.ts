@@ -288,6 +288,8 @@ export const api = {
         email: string;
         displayName?: string;
       }>;
+      senderName?: string;
+      senderEmail?: string;
     },
   ) =>
     request<{ job: DraftJobDetail; mailMode: string }>("/draft-jobs", {

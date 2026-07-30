@@ -35,6 +35,23 @@ export function applyMergeFields(
   });
 }
 
+export function buildMergeFieldMap(input: {
+  recipient: { displayName?: string | null; email: string };
+  sender: { displayName?: string | null; email: string };
+}): Record<string, string> {
+  const name = input.recipient.displayName?.trim() || input.recipient.email;
+  const senderName = input.sender.displayName?.trim() || input.sender.email;
+  return {
+    name,
+    displayName: name,
+    recipientName: name,
+    email: input.recipient.email,
+    recipientEmail: input.recipient.email,
+    senderName,
+    senderEmail: input.sender.email,
+  };
+}
+
 export function buildOutboundBodyHtml(input: {
   compiledHtml: string;
   headerHtml?: string | null;
@@ -42,6 +59,10 @@ export function buildOutboundBodyHtml(input: {
   assets: AssetRef[];
   publicBaseUrl: string;
   recipient: {
+    displayName?: string | null;
+    email: string;
+  };
+  sender: {
     displayName?: string | null;
     email: string;
   };
@@ -69,12 +90,11 @@ export function buildOutboundBodyHtml(input: {
       : null,
   );
 
-  const name = input.recipient.displayName?.trim() || input.recipient.email;
-  return applyMergeFields(wrapped, {
-    name,
-    displayName: name,
-    recipientName: name,
-    email: input.recipient.email,
-    recipientEmail: input.recipient.email,
-  });
+  return applyMergeFields(
+    wrapped,
+    buildMergeFieldMap({
+      recipient: input.recipient,
+      sender: input.sender,
+    }),
+  );
 }

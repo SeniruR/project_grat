@@ -612,6 +612,12 @@ export function TemplateDetailPage() {
                   In Canva: Email design → Share → Download →{" "}
                   <strong>HTML and images</strong> (ZIP).
                 </li>
+                <li>
+                  Optional personalization: put{" "}
+                  <code>{"{{recipientName}}"}</code> /{" "}
+                  <code>{"{{senderName}}"}</code> in text boxes before export.
+                  Compose fills them per send; this template is not overwritten.
+                </li>
                 <li>Re-import below to replace this design.</li>
               </ol>
               {canEdit ? (
