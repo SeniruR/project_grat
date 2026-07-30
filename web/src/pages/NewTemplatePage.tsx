@@ -1,14 +1,47 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import {
+  importCanvaZipToTemplate,
+  importDesignImageToTemplate,
+} from "../lib/importDesign";
+
+type Starter = "canva_zip" | "image_upload";
+
+const STARTERS: Array<{
+  id: Starter;
+  title: string;
+  blurb: string;
+  detail: string;
+}> = [
+  {
+    id: "canva_zip",
+    title: "Import from Canva",
+    blurb: "HTML ZIP — selectable text",
+    detail:
+      "Best path for Outlook text like LinkedIn. In Canva: Email design → Share → Download → HTML and images (ZIP).",
+  },
+  {
+    id: "image_upload",
+    title: "Upload image",
+    blurb: "PNG / JPEG / PDF",
+    detail:
+      "Looks correct in Outlook; text is not selectable. PDF uses page 1 only.",
+  },
+];
 
 export function NewTemplatePage() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const zipInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
-  const [html, setHtml] = useState("");
+  const [starter, setStarter] = useState<Starter>("canva_zip");
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [headerHtml, setHeaderHtml] = useState("");
   const [footerHtml, setFooterHtml] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,18 +51,45 @@ export function NewTemplatePage() {
     e.preventDefault();
     if (!token) return;
     setError(null);
+
+    if (starter === "canva_zip" && !zipFile) {
+      setError("Choose a Canva HTML ZIP to import.");
+      return;
+    }
+    if (starter === "image_upload" && !imageFile) {
+      setError("Choose a PNG, JPEG, or PDF to upload.");
+      return;
+    }
+
     setSaving(true);
     try {
-      const starter = html.trim();
+      const createMode =
+        starter === "canva_zip" ? "canva_html" : "image_import";
+
       const { template } = await api.createTemplate(token, {
         name,
         visibility,
-        mode: starter ? "html_import" : "blank",
-        html: starter || undefined,
+        mode: createMode,
         headerHtml: headerHtml.trim() || undefined,
         footerHtml: footerHtml.trim() || undefined,
       });
-      navigate(`/cards/${template.id}`);
+
+      if (starter === "canva_zip" && zipFile) {
+        await importCanvaZipToTemplate(token, template.id, zipFile);
+        navigate(`/cards/${template.id}`);
+        return;
+      }
+
+      if (starter === "image_upload" && imageFile) {
+        await importDesignImageToTemplate(
+          token,
+          template.id,
+          imageFile,
+          name.trim() || "Gratitude card",
+        );
+        navigate(`/cards/${template.id}`);
+        return;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
     } finally {
@@ -46,8 +106,9 @@ export function NewTemplatePage() {
         <p className="eyebrow">Cards</p>
         <h1>New template</h1>
         <p className="lede">
-          Create a card, then switch between <strong>Designer</strong> and{" "}
-          <strong>HTML</strong> anytime on the template page.
+          Design in Canva, then import an{" "}
+          <strong>HTML and images</strong> ZIP for selectable text in Outlook.
+          Or upload a PNG/PDF if you only need a picture.
         </p>
       </header>
 
@@ -62,6 +123,84 @@ export function NewTemplatePage() {
             placeholder="Q3 thank-you card"
           />
         </label>
+
+        <fieldset className="choice-set">
+          <legend>How do you want to start?</legend>
+          <div className="starter-grid" role="radiogroup" aria-label="Starter">
+            {STARTERS.map((s) => (
+              <label
+                key={s.id}
+                className={`starter-card ${starter === s.id ? "is-selected" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="starter"
+                  value={s.id}
+                  checked={starter === s.id}
+                  onChange={() => setStarter(s.id)}
+                />
+                <span className="starter-card-title">{s.title}</span>
+                <span className="starter-card-blurb">{s.blurb}</span>
+                <span className="starter-card-detail muted small">{s.detail}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {starter === "canva_zip" ? (
+          <div className="import-panel">
+            <h3 className="card-section-title">Canva export steps</h3>
+            <ol className="steps-list">
+              <li>
+                In Canva, create an <strong>Email</strong> design (not a poster).
+              </li>
+              <li>Prefer text boxes and layout blocks — not one flattened image.</li>
+              <li>
+                <strong>Share → Download → HTML and images</strong> (ZIP).
+              </li>
+              <li>Upload that ZIP below.</li>
+            </ol>
+            <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+              <input
+                ref={zipInputRef}
+                type="file"
+                accept=".zip,application/zip"
+                disabled={saving}
+                onChange={(e) => {
+                  setZipFile(e.target.files?.[0] ?? null);
+                }}
+              />
+              <span className="file-pick-btn">Choose Canva ZIP</span>
+              <span className="file-pick-name muted">
+                {zipFile ? zipFile.name : "HTML and images ZIP"}
+              </span>
+            </label>
+          </div>
+        ) : null}
+
+        {starter === "image_upload" ? (
+          <div className="import-panel">
+            <p className="muted">
+              Upload a PNG, JPEG, GIF, WebP, or PDF. Outlook paste will use an
+              image in a simple table — looks correct; text is not selectable.
+            </p>
+            <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf"
+                disabled={saving}
+                onChange={(e) => {
+                  setImageFile(e.target.files?.[0] ?? null);
+                }}
+              />
+              <span className="file-pick-btn">Choose image or PDF</span>
+              <span className="file-pick-name muted">
+                {imageFile ? imageFile.name : "PNG, JPEG, or PDF (page 1)"}
+              </span>
+            </label>
+          </div>
+        ) : null}
 
         <fieldset className="choice-set">
           <legend>Visibility</legend>
@@ -85,45 +224,41 @@ export function NewTemplatePage() {
           </label>
         </fieldset>
 
-        <label>
-          Starting email HTML{" "}
-          <span className="optional-tag">(optional)</span>
-          <span className="field-hint">
-            Leave empty to start blank, then use Designer or paste HTML later.
-          </span>
-          <textarea
-            value={html}
-            onChange={(e) => setHtml(e.target.value)}
-            rows={10}
-            spellCheck={false}
-            placeholder="Optional HTML to start from…"
-          />
-        </label>
-
-        <label>
-          Optional header HTML
-          <textarea
-            value={headerHtml}
-            onChange={(e) => setHeaderHtml(e.target.value)}
-            rows={3}
-            placeholder="Company banner snippet (optional)"
-          />
-        </label>
-        <label>
-          Optional footer HTML
-          <textarea
-            value={footerHtml}
-            onChange={(e) => setFooterHtml(e.target.value)}
-            rows={3}
-            placeholder="Disclaimer / signature block (optional)"
-          />
-        </label>
+        <details className="card-advanced">
+          <summary>Optional header / footer HTML</summary>
+          <div className="card-advanced-body form-stack">
+            <label>
+              Header HTML
+              <textarea
+                value={headerHtml}
+                onChange={(e) => setHeaderHtml(e.target.value)}
+                rows={3}
+                placeholder="Company banner snippet (optional)"
+              />
+            </label>
+            <label>
+              Footer HTML
+              <textarea
+                value={footerHtml}
+                onChange={(e) => setFooterHtml(e.target.value)}
+                rows={3}
+                placeholder="Disclaimer / signature block (optional)"
+              />
+            </label>
+          </div>
+        </details>
 
         {error ? <p className="error">{error}</p> : null}
 
         <div className="actions">
           <button type="submit" disabled={saving}>
-            {saving ? "Creating…" : "Create template"}
+            {saving
+              ? starter === "canva_zip"
+                ? "Importing…"
+                : "Uploading…"
+              : starter === "canva_zip"
+                ? "Import Canva ZIP"
+                : "Upload image"}
           </button>
           <Link to="/cards" className="ghost-link">
             Cancel

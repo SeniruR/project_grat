@@ -17,7 +17,9 @@ import { unlink, stat } from "node:fs/promises";
 const createBody = z.object({
   name: z.string().min(1).max(160),
   visibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
-  mode: z.enum(["blank", "html_import", "designer"]).default("blank"),
+  mode: z
+    .enum(["blank", "html_import", "canva_html", "image_import"])
+    .default("blank"),
   html: z.string().max(500_000).optional(),
   headerHtml: z.string().max(50_000).optional(),
   footerHtml: z.string().max(50_000).optional(),
@@ -112,7 +114,14 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       const designJson =
         mode === "html_import"
           ? { mode: "html_import", sourceHtml: html }
-          : { mode: mode === "designer" ? "designer" : "blank", objects: [] };
+          : mode === "canva_html"
+            ? { mode: "canva_html", source: "canva_zip" }
+            : mode === "image_import"
+              ? { mode: "image_import", source: "upload" }
+              : {
+                  mode: "blank",
+                  objects: [],
+                };
 
       const compiledHtml =
         mode === "html_import" ? html!.trim() : "<div></div>";
@@ -344,23 +353,66 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           "image/png",
           "image/gif",
           "image/webp",
+          // Canva HTML ZIP may ship web fonts referenced from @font-face
+          "font/woff",
+          "font/woff2",
+          "font/ttf",
+          "font/otf",
+          "application/font-woff",
+          "application/font-woff2",
+          "application/x-font-ttf",
+          "application/x-font-otf",
+          "application/vnd.ms-fontobject",
+          "application/octet-stream",
         ]);
-        if (!allowed.has(part.mimetype)) {
+        const fileExt = path.extname(part.filename || "").toLowerCase();
+        const fontExt = new Set([
+          ".woff",
+          ".woff2",
+          ".ttf",
+          ".otf",
+          ".eot",
+        ]);
+        const isFont =
+          fontExt.has(fileExt) ||
+          part.mimetype.startsWith("font/") ||
+          part.mimetype.includes("font");
+        const isImage = part.mimetype.startsWith("image/");
+        if (
+          !allowed.has(part.mimetype) &&
+          !(part.mimetype === "application/octet-stream" && (isFont || isImage))
+        ) {
           part.file.resume();
-          return reply
-            .code(400)
-            .send({ error: "Only JPEG, PNG, GIF, or WebP images allowed" });
+          return reply.code(400).send({
+            error:
+              "Only JPEG, PNG, GIF, WebP images or web fonts (woff/ttf) allowed",
+          });
+        }
+        if (part.mimetype === "application/octet-stream" && !isFont && !isImage) {
+          part.file.resume();
+          return reply.code(400).send({
+            error:
+              "Only JPEG, PNG, GIF, WebP images or web fonts (woff/ttf) allowed",
+          });
         }
 
         const ext =
-          path.extname(part.filename || "").toLowerCase() ||
+          fileExt ||
           (part.mimetype === "image/png"
             ? ".png"
             : part.mimetype === "image/webp"
               ? ".webp"
               : part.mimetype === "image/gif"
                 ? ".gif"
-                : ".jpg");
+                : part.mimetype.includes("woff2")
+                  ? ".woff2"
+                  : part.mimetype.includes("woff")
+                    ? ".woff"
+                    : part.mimetype.includes("ttf")
+                      ? ".ttf"
+                      : part.mimetype.includes("otf")
+                        ? ".otf"
+                        : ".jpg");
 
         const folder = kind === "compiled" ? "compiled" : "source";
         const safeName =
@@ -387,7 +439,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Expected multipart file field" });
       }
 
-      const maxBytes = kind === "compiled" ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+      const maxBytes = 5 * 1024 * 1024;
       const fileStat = await stat(saved.absPath);
       if (fileStat.size > maxBytes) {
         await unlink(saved.absPath);
@@ -395,7 +447,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           error:
             kind === "compiled"
               ? "Compiled image is too large — simplify the design"
-              : "Image must be 2MB or smaller",
+              : "Image must be 5MB or smaller",
         });
       }
 

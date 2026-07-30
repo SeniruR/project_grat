@@ -27,7 +27,7 @@ export const config = {
   ),
   authMode: (process.env.AUTH_MODE ?? "dev") as "dev" | "azure",
   directoryMode: (process.env.DIRECTORY_MODE ?? "mock") as "mock" | "graph",
-  mailMode: (process.env.MAIL_MODE ?? "mock") as "mock" | "graph",
+  mailMode: (process.env.MAIL_MODE ?? "mock") as "mock" | "graph" | "smtp",
 
   /** Azure AD app registration (required when MAIL_MODE=graph) */
   azureTenantId: optional("AZURE_TENANT_ID"),
@@ -38,4 +38,14 @@ export const config = {
    * If unset, drafts are created in the requester's email mailbox.
    */
   graphMailboxUpn: optional("GRAPH_MAILBOX_UPN"),
+
+  /** Gmail / SMTP (required when MAIL_MODE=smtp) */
+  smtpHost: optional("SMTP_HOST") ?? "smtp.gmail.com",
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpSecure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
+  smtpUser: optional("SMTP_USER"),
+  smtpPass: optional("SMTP_PASS"),
+  /** From address; defaults to SMTP_USER */
+  smtpFrom: optional("SMTP_FROM"),
+  smtpFromName: optional("SMTP_FROM_NAME"),
 };

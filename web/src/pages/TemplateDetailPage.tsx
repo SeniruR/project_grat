@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, assetUrl, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import {
   resolveHtmlImageSrcsClient,
   suggestedImgTag,
 } from "../lib/htmlAssets";
-import { wrapWithHeaderFooter } from "../designer/compile";
-import {
-  exportDesignJsonCompiled,
-  hasDesignerCanvas,
-} from "../designer/recompile";
-import { previewDataUrlToFile } from "../designer/previewPng";
+import { wrapWithHeaderFooter } from "../lib/emailHtml";
 import { copyHtmlSource } from "../lib/copyEmail";
 import { CanvasPreview } from "../components/CanvasPreview";
 import { COMPOSE_ENABLED, COMPOSE_UNAVAILABLE_REASON } from "../features";
+import {
+  importCanvaZipToTemplate,
+  importDesignImageToTemplate,
+  regenerateCanvaSnapshot,
+} from "../lib/importDesign";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -120,10 +120,8 @@ function htmlUsesAsset(html: string, fileName: string, storageKey: string) {
 
 export function TemplateDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
   const { token, user } = useAuth();
   const navigate = useNavigate();
-  const autoRecompileRef = useRef(false);
   const [template, setTemplate] = useState<TemplateSummary | null>(null);
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
@@ -162,13 +160,11 @@ export function TemplateDetailPage() {
 
   useEffect(() => {
     if (!token || !id) return;
-    autoRecompileRef.current = false;
     reload().catch((err) =>
       setError(err instanceof Error ? err.message : "Failed to load"),
     );
-    // Reload whenever we navigate back from Designer (new location.key).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, id, location.key]);
+  }, [token, id]);
 
   const assets = template?.assets ?? [];
   const latestMode =
@@ -179,9 +175,7 @@ export function TemplateDetailPage() {
     string,
     unknown
   >;
-  // Render the preview at the exact canvas width chosen in the designer so it
-  // matches the design (600 Card, 800 Wide, 640 Landscape, …) instead of a
-  // fixed 600px. Falls back to the max-width baked into the compiled HTML.
+  // Preview width from designJson or max-width in compiled HTML.
   const designPreviewWidth = useMemo(() => {
     const fromJson = latestDesignJson.width;
     if (typeof fromJson === "number" && fromJson >= 200) {
@@ -203,8 +197,33 @@ export function TemplateDetailPage() {
     return 800;
   }, [latestDesignJson]);
 
-  /** Compiled PNG from Save & compile — used for Outlook paste. */
+  /** Compiled PNG snapshot — pixel-perfect Outlook paste for Canva imports */
   const previewImageUrl = template?.versions[0]?.previewUrl?.trim() || null;
+
+  /** Canva: PNG paste matches design; HTML optional for selectable text. */
+  const outlookPasteMode: "html" | "png" =
+    latestMode === "canva_html" && previewImageUrl
+      ? "png"
+      : latestMode === "canva_html" || latestMode === "html_import"
+        ? "html"
+        : "png";
+
+  const offerCanvaHtmlPaste =
+    latestMode === "canva_html" && Boolean(previewImageUrl && html.trim());
+
+  const htmlOnlyPreview =
+    latestMode === "canva_html" || latestMode === "html_import";
+
+  const modeLabel =
+    latestMode === "canva_html"
+      ? "Canva HTML"
+      : latestMode === "image_import"
+        ? "Image email"
+        : latestMode === "html_import"
+          ? "HTML"
+          : latestMode === "designer"
+            ? "Legacy (retired designer)"
+            : "Blank";
 
   const previewHtml = useMemo(() => {
     const body = resolveHtmlImageSrcsClient(html, assets, API_URL);
@@ -228,18 +247,6 @@ export function TemplateDetailPage() {
       return `${prev.trimEnd()}${spacer}${tag}\n`;
     });
     setNotice(`Inserted src="${fileName}" into HTML. Click Save to keep it.`);
-  }
-
-  function openDesigner() {
-    if (!template) return;
-    const saved = (template.versions[0]?.compiledHtml ?? "").trim();
-    const draft = html.trim();
-    // Prefer Advanced HTML draft when it differs from the last save, or when
-    // there is no designer canvas yet.
-    const preferHtml = latestMode !== "designer" || draft !== saved;
-    navigate(`/cards/${template.id}/designer`, {
-      state: preferHtml && draft ? { htmlDraft: html } : undefined,
-    });
   }
 
   async function saveAll() {
@@ -269,33 +276,30 @@ export function TemplateDetailPage() {
       const draft = html.trim();
 
       if (draft !== saved) {
-        const hadDesigner =
-          latestMode === "designer" &&
-          latestDesignJson &&
-          typeof latestDesignJson === "object" &&
-          "canvas" in latestDesignJson;
+        const nextMode =
+          !draft
+            ? "blank"
+            : latestMode === "canva_html" || latestMode === "image_import"
+              ? latestMode
+              : "html_import";
 
-        // Advanced HTML edits become source of truth — drop Fabric canvas so
-        // Designer doesn't reopen a stale layout.
         const version = await api.saveTemplateVersion(token, id, {
           designJson: {
-            mode: draft ? "html_import" : "blank",
-            sourceHtml: html,
+            ...(nextMode === latestMode ? latestDesignJson : {}),
+            mode: nextMode,
+            ...(nextMode === "html_import" || nextMode === "blank"
+              ? { sourceHtml: html }
+              : {}),
           },
           compiledHtml: html,
-          previewUrl: null,
+          previewUrl:
+            nextMode === "image_import" ? previewImageUrl : null,
         });
         await reload();
-        setNotice(
-          hadDesigner
-            ? `Saved HTML (v${version.version}). Designer canvas was cleared — reopen Designer to import shapes from this HTML (best-effort).`
-            : `Saved (v${version.version}).`,
-        );
+        setNotice(`Saved (v${version.version}).`);
       } else {
         await reload();
-        setNotice(
-          "Saved settings. Open Designer → Save & compile to update the card layout.",
-        );
+        setNotice("Saved settings.");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -318,12 +322,11 @@ export function TemplateDetailPage() {
       string,
       unknown
     >;
-    const mode =
-      typeof designJson.mode === "string" ? designJson.mode : "blank";
     const designUses = countDesignUses(designJson, storageKey, fileName);
     const inHtml = htmlUsesAsset(html, fileName, storageKey);
-    const hasCompiledPreview =
-      mode === "designer" && Boolean((template.versions[0]?.compiledHtml ?? "").trim());
+    const hasCompiledPreview = Boolean(
+      (template.versions[0]?.compiledHtml ?? "").trim(),
+    );
 
     setAssetDeletePrompt({
       id: assetId,
@@ -331,7 +334,7 @@ export function TemplateDetailPage() {
       storageKey,
       designUses,
       inHtml,
-      clearsPreview: designUses > 0 || (hasCompiledPreview && designUses > 0),
+      clearsPreview: designUses > 0 && hasCompiledPreview,
     });
   }
 
@@ -364,7 +367,7 @@ export function TemplateDetailPage() {
         await api.saveTemplateVersion(token, id, {
           designJson: {
             ...nextDesign,
-            mode: mode === "designer" ? "designer" : nextDesign.mode ?? mode,
+            mode: nextDesign.mode ?? mode,
           },
           compiledHtml: "",
           previewUrl: null,
@@ -384,7 +387,7 @@ export function TemplateDetailPage() {
       await reload();
       setNotice(
         designUses > 0
-          ? `Removed “${fileName}” from the card (${designUses} placement${designUses === 1 ? "" : "s"}) and cleared the email preview. Use Recompile preview to rebuild it.`
+          ? `Removed “${fileName}” from the card (${designUses} placement${designUses === 1 ? "" : "s"}) and cleared the email preview. Re-import the design to rebuild it.`
           : inHtml
             ? `Removed “${fileName}” from uploads and HTML.`
             : `Deleted image “${fileName}”.`,
@@ -393,110 +396,6 @@ export function TemplateDetailPage() {
       setError(err instanceof Error ? err.message : "Delete image failed");
     }
   }
-
-  async function clearStalePreview() {
-    if (!token || !id || !canEdit || !template) return;
-    setError(null);
-    try {
-      const designJson = (template.versions[0]?.designJson ?? {}) as Record<
-        string,
-        unknown
-      >;
-      await api.purgeCompiledAssets(token, id);
-      await api.saveTemplateVersion(token, id, {
-        designJson,
-        compiledHtml: "",
-        previewUrl: null,
-      });
-      setHtml("");
-      await reload();
-      setNotice(
-        hasDesignerCanvas(designJson)
-          ? "Cleared email preview. Use Recompile preview to rebuild from the saved canvas."
-          : "Cleared email preview.",
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not clear preview");
-    }
-  }
-
-  async function recompilePreview() {
-    if (!token || !id || !canEdit || !template) return;
-    if (!hasDesignerCanvas(latestDesignJson)) {
-      setError("No saved designer canvas to recompile. Open Designer first.");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const design = latestDesignJson as {
-        canvas: Record<string, unknown>;
-        width?: number;
-        height?: number;
-        frame?: {
-          radius: number;
-          borderWidth: number;
-          borderColor: string;
-        };
-      };
-      const { compiledHtml, previewPngDataUrl } = await exportDesignJsonCompiled(
-        design,
-        template.name,
-      );
-      try {
-        await api.purgeCompiledAssets(token, id);
-      } catch {
-        // optional cleanup
-      }
-      const { asset } = await api.uploadTemplateAsset(
-        token,
-        id,
-        previewDataUrlToFile(previewPngDataUrl, "preview.png"),
-        "compiled",
-      );
-      await api.saveTemplateVersion(token, id, {
-        designJson: latestDesignJson,
-        compiledHtml,
-        previewUrl: asset.url,
-      });
-      setHtml(compiledHtml);
-      await reload();
-      setNotice(
-        "Recompiled email HTML and PNG preview from the saved designer canvas.",
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Recompile failed",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  // One-shot: rebuild stored HTML so Outlook gets <font color> (white text).
-  useEffect(() => {
-    if (!token || !id || !template || !canEdit) return;
-    if (autoRecompileRef.current) return;
-    if (latestMode !== "designer") return;
-    if (!hasDesignerCanvas(latestDesignJson)) return;
-    const body = html.trim();
-    if (!body) return;
-    if (/<font\s+color=/i.test(body)) return;
-    if (
-      !/color:\s*#(?:fff|ffffff)\b/i.test(body) &&
-      !/grat-email-card/i.test(body)
-    ) {
-      return;
-    }
-    autoRecompileRef.current = true;
-    void recompilePreview().then(() => {
-      setNotice(
-        "Recompiled preview with Outlook-safe colors (white text on green stays white when pasted).",
-      );
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, id, template, html, canEdit, latestMode]);
 
   async function onUpload(file: File | null) {
     if (!token || !id || !file || !canEdit) return;
@@ -521,6 +420,68 @@ export function TemplateDetailPage() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
+    }
+  }
+
+  async function onReimportCanvaZip(file: File | null) {
+    if (!token || !id || !file || !canEdit) return;
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      const { imageCount, previewUrl: importedPreview } =
+        await importCanvaZipToTemplate(token, id, file);
+      await reload();
+      setNotice(
+        importedPreview
+          ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot for Outlook paste.`
+          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed — re-import to retry.`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Canva import failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onRegenerateCanvaSnapshot() {
+    if (!token || !id || !canEdit || !html.trim()) return;
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      await regenerateCanvaSnapshot(token, id, html, latestDesignJson);
+      await reload();
+      setNotice("Regenerated PNG snapshot from Canva HTML for Outlook paste.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not build PNG snapshot",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onReimportDesignImage(file: File | null) {
+    if (!token || !id || !file || !canEdit) return;
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      await importDesignImageToTemplate(
+        token,
+        id,
+        file,
+        name.trim() || "Gratitude card",
+      );
+      await reload();
+      setNotice(
+        "Uploaded image email. Looks correct in Outlook; text is not selectable.",
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image import failed");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -569,7 +530,8 @@ export function TemplateDetailPage() {
           <h1>{template.name}</h1>
           <p className="lede">
             owned by {template.owner.displayName} · v{latest?.version ?? 1}
-            {latestMode === "designer" ? " · has designer layout" : ""}
+            {" · "}
+            {modeLabel}
           </p>
         </div>
         <div className="surface-actions">
@@ -634,20 +596,125 @@ export function TemplateDetailPage() {
         </div>
 
         <div className="surface-panel">
-          <p className="muted">
-            Design the card on the canvas.{" "}
-            <strong>Save &amp; compile</strong> updates the preview below (PNG +
-            HTML). Use <strong>Copy for Outlook</strong> on the preview to paste
-            into Outlook.
-          </p>
-          {canEdit ? (
-            <div className="surface-actions">
-              <button type="button" onClick={openDesigner}>
-                Open designer
-              </button>
-            </div>
+          {latestMode === "canva_html" ? (
+            <>
+              <p className="muted">
+                Imported from <strong>Canva HTML ZIP</strong>.{" "}
+                <strong>Copy for Outlook</strong> uses a{" "}
+                <strong>PNG snapshot</strong> so paste matches Canva (text not
+                selectable). Use <strong>Compose</strong> to send the real HTML
+                via the server — closer to Canva in most inboxes. Optional:{" "}
+                <strong>Copy HTML</strong> in the preview modal for manual paste
+                (selectable text, layout may shift in Outlook).
+              </p>
+              <ol className="steps-list muted small">
+                <li>
+                  In Canva: Email design → Share → Download →{" "}
+                  <strong>HTML and images</strong> (ZIP).
+                </li>
+                <li>Re-import below to replace this design.</li>
+              </ol>
+              {canEdit ? (
+                <div className="surface-actions import-actions">
+                  <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+                    <input
+                      type="file"
+                      accept=".zip,application/zip"
+                      disabled={saving}
+                      onChange={(e) => {
+                        void onReimportCanvaZip(e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                    <span className="file-pick-btn">
+                      {saving ? "Importing…" : "Replace Canva ZIP"}
+                    </span>
+                  </label>
+                  {!previewImageUrl ? (
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={saving}
+                      onClick={() => void onRegenerateCanvaSnapshot()}
+                    >
+                      {saving ? "Building…" : "Build PNG snapshot"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="muted">View only — you don’t own this template.</p>
+              )}
+            </>
+          ) : latestMode === "image_import" ? (
+            <>
+              <p className="muted">
+                This card is an <strong>image email</strong> (PNG/PDF fallback).
+                Looks correct in Outlook; <strong>text is not selectable</strong>.
+                For selectable text, create a new card from a Canva HTML ZIP.
+              </p>
+              {canEdit ? (
+                <div className="surface-actions import-actions">
+                  <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf"
+                      disabled={saving}
+                      onChange={(e) => {
+                        void onReimportDesignImage(e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                    <span className="file-pick-btn">
+                      {saving ? "Uploading…" : "Replace image / PDF"}
+                    </span>
+                  </label>
+                </div>
+              ) : (
+                <p className="muted">View only — you don’t own this template.</p>
+              )}
+            </>
           ) : (
-            <p className="muted">View only — you don’t own this template.</p>
+            <>
+              <p className="muted">
+                {latestMode === "designer"
+                  ? "This card was made in the retired freeform designer. Preview still works if HTML is saved. For selectable text, replace with a Canva HTML ZIP or create a new Canva card."
+                  : "No Canva import yet. Upload a Canva HTML ZIP for selectable text, or an image/PDF for a picture-only card."}
+              </p>
+              {canEdit ? (
+                <div className="surface-actions import-actions">
+                  <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+                    <input
+                      type="file"
+                      accept=".zip,application/zip"
+                      disabled={saving}
+                      onChange={(e) => {
+                        void onReimportCanvaZip(e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                    <span className="file-pick-btn">
+                      {saving ? "Importing…" : "Import Canva ZIP"}
+                    </span>
+                  </label>
+                  <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf"
+                      disabled={saving}
+                      onChange={(e) => {
+                        void onReimportDesignImage(e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                    <span className="file-pick-btn">
+                      {saving ? "Uploading…" : "Upload image / PDF"}
+                    </span>
+                  </label>
+                </div>
+              ) : (
+                <p className="muted">View only — you don’t own this template.</p>
+              )}
+            </>
           )}
         </div>
 
@@ -683,12 +750,15 @@ export function TemplateDetailPage() {
           pngUrl={previewImageUrl}
           html={previewHtml}
           versionKey={template?.versions[0]?.version}
+          pasteMode={outlookPasteMode}
+          offerHtmlPaste={offerCanvaHtmlPaste}
+          htmlOnly={htmlOnlyPreview}
         />
       ) : null}
 
       <section className="panel">
         <h2>Images</h2>
-        <p className="muted">Max 2MB · JPEG/PNG/GIF/WebP</p>
+        <p className="muted">Max 5MB · JPEG/PNG/GIF/WebP</p>
         {canEdit ? (
           <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
             <input
@@ -746,43 +816,14 @@ export function TemplateDetailPage() {
         {assets.length === 0 ? (
           <p className="muted">No images uploaded yet.</p>
         ) : null}
-        {canEdit && hasDesignerCanvas(latestDesignJson) ? (
-          <div className="stale-preview-actions">
-            <p className="muted small">
-              Rebuild preview from the last saved designer layout without opening
-              the canvas.
-            </p>
-            <div className="surface-actions">
-              <button
-                type="button"
-                className="ghost"
-                disabled={saving}
-                onClick={() => void recompilePreview()}
-              >
-                {saving ? "Recompiling…" : "Recompile preview"}
-              </button>
-              {assets.length === 0 && html.trim() ? (
-                <button
-                  type="button"
-                  className="ghost danger-text"
-                  disabled={saving}
-                  onClick={() => void clearStalePreview()}
-                >
-                  Clear outdated preview
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
       </section>
 
       <details className="panel card-advanced">
         <summary>Advanced</summary>
         <div className="card-advanced-body form-stack">
           <p className="muted small">
-            Power-user HTML. Editing and saving here can clear the designer
-            canvas if the HTML differs from the last compile. Prefer Designer for
-            layout changes.
+            Power-user HTML. Prefer re-importing a Canva ZIP for layout changes.
+            Saving edited HTML here updates the card body for this template.
           </p>
           <label>
             Email HTML
@@ -861,7 +902,7 @@ export function TemplateDetailPage() {
                   <strong>{assetDeletePrompt.fileName}</strong> is used on this
                   card
                   {assetDeletePrompt.designUses > 0
-                    ? ` (${assetDeletePrompt.designUses} designer placement${assetDeletePrompt.designUses === 1 ? "" : "s"})`
+                    ? ` (${assetDeletePrompt.designUses} placement${assetDeletePrompt.designUses === 1 ? "" : "s"})`
                     : ""}
                   {assetDeletePrompt.inHtml ? " and in the HTML body" : ""}.
                   Removing it will delete those inclusions

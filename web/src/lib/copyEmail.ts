@@ -1,7 +1,12 @@
-import { extractEmailBodyHtml, isFullHtmlDocument } from "../designer/compile";
+import {
+  extractEmailBodyHtml,
+  extractEmailHeadInner,
+  isFullHtmlDocument,
+} from "./emailHtml";
 
 function fullDocument(html: string) {
   const body = extractEmailBodyHtml(html);
+  const head = extractEmailHeadInner(html);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,14 +15,15 @@ function fullDocument(html: string) {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="x-apple-disable-message-reformatting" />
 <title>Email</title>
+${head}
 <style>
   html, body { margin: 0 !important; padding: 0 !important; }
-  body { background: #f0f0f0; }
+  body { background: #f0f0f0; font-family: Arial, Helvetica, sans-serif; }
   img { border: 0; outline: none; text-decoration: none; }
   table { border-collapse: collapse; }
 </style>
 </head>
-<body style="margin:0;padding:0;background:#f0f0f0;">
+<body style="margin:0;padding:0;background:#f0f0f0;font-family:Arial, Helvetica, sans-serif;">
 ${body}
 </body>
 </html>`;
@@ -48,7 +54,22 @@ function escAttr(value: string) {
 export function buildEmailDocument(html: string) {
   const trimmed = html.trim();
   if (isFullHtmlDocument(trimmed)) {
-    return preserveHexColors(trimmed);
+    // Ensure email-safe sans default even when Canva head is present
+    const withFallback = trimmed.replace(
+      /<body([^>]*)>/i,
+      (full, attrs: string) => {
+        if (/font-family/i.test(attrs)) return full;
+        if (/style\s*=/i.test(attrs)) {
+          return full.replace(
+            /style=(["'])(.*?)\1/i,
+            (_m, q: string, style: string) =>
+              `style=${q}${style};font-family:Arial, Helvetica, sans-serif${q}`,
+          );
+        }
+        return `<body${attrs} style="font-family:Arial, Helvetica, sans-serif;">`;
+      },
+    );
+    return preserveHexColors(withFallback);
   }
   return preserveHexColors(fullDocument(trimmed));
 }
@@ -187,16 +208,51 @@ export async function copyOutlookPngForPaste(input: {
 }
 
 /**
- * Copy absolute/canvas HTML source (for developers / web clients).
- * Not reliable for Outlook Desktop — Word strips position:absolute.
- * Prefer copyOutlookPngForPaste for Outlook paste.
+ * <style> blocks from <head> that must ride along on a body-only clipboard paste.
+ * Without these, Canva fonts/layout CSS vanish when pasting into Outlook.
+ */
+export function extractPasteableHeadStyles(html: string) {
+  const head = extractEmailHeadInner(html);
+  if (!head.trim()) return "";
+  const styles: string[] = [];
+  const re = /<style\b[^>]*>[\s\S]*?<\/style>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(head))) styles.push(m[0]);
+  return styles.join("\n");
+}
+
+/** Body fragment + head styles — what we put on the HTML clipboard for Outlook. */
+export function buildOutlookPasteFragment(html: string) {
+  const doc = buildEmailDocument(html.trim());
+  const styles = extractPasteableHeadStyles(doc);
+  const body = extractEmailBodyHtml(doc);
+  // Wrapper gives Outlook a system-font fallback when Canva webfonts are unavailable
+  return `${styles}<div style="margin:0;padding:0;font-family:Arial, Helvetica, sans-serif;">${body}</div>`;
+}
+
+/** Canva/modern CSS that Outlook Desktop (Word) often ignores or mangled. */
+export function looksLikeFragileEmailHtml(html: string) {
+  const s = html.slice(0, 200_000);
+  return (
+    /position\s*:\s*absolute/i.test(s) ||
+    /position\s*:\s*fixed/i.test(s) ||
+    /display\s*:\s*flex/i.test(s) ||
+    /display\s*:\s*grid/i.test(s) ||
+    /@font-face/i.test(s)
+  );
+}
+
+/**
+ * Copy HTML for Outlook / Gmail paste.
+ * Includes <style> from <head> (Canva puts fonts/layout there). Outlook Desktop
+ * may still rearrange flex/absolute layouts — that is a client limit, not Grat.
  */
 export async function copyEmailHtmlForPaste(html: string): Promise<void> {
   const trimmed = preserveHexColors(html.trim());
   if (!trimmed) throw new Error("Nothing to copy.");
 
+  const fragment = buildOutlookPasteFragment(trimmed);
   const doc = buildEmailDocument(trimmed);
-  const fragment = extractEmailBodyHtml(doc);
   const plain = new Blob(["\u00a0"], { type: "text/plain" });
 
   if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {

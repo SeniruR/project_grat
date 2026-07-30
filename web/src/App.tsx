@@ -6,7 +6,6 @@ import { HomePage } from "./pages/HomePage";
 import { CardsPage } from "./pages/CardsPage";
 import { NewTemplatePage } from "./pages/NewTemplatePage";
 import { TemplateDetailPage } from "./pages/TemplateDetailPage";
-import { DesignerPage } from "./pages/DesignerPage";
 import { ComposePage } from "./pages/ComposePage";
 import { DraftJobPage } from "./pages/DraftJobPage";
 import { DraftsPage } from "./pages/DraftsPage";
@@ -23,7 +22,6 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/cards" element={<CardsPage />} />
             <Route path="/cards/new" element={<NewTemplatePage />} />
-            <Route path="/cards/:id/designer" element={<DesignerPage />} />
             <Route
               path="/cards/:id/compose"
               element={

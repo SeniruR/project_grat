@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { wrapWithHeaderFooter } from "../designer/compile";
+import { wrapWithHeaderFooter } from "../lib/emailHtml";
 
 export function CardsPage() {
   const { token, user } = useAuth();
@@ -256,11 +256,15 @@ function TemplateCard({
             <span className={`status-dot ${template.status.toLowerCase()}`} />
             {template.status === "PUBLISHED" ? "Published" : "Draft"}
             {" · "}
-            {mode === "designer"
-              ? "Designer"
-              : mode === "html_import"
-                ? "HTML"
-                : "Blank"}
+            {mode === "canva_html"
+              ? "Canva"
+              : mode === "image_import"
+                ? "Image"
+                : mode === "html_import"
+                  ? "HTML"
+                  : mode === "designer"
+                    ? "Legacy"
+                    : "Blank"}
             {" · "}
             v{latest?.version ?? 1}
           </p>

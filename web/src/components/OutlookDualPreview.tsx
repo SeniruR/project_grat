@@ -14,6 +14,8 @@ type Props = {
   showCopyActions?: boolean;
   /** Nest inside another Preview panel (skip outer chrome / title) */
   embedded?: boolean;
+  /** Outlook paste strategy */
+  pasteMode?: "html" | "png" | "auto";
 };
 
 const ZOOM_PRESETS = [
@@ -55,6 +57,7 @@ export function OutlookDualPreview({
   designHeight = 800,
   showCopyActions = true,
   embedded = false,
+  pasteMode = "auto",
 }: Props) {
   const safe = useMemo(() => html.trim(), [html]);
   const measureRef = useRef<HTMLDivElement | null>(null);
@@ -276,6 +279,7 @@ export function OutlookDualPreview({
           pngUrl={pngUrl}
           designWidth={designWidth}
           designHeight={designHeight}
+          pasteMode={pasteMode}
           onClose={() => setBrowserCopyOpen(false)}
         />
       ) : null}

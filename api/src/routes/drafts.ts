@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
 import { buildOutboundBodyHtml } from "../lib/emailBody.js";
+import { embedLocalUploadImages } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
 
@@ -149,7 +150,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const mail = getMailProvider();
+      const mail = await getMailProvider();
       const job = await prisma.draftJob.create({
         data: {
           requesterId: user.id,
@@ -169,7 +170,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       }> = [];
 
       for (const recipient of uniqueRecipients) {
-        const bodyHtml = buildOutboundBodyHtml({
+        let bodyHtml = buildOutboundBodyHtml({
           compiledHtml: compiled,
           headerHtml: template.headerHtml,
           footerHtml: template.footerHtml,
@@ -181,6 +182,18 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           },
         });
 
+        let inlineAttachments:
+          | Awaited<ReturnType<typeof embedLocalUploadImages>>["attachments"]
+          | undefined;
+        if (mail.mode === "smtp") {
+          const embedded = await embedLocalUploadImages(
+            bodyHtml,
+            config.publicApiUrl,
+          );
+          bodyHtml = embedded.html;
+          inlineAttachments = embedded.attachments;
+        }
+
         try {
           const result = await mail.createDraft({
             senderUserId: user.id,
@@ -190,6 +203,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             recipientOid: recipient.aadOid,
             subject,
             bodyHtml,
+            inlineAttachments,
           });
 
           const draft = await prisma.outboundDraft.create({
@@ -200,8 +214,16 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
               recipientName: recipient.displayName ?? null,
               subject,
               bodyHtml,
-              graphMessageId: result.graphMessageId ?? result.draftId,
-              status: result.mode === "mock" ? "mock_created" : "graph_draft",
+              graphMessageId:
+                result.graphMessageId ??
+                (result.mode === "smtp" ? result.smtpMessageId : undefined) ??
+                result.draftId,
+              status:
+                result.mode === "mock"
+                  ? "mock_created"
+                  : result.mode === "graph"
+                    ? "graph_draft"
+                    : "smtp_sent",
             },
           });
           draftRows.push({

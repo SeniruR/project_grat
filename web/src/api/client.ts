@@ -98,14 +98,21 @@ async function request<T>(
   const { token, ...init } = options;
   const method = (init.method ?? "GET").toUpperCase();
   const hasBody = init.body != null && init.body !== "";
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    method,
-    headers: {
-      ...authHeaders(token, hasBody && method !== "DELETE"),
-      ...(init.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      method,
+      headers: {
+        ...authHeaders(token, hasBody && method !== "DELETE"),
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new Error(
+      `Cannot reach API at ${API_URL}. Is the API running? (npm run dev from project root)`,
+    );
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -163,7 +170,7 @@ export const api = {
     body: {
       name: string;
       visibility: "PRIVATE" | "SHARED";
-      mode: "blank" | "html_import" | "designer";
+      mode: "blank" | "html_import" | "canva_html" | "image_import";
       html?: string;
       headerHtml?: string;
       footerHtml?: string;

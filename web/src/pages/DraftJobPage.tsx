@@ -63,7 +63,9 @@ export function DraftJobPage() {
         <div>
           <p className="eyebrow">Draft job</p>
           <h1>
-            {okCount} draft{okCount === 1 ? "" : "s"} ready
+            {mailMode === "smtp"
+              ? `${okCount} message${okCount === 1 ? "" : "s"} sent`
+              : `${okCount} draft${okCount === 1 ? "" : "s"} ready`}
             {failCount ? ` · ${failCount} failed` : ""}
           </h1>
           <p className="lede">
@@ -78,8 +80,13 @@ export function DraftJobPage() {
       {mailMode === "mock" ? (
         <p className="notice">
           Mock mode — drafts are stored here only. Set{" "}
-          <code>MAIL_MODE=graph</code> with Azure app credentials to create real
-          Outlook Drafts.
+          <code>MAIL_MODE=smtp</code> (Gmail) or <code>MAIL_MODE=graph</code> in{" "}
+          <code>api/.env</code> to send for real.
+        </p>
+      ) : mailMode === "smtp" ? (
+        <p className="notice">
+          SMTP mode — messages were sent with images embedded in the email (not
+          linked from localhost). Check the recipient inbox.
         </p>
       ) : (
         <p className="notice">

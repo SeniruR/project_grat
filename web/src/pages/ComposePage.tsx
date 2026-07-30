@@ -6,11 +6,25 @@ import {
   type TemplateSummary,
 } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { wrapWithHeaderFooter } from "../designer/compile";
+import { wrapWithHeaderFooter } from "../lib/emailHtml";
 import { resolveHtmlImageSrcsClient } from "../lib/htmlAssets";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function parseTypedEmail(raw: string): DirectoryPerson | null {
+  const email = raw.trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) return null;
+  const local = email.split("@")[0] ?? email;
+  const displayName =
+    local
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .trim() || email;
+  return { aadOid: `manual-${email}`, email, displayName };
+}
 
 export function ComposePage() {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +64,7 @@ export function ComposePage() {
   useEffect(() => {
     if (!token) return;
     const q = query.trim();
-    if (q.length < 1) {
+    if (q.length < 1 || EMAIL_RE.test(q)) {
       setHits([]);
       return;
     }
@@ -97,6 +111,23 @@ export function ComposePage() {
     setQuery("");
     setHits([]);
   }
+
+  function tryAddTypedEmail() {
+    const person = parseTypedEmail(query);
+    if (!person) {
+      setError("Enter a valid email address (e.g. you@example.com).");
+      return;
+    }
+    setError(null);
+    addPerson(person);
+  }
+
+  const typedRecipient = parseTypedEmail(query);
+  const showTypedAdd =
+    typedRecipient &&
+    !selected.some(
+      (s) => s.email.toLowerCase() === typedRecipient.email.toLowerCase(),
+    );
 
   function removePerson(email: string) {
     setSelected((prev) =>
@@ -167,12 +198,16 @@ export function ComposePage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Compose</p>
-          <h1>Create Outlook drafts</h1>
+          <h1>
+            {mailMode === "smtp" ? "Send email" : "Create Outlook drafts"}
+          </h1>
           <p className="lede">
-            Pick recipients from the directory.{" "}
-            {mailMode === "graph"
-              ? "Graph mode creates real Outlook drafts in the sender mailbox."
-              : "Mock mode stores drafts in the app (set MAIL_MODE=graph for Outlook)."}
+            Type an email and press Enter, or search the directory.{" "}
+            {mailMode === "smtp"
+              ? "SMTP mode sends real HTML email via your mail server (e.g. Gmail)."
+              : mailMode === "graph"
+                ? "Graph mode creates real Outlook drafts in the sender mailbox."
+                : "Mock mode stores drafts in the app (set MAIL_MODE=smtp or graph in api/.env)."}
           </p>
         </div>
       </header>
@@ -218,13 +253,34 @@ export function ComposePage() {
             </div>
             <input
               id="recipient-search"
+              type="email"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search directory (name or email)"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (showTypedAdd) tryAddTypedEmail();
+                }
+              }}
+              placeholder="Type email and press Enter, or search directory"
               disabled={busy}
               autoComplete="off"
             />
             {searching ? <p className="muted small">Searching…</p> : null}
+            {showTypedAdd ? (
+              <ul className="recipient-hits">
+                <li>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => tryAddTypedEmail()}
+                  >
+                    <strong>Add {typedRecipient.email}</strong>
+                    <span>Press Enter</span>
+                  </button>
+                </li>
+              </ul>
+            ) : null}
             {hits.length > 0 ? (
               <ul className="recipient-hits">
                 {hits.map((p) => {
@@ -247,7 +303,7 @@ export function ComposePage() {
               </ul>
             ) : null}
             <p className="muted small">
-              Merge fields in the HTML:{" "}
+              Type any email address, or pick from directory search. Merge fields:{" "}
               <code>{"{{name}}"}</code>, <code>{"{{email}}"}</code> (filled per
               recipient).
             </p>
@@ -260,8 +316,12 @@ export function ComposePage() {
               onClick={() => void createDrafts()}
             >
               {busy
-                ? "Creating drafts…"
-                : `Create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}`}
+                ? mailMode === "smtp"
+                  ? "Sending…"
+                  : "Creating drafts…"
+                : mailMode === "smtp"
+                  ? `Send to ${selected.length} recipient${selected.length === 1 ? "" : "s"}`
+                  : `Create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}`}
             </button>
             <Link className="ghost btn-link-ghost" to={`/cards/${template.id}`}>
               Cancel
