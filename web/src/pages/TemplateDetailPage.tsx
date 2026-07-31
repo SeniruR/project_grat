@@ -13,6 +13,8 @@ import {
 import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
+import { CategoryCombobox } from "../components/CategoryCombobox";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import {
   parseIgnoredPlaceholdersFromDesignJson,
   parsePlaceholdersFromDesignJson,
@@ -139,7 +141,7 @@ export function TemplateDetailPage() {
   const [template, setTemplate] = useState<TemplateSummary | null>(null);
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
-  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [html, setHtml] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -168,7 +170,7 @@ export function TemplateDetailPage() {
     setTemplate(t);
     setName(t.name);
     setVisibility(t.visibility);
-    setStatus(t.status);
+    setCategoryId(t.category?.id ?? null);
     setHtml(t.versions[0]?.compiledHtml ?? "");
     setPlaceholders(
       parsePlaceholdersFromDesignJson(
@@ -312,7 +314,8 @@ export function TemplateDetailPage() {
       await api.updateTemplate(token, id, {
         name: name.trim() || "Untitled",
         visibility,
-        status,
+        status: visibility === "SHARED" ? "PUBLISHED" : "DRAFT",
+        categoryId,
       });
       await reload();
       setNotice("Saved settings.");
@@ -661,12 +664,17 @@ export function TemplateDetailPage() {
   const latest = template.versions[0];
   return (
     <div className="page">
-      <p className="back">
-        <Link to="/cards">← Templates</Link>
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "My Designs", to: "/cards" },
+          { label: template.name },
+        ]}
+      />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">Template</p>
+          <p className="eyebrow">My Designs</p>
           <h1>{template.name}</h1>
           <p className="lede">
             owned by {template.owner.displayName} · v{latest?.version ?? 1}
@@ -706,34 +714,39 @@ export function TemplateDetailPage() {
           />
         </label>
 
-        <div className="two-col">
-          <label>
-            Visibility
-            <select
-              value={visibility}
-              onChange={(e) =>
-                setVisibility(e.target.value as "PRIVATE" | "SHARED")
-              }
-              disabled={!canEdit}
-            >
-              <option value="PRIVATE">Private</option>
-              <option value="SHARED">Shared</option>
-            </select>
-          </label>
-          <label>
-            Status
-            <select
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value as "DRAFT" | "PUBLISHED")
-              }
-              disabled={!canEdit}
-            >
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-            </select>
-          </label>
-        </div>
+        <label>
+          Visibility
+          <select
+            value={visibility}
+            onChange={(e) =>
+              setVisibility(e.target.value as "PRIVATE" | "SHARED")
+            }
+            disabled={!canEdit}
+          >
+            <option value="PRIVATE">Private</option>
+            <option value="SHARED">Published</option>
+          </select>
+        </label>
+        {token ? (
+          <div className="category-settings">
+            <CategoryCombobox
+              token={token}
+              value={categoryId}
+              onChange={(id) => setCategoryId(id)}
+              disabled={!canEdit || saving}
+              allowClear={false}
+              allowCreate
+            />
+            <p className="muted small">
+              Pick any designer’s category for this template. Rename or delete
+              categories you created in Design studio → Categories.
+            </p>
+          </div>
+        ) : null}
+        <p className="muted small">
+          <strong>Published</strong> lists this card in the marketplace.{" "}
+          <strong>Private</strong> keeps it in your design studio only.
+        </p>
 
         <div className="surface-panel">
           {latestMode === "canva_html" ? (

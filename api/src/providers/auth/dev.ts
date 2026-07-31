@@ -6,7 +6,7 @@ function toAuthUser(user: {
   aadOid: string;
   email: string;
   displayName: string;
-  role: "USER" | "ADMIN";
+  role: "USER" | "DESIGNER" | "ADMIN";
 }): AuthUser {
   return {
     id: user.id,

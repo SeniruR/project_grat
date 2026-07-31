@@ -35,6 +35,8 @@ import {
 } from "../lib/imageSlots";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { ToastBanner } from "../components/ToastBanner";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { canManageDesigns } from "../lib/roles";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -583,10 +585,19 @@ export function ComposePage() {
     return (
       <div className="page">
         <p className="error">{error}</p>
-        <Link to="/cards">Back to cards</Link>
+        <Link to="/marketplace">Back to Templates</Link>
       </div>
     );
   }
+
+  const fromDesigns =
+    canManageDesigns(user) && template.owner.id === user?.id;
+  const parentCrumb = fromDesigns
+    ? { label: "My Designs", to: "/cards" }
+    : { label: "Templates", to: "/marketplace" };
+  const parentDetailTo = fromDesigns
+    ? `/cards/${template.id}`
+    : `/marketplace/${template.id}`;
 
   return (
     <div className="page">
@@ -595,12 +606,18 @@ export function ComposePage() {
         message={error}
         onClose={dismissError}
       />
-      <p className="back">
-        <Link to={`/cards/${template.id}`}>← {template.name}</Link>
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          parentCrumb,
+          { label: template.name, to: parentDetailTo },
+          { label: "Compose" },
+        ]}
+      />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Compose</p>
+          <p className="eyebrow">Emails</p>
           <h1>
             {mailMode === "smtp" ? "Send email" : "Create Outlook drafts"}
           </h1>

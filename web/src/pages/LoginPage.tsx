@@ -2,15 +2,16 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import type { AppRole } from "../lib/roles";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
   const [displayName, setDisplayName] = useState("Seniru");
   const [email, setEmail] = useState("seniru@slt.com.lk");
-  const [asAdmin, setAsAdmin] = useState(true);
+  const [role, setRole] = useState<AppRole>("ADMIN");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [modes, setModes] = useState<string>("…");
+  const [modes, setModes] = useState("…");
 
   useEffect(() => {
     api
@@ -33,7 +34,7 @@ export function LoginPage() {
       await login({
         email,
         displayName,
-        role: asAdmin ? "ADMIN" : "USER",
+        role,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -48,8 +49,8 @@ export function LoginPage() {
         <p className="eyebrow">Intranet</p>
         <h1>Gratitude</h1>
         <p className="lede">
-          Dev sign-in stand-in for Azure AD. Same session shape — swap providers
-          later without changing screens.
+          Dev sign-in stand-in for Azure AD. Pick a role to try Admin, Designer,
+          or User experiences.
         </p>
 
         <form className="login-form" onSubmit={onSubmit}>
@@ -72,14 +73,36 @@ export function LoginPage() {
               autoComplete="email"
             />
           </label>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={asAdmin}
-              onChange={(e) => setAsAdmin(e.target.checked)}
-            />
-            Sign in as admin (oversight tools)
-          </label>
+          <fieldset className="choice-set">
+            <legend>Role</legend>
+            <label className="check">
+              <input
+                type="radio"
+                name="role"
+                checked={role === "USER"}
+                onChange={() => setRole("USER")}
+              />
+              User — marketplace + send only
+            </label>
+            <label className="check">
+              <input
+                type="radio"
+                name="role"
+                checked={role === "DESIGNER"}
+                onChange={() => setRole("DESIGNER")}
+              />
+              Designer — designs + send
+            </label>
+            <label className="check">
+              <input
+                type="radio"
+                name="role"
+                checked={role === "ADMIN"}
+                onChange={() => setRole("ADMIN")}
+              />
+              Admin — everything + user management
+            </label>
+          </fieldset>
           {error ? <p className="error">{error}</p> : null}
           <button type="submit" disabled={submitting}>
             {submitting ? "Signing in…" : "Enter intranet"}

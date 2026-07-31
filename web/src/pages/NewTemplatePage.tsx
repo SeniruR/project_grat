@@ -10,6 +10,8 @@ import {
 import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
+import { CategoryCombobox } from "../components/CategoryCombobox";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import type { PlaceholderDef } from "../lib/mergeFields";
 import type { ImageSlotDef } from "../lib/imageSlots";
 
@@ -45,6 +47,7 @@ export function NewTemplatePage() {
 
   const [name, setName] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [starter, setStarter] = useState<Starter>("canva_zip");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -123,6 +126,10 @@ export function NewTemplatePage() {
       setError("Choose a PNG, JPEG, or PDF to upload.");
       return;
     }
+    if (!categoryId) {
+      setError("Choose a category (or create one) before saving.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -132,6 +139,7 @@ export function NewTemplatePage() {
       const { template } = await api.createTemplate(token, {
         name,
         visibility,
+        categoryId,
         mode: createMode,
       });
 
@@ -174,11 +182,16 @@ export function NewTemplatePage() {
 
   return (
     <div className="page">
-      <p className="back">
-        <Link to="/cards">← Templates</Link>
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "My Designs", to: "/cards" },
+          { label: "New template" },
+        ]}
+      />
       <header className="page-header">
-        <p className="eyebrow">Cards</p>
+        <p className="eyebrow">My Designs</p>
         <h1>New template</h1>
         <p className="lede">
           Design in Canva, choose the ZIP here to scan placeholders and images,
@@ -390,9 +403,22 @@ export function NewTemplatePage() {
               onChange={() => setVisibility("SHARED")}
               disabled={saving}
             />
-            Shared — visible to everyone in the org
+            Published — appears in the marketplace
           </label>
         </fieldset>
+
+        {token ? (
+          <CategoryCombobox
+            token={token}
+            value={categoryId}
+            onChange={(id) => setCategoryId(id)}
+            disabled={saving}
+            allowClear={false}
+            allowCreate
+            label="Category"
+            placeholder="Birthday, Promotion, Thank you…"
+          />
+        ) : null}
 
         {error ? <p className="error">{error}</p> : null}
 

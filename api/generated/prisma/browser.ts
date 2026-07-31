@@ -23,10 +23,20 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel
 /**
+ * Model TemplateCategory
+ * 
+ */
+export type TemplateCategory = Prisma.TemplateCategoryModel
+/**
  * Model Template
  * 
  */
 export type Template = Prisma.TemplateModel
+/**
+ * Model TemplateFavorite
+ * Per-user favorites for marketplace / quick access
+ */
+export type TemplateFavorite = Prisma.TemplateFavoriteModel
 /**
  * Model TemplateVersion
  * 

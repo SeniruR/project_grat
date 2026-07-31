@@ -13,7 +13,7 @@ const colleagues = [
     email: "ava.fernando@slt.lk",
     displayName: "Ava Fernando",
     aadOid: "dev-ava.fernando@slt.lk",
-    role: "USER" as const,
+    role: "DESIGNER" as const,
   },
   {
     email: "ben.jayasuriya@slt.lk",
@@ -31,7 +31,7 @@ const colleagues = [
     email: "diego.bandara@slt.lk",
     displayName: "Diego Bandara",
     aadOid: "dev-diego.bandara@slt.lk",
-    role: "USER" as const,
+    role: "DESIGNER" as const,
   },
   {
     email: "elena.wickramasinghe@slt.lk",

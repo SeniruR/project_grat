@@ -110,3 +110,57 @@ export async function embedLocalUploadImages(
 
   return { html: out, attachments };
 }
+
+/**
+ * Snapshot /uploads images into data: URLs for stored Sent / draft previews.
+ * History must not depend on template files (delete or later re-import would
+ * otherwise blank or change historical previews).
+ */
+export async function inlineLocalUploadImagesAsDataUrls(
+  html: string,
+): Promise<string> {
+  const urlToData = new Map<string, string>();
+  const missing: string[] = [];
+
+  for (const url of collectImageUrls(html)) {
+    const key = storageKeyFromUploadUrl(url);
+    if (!key || !IMAGE_EXT.test(key)) continue;
+    if (urlToData.has(url)) continue;
+
+    try {
+      const content = await readFile(absoluteUploadPath(key));
+      const mime = guessMime(key);
+      urlToData.set(url, `data:${mime};base64,${content.toString("base64")}`);
+    } catch {
+      missing.push(key);
+    }
+  }
+
+  if (!urlToData.size) {
+    if (missing.length) {
+      console.warn(
+        `[inlineLocalUploadImagesAsDataUrls] missing: ${missing.slice(0, 5).join(", ")}`,
+      );
+    }
+    return html;
+  }
+
+  if (missing.length) {
+    console.warn(
+      `[inlineLocalUploadImagesAsDataUrls] skipped ${missing.length} missing upload(s)`,
+    );
+  }
+
+  let out = html;
+  const entries = [...urlToData.entries()].sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  for (const [url, dataUrl] of entries) {
+    out = out.split(url).join(dataUrl);
+    if (url.includes("&")) {
+      out = out.split(url.replace(/&/g, "&amp;")).join(dataUrl);
+    }
+  }
+
+  return out;
+}

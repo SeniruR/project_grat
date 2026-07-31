@@ -3,6 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { wrapWithHeaderFooter } from "../lib/emailHtml";
+import { CategoryCombobox } from "../components/CategoryCombobox";
+import { CategoryManagePanel } from "../components/CategoryManagePanel";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+
+type VisibilityFilter = "all" | "private" | "published";
 
 export function CardsPage() {
   const { token, user } = useAuth();
@@ -10,6 +15,10 @@ export function CardsPage() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [visibilityFilter, setVisibilityFilter] =
+    useState<VisibilityFilter>("all");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TemplateSummary | null>(
     null,
   );
@@ -33,10 +42,26 @@ export function CardsPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const mine = templates.filter((t) => t.owner.id === user?.id);
-  const shared = templates.filter(
-    (t) => t.owner.id !== user?.id && t.visibility === "SHARED",
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return templates.filter((t) => {
+      if (visibilityFilter === "private" && t.visibility !== "PRIVATE") {
+        return false;
+      }
+      if (visibilityFilter === "published" && t.visibility !== "SHARED") {
+        return false;
+      }
+      if (categoryId && t.category?.id !== categoryId) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        t.name.toLowerCase().includes(q) ||
+        t.owner.displayName.toLowerCase().includes(q) ||
+        (t.category?.name ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [templates, query, visibilityFilter, categoryId]);
 
   async function confirmDelete() {
     if (!token || !deleteTarget) return;
@@ -55,15 +80,20 @@ export function CardsPage() {
 
   return (
     <div className="page">
-      <p className="back">
-        <Link to="/">← Catalog</Link>
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "My Designs" },
+        ]}
+      />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">Cards</p>
-          <h1>Gratitude templates</h1>
+          <p className="eyebrow">Emails</p>
+          <h1>My Designs</h1>
           <p className="lede">
-            Create private or shared templates. Click a card to open it.
+            Your templates only. Set visibility to Published to list a card in
+            Templates.
           </p>
         </div>
         <Link className="btn-link" to="/cards/new">
@@ -71,29 +101,73 @@ export function CardsPage() {
         </Link>
       </header>
 
+      <div className="studio-toolbar">
+        <label className="studio-search">
+          <span className="visually-hidden">Search</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search my templates…"
+          />
+        </label>
+        <label className="studio-select">
+          <span className="visually-hidden">Visibility</span>
+          <select
+            value={visibilityFilter}
+            onChange={(e) =>
+              setVisibilityFilter(e.target.value as VisibilityFilter)
+            }
+            aria-label="Filter by visibility"
+          >
+            <option value="all">All</option>
+            <option value="private">Private</option>
+            <option value="published">Published</option>
+          </select>
+        </label>
+        {token ? (
+          <div className="studio-category-filter">
+            <CategoryCombobox
+              token={token}
+              value={categoryId}
+              onChange={(id) => setCategoryId(id)}
+              allowClear
+              allowCreate={false}
+              label=""
+              placeholder="Category…"
+            />
+          </div>
+        ) : null}
+      </div>
+
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Loading templates…</p> : null}
 
-      <TemplateGroup
-        title="My templates"
-        items={mine}
-        empty="No templates yet — create one."
-        canDelete
-        currentUserId={user?.id}
-        isAdmin={user?.role === "ADMIN"}
-        onOpen={(id) => navigate(`/cards/${id}`)}
-        onDelete={(t) => setDeleteTarget(t)}
-      />
-      <TemplateGroup
-        title="Shared with org"
-        items={shared}
-        empty="No shared templates from others yet."
-        canDelete
-        currentUserId={user?.id}
-        isAdmin={user?.role === "ADMIN"}
-        onOpen={(id) => navigate(`/cards/${id}`)}
-        onDelete={(t) => setDeleteTarget(t)}
-      />
+      <section className="panel">
+        <h2>My templates</h2>
+        {!loading && filtered.length === 0 ? (
+          <p className="muted">
+            {templates.length === 0
+              ? "No templates yet — create one."
+              : "No templates match this search or filter."}
+          </p>
+        ) : (
+          <div className="template-card-grid">
+            {filtered.map((t) => (
+              <TemplateCard
+                key={t.id}
+                template={t}
+                canDelete={t.owner.id === user?.id || user?.role === "ADMIN"}
+                onOpen={() => navigate(`/cards/${t.id}`)}
+                onDelete={() => setDeleteTarget(t)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {token && user ? (
+        <CategoryManagePanel token={token} currentUserId={user.id} />
+      ) : null}
 
       {deleteTarget ? (
         <div
@@ -110,8 +184,8 @@ export function CardsPage() {
           >
             <h2 id="del-tpl-title">Delete template?</h2>
             <p>
-              Delete <strong>{deleteTarget.name}</strong> permanently? This
-              cannot be undone.
+              Delete <strong>{deleteTarget.name}</strong> permanently? Sent
+              history is kept; this cannot be undone.
             </p>
             <div className="app-modal-actions">
               <button
@@ -138,50 +212,6 @@ export function CardsPage() {
   );
 }
 
-function TemplateGroup({
-  title,
-  items,
-  empty,
-  canDelete,
-  currentUserId,
-  isAdmin,
-  onOpen,
-  onDelete,
-}: {
-  title: string;
-  items: TemplateSummary[];
-  empty: string;
-  canDelete: boolean;
-  currentUserId?: string;
-  isAdmin?: boolean;
-  onOpen: (id: string) => void;
-  onDelete: (t: TemplateSummary) => void;
-}) {
-  return (
-    <section className="panel">
-      <h2>{title}</h2>
-      {items.length === 0 ? (
-        <p className="muted">{empty}</p>
-      ) : (
-        <div className="template-card-grid">
-          {items.map((t) => (
-            <TemplateCard
-              key={t.id}
-              template={t}
-              canDelete={
-                canDelete &&
-                (t.owner.id === currentUserId || Boolean(isAdmin))
-              }
-              onOpen={() => onOpen(t.id)}
-              onDelete={() => onDelete(t)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 function TemplateCard({
   template,
   canDelete,
@@ -194,10 +224,6 @@ function TemplateCard({
   onDelete: () => void;
 }) {
   const latest = template.versions[0];
-  const mode =
-    typeof latest?.designJson?.mode === "string"
-      ? latest.designJson.mode
-      : "blank";
   const editedAt = latest?.createdAt ?? template.updatedAt;
   const previewHtml = useMemo(() => {
     const body = (latest?.compiledHtml ?? "").trim();
@@ -212,6 +238,8 @@ function TemplateCard({
   }, [latest?.compiledHtml, template.headerHtml, template.footerHtml]);
 
   const isPrivate = template.visibility === "PRIVATE";
+  const totalUsers = template.usageTotalUsers ?? 0;
+  const sinceEdit = template.usageSinceLastEdit ?? 0;
 
   return (
     <article className="template-card">
@@ -223,11 +251,7 @@ function TemplateCard({
       >
         <div className="template-card-preview" aria-hidden>
           {latest?.previewUrl ? (
-            <img
-              className="template-card-png"
-              src={latest.previewUrl}
-              alt=""
-            />
+            <img className="template-card-png" src={latest.previewUrl} alt="" />
           ) : (
             <iframe
               title=""
@@ -242,54 +266,47 @@ function TemplateCard({
             <h3 className="template-card-name">{template.name}</h3>
             <span
               className={`visibility-pill ${isPrivate ? "is-private" : "is-shared"}`}
-              title={isPrivate ? "Private" : "Shared with org"}
+              title={
+                isPrivate
+                  ? "Private — only you"
+                  : "Published — listed in the marketplace"
+              }
             >
-              {isPrivate ? (
-                <LockIcon />
-              ) : (
-                <ShareIcon />
-              )}
-              <span>{isPrivate ? "Private" : "Shared"}</span>
+              {isPrivate ? <LockIcon /> : <ShareIcon />}
+              <span>{isPrivate ? "Private" : "Published"}</span>
             </span>
           </div>
           <p className="template-card-meta">
-            <span className={`status-dot ${template.status.toLowerCase()}`} />
-            {template.status === "PUBLISHED" ? "Published" : "Draft"}
-            {" · "}
-            {mode === "canva_html"
-              ? "Canva"
-              : mode === "image_import"
-                ? "Image"
-                : mode === "html_import"
-                  ? "HTML"
-                  : mode === "designer"
-                    ? "Legacy"
-                    : "Blank"}
+            {template.category?.name ?? "Uncategorized"}
             {" · "}
             v{latest?.version ?? 1}
           </p>
+          <p className="template-card-usage">
+            {totalUsers} user{totalUsers === 1 ? "" : "s"} total
+            {" · "}
+            {sinceEdit} since last edit
+          </p>
           <p className="template-card-edited">
             Edited {formatEdited(editedAt)}
-            {template.owner.displayName
-              ? ` · ${template.owner.displayName}`
-              : ""}
           </p>
         </div>
       </button>
       {canDelete ? (
-        <button
-          type="button"
-          className="template-card-delete"
-          title="Delete template"
-          aria-label={`Delete ${template.name}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          Delete
-        </button>
+        <div className="template-card-footer">
+          <button
+            type="button"
+            className="linkish danger-text template-card-delete-link"
+            title="Delete template"
+            aria-label={`Delete ${template.name}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            Delete
+          </button>
+        </div>
       ) : null}
     </article>
   );

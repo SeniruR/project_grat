@@ -27,11 +27,13 @@ export type AggregateDraftJob = {
 }
 
 export type DraftJobAvgAggregateOutputType = {
+  templateVersionNumber: number | null
   total: number | null
   completed: number | null
 }
 
 export type DraftJobSumAggregateOutputType = {
+  templateVersionNumber: number | null
   total: number | null
   completed: number | null
 }
@@ -41,6 +43,9 @@ export type DraftJobMinAggregateOutputType = {
   requesterId: string | null
   templateId: string | null
   templateVersionId: string | null
+  templateName: string | null
+  templateVersionNumber: number | null
+  categoryName: string | null
   status: string | null
   total: number | null
   completed: number | null
@@ -53,6 +58,9 @@ export type DraftJobMaxAggregateOutputType = {
   requesterId: string | null
   templateId: string | null
   templateVersionId: string | null
+  templateName: string | null
+  templateVersionNumber: number | null
+  categoryName: string | null
   status: string | null
   total: number | null
   completed: number | null
@@ -65,6 +73,9 @@ export type DraftJobCountAggregateOutputType = {
   requesterId: number
   templateId: number
   templateVersionId: number
+  templateName: number
+  templateVersionNumber: number
+  categoryName: number
   status: number
   total: number
   completed: number
@@ -75,11 +86,13 @@ export type DraftJobCountAggregateOutputType = {
 
 
 export type DraftJobAvgAggregateInputType = {
+  templateVersionNumber?: true
   total?: true
   completed?: true
 }
 
 export type DraftJobSumAggregateInputType = {
+  templateVersionNumber?: true
   total?: true
   completed?: true
 }
@@ -89,6 +102,9 @@ export type DraftJobMinAggregateInputType = {
   requesterId?: true
   templateId?: true
   templateVersionId?: true
+  templateName?: true
+  templateVersionNumber?: true
+  categoryName?: true
   status?: true
   total?: true
   completed?: true
@@ -101,6 +117,9 @@ export type DraftJobMaxAggregateInputType = {
   requesterId?: true
   templateId?: true
   templateVersionId?: true
+  templateName?: true
+  templateVersionNumber?: true
+  categoryName?: true
   status?: true
   total?: true
   completed?: true
@@ -113,6 +132,9 @@ export type DraftJobCountAggregateInputType = {
   requesterId?: true
   templateId?: true
   templateVersionId?: true
+  templateName?: true
+  templateVersionNumber?: true
+  categoryName?: true
   status?: true
   total?: true
   completed?: true
@@ -210,8 +232,11 @@ export type DraftJobGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
 export type DraftJobGroupByOutputType = {
   id: string
   requesterId: string
-  templateId: string
-  templateVersionId: string
+  templateId: string | null
+  templateVersionId: string | null
+  templateName: string
+  templateVersionNumber: number | null
+  categoryName: string | null
   status: string
   total: number
   completed: number
@@ -245,24 +270,30 @@ export type DraftJobWhereInput = {
   NOT?: Prisma.DraftJobWhereInput | Prisma.DraftJobWhereInput[]
   id?: Prisma.StringFilter<"DraftJob"> | string
   requesterId?: Prisma.StringFilter<"DraftJob"> | string
-  templateId?: Prisma.StringFilter<"DraftJob"> | string
-  templateVersionId?: Prisma.StringFilter<"DraftJob"> | string
+  templateId?: Prisma.StringNullableFilter<"DraftJob"> | string | null
+  templateVersionId?: Prisma.StringNullableFilter<"DraftJob"> | string | null
+  templateName?: Prisma.StringFilter<"DraftJob"> | string
+  templateVersionNumber?: Prisma.IntNullableFilter<"DraftJob"> | number | null
+  categoryName?: Prisma.StringNullableFilter<"DraftJob"> | string | null
   status?: Prisma.StringFilter<"DraftJob"> | string
   total?: Prisma.IntFilter<"DraftJob"> | number
   completed?: Prisma.IntFilter<"DraftJob"> | number
   createdAt?: Prisma.DateTimeFilter<"DraftJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DraftJob"> | Date | string
   requester?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  template?: Prisma.XOR<Prisma.TemplateScalarRelationFilter, Prisma.TemplateWhereInput>
-  templateVersion?: Prisma.XOR<Prisma.TemplateVersionScalarRelationFilter, Prisma.TemplateVersionWhereInput>
+  template?: Prisma.XOR<Prisma.TemplateNullableScalarRelationFilter, Prisma.TemplateWhereInput> | null
+  templateVersion?: Prisma.XOR<Prisma.TemplateVersionNullableScalarRelationFilter, Prisma.TemplateVersionWhereInput> | null
   drafts?: Prisma.OutboundDraftListRelationFilter
 }
 
 export type DraftJobOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   requesterId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
-  templateVersionId?: Prisma.SortOrder
+  templateId?: Prisma.SortOrderInput | Prisma.SortOrder
+  templateVersionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  templateName?: Prisma.SortOrder
+  templateVersionNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  categoryName?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
@@ -280,24 +311,30 @@ export type DraftJobWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.DraftJobWhereInput[]
   NOT?: Prisma.DraftJobWhereInput | Prisma.DraftJobWhereInput[]
   requesterId?: Prisma.StringFilter<"DraftJob"> | string
-  templateId?: Prisma.StringFilter<"DraftJob"> | string
-  templateVersionId?: Prisma.StringFilter<"DraftJob"> | string
+  templateId?: Prisma.StringNullableFilter<"DraftJob"> | string | null
+  templateVersionId?: Prisma.StringNullableFilter<"DraftJob"> | string | null
+  templateName?: Prisma.StringFilter<"DraftJob"> | string
+  templateVersionNumber?: Prisma.IntNullableFilter<"DraftJob"> | number | null
+  categoryName?: Prisma.StringNullableFilter<"DraftJob"> | string | null
   status?: Prisma.StringFilter<"DraftJob"> | string
   total?: Prisma.IntFilter<"DraftJob"> | number
   completed?: Prisma.IntFilter<"DraftJob"> | number
   createdAt?: Prisma.DateTimeFilter<"DraftJob"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DraftJob"> | Date | string
   requester?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  template?: Prisma.XOR<Prisma.TemplateScalarRelationFilter, Prisma.TemplateWhereInput>
-  templateVersion?: Prisma.XOR<Prisma.TemplateVersionScalarRelationFilter, Prisma.TemplateVersionWhereInput>
+  template?: Prisma.XOR<Prisma.TemplateNullableScalarRelationFilter, Prisma.TemplateWhereInput> | null
+  templateVersion?: Prisma.XOR<Prisma.TemplateVersionNullableScalarRelationFilter, Prisma.TemplateVersionWhereInput> | null
   drafts?: Prisma.OutboundDraftListRelationFilter
 }, "id">
 
 export type DraftJobOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   requesterId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
-  templateVersionId?: Prisma.SortOrder
+  templateId?: Prisma.SortOrderInput | Prisma.SortOrder
+  templateVersionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  templateName?: Prisma.SortOrder
+  templateVersionNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  categoryName?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
@@ -316,8 +353,11 @@ export type DraftJobScalarWhereWithAggregatesInput = {
   NOT?: Prisma.DraftJobScalarWhereWithAggregatesInput | Prisma.DraftJobScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DraftJob"> | string
   requesterId?: Prisma.StringWithAggregatesFilter<"DraftJob"> | string
-  templateId?: Prisma.StringWithAggregatesFilter<"DraftJob"> | string
-  templateVersionId?: Prisma.StringWithAggregatesFilter<"DraftJob"> | string
+  templateId?: Prisma.StringNullableWithAggregatesFilter<"DraftJob"> | string | null
+  templateVersionId?: Prisma.StringNullableWithAggregatesFilter<"DraftJob"> | string | null
+  templateName?: Prisma.StringWithAggregatesFilter<"DraftJob"> | string
+  templateVersionNumber?: Prisma.IntNullableWithAggregatesFilter<"DraftJob"> | number | null
+  categoryName?: Prisma.StringNullableWithAggregatesFilter<"DraftJob"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"DraftJob"> | string
   total?: Prisma.IntWithAggregatesFilter<"DraftJob"> | number
   completed?: Prisma.IntWithAggregatesFilter<"DraftJob"> | number
@@ -327,22 +367,28 @@ export type DraftJobScalarWhereWithAggregatesInput = {
 
 export type DraftJobCreateInput = {
   id?: string
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   requester: Prisma.UserCreateNestedOneWithoutDraftJobsInput
-  template: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
-  templateVersion: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
+  template?: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
+  templateVersion?: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
   drafts?: Prisma.OutboundDraftCreateNestedManyWithoutJobInput
 }
 
 export type DraftJobUncheckedCreateInput = {
   id?: string
   requesterId: string
-  templateId: string
-  templateVersionId: string
+  templateId?: string | null
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -353,22 +399,28 @@ export type DraftJobUncheckedCreateInput = {
 
 export type DraftJobUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   requester?: Prisma.UserUpdateOneRequiredWithoutDraftJobsNestedInput
-  template?: Prisma.TemplateUpdateOneRequiredWithoutDraftJobsNestedInput
-  templateVersion?: Prisma.TemplateVersionUpdateOneRequiredWithoutDraftJobsNestedInput
+  template?: Prisma.TemplateUpdateOneWithoutDraftJobsNestedInput
+  templateVersion?: Prisma.TemplateVersionUpdateOneWithoutDraftJobsNestedInput
   drafts?: Prisma.OutboundDraftUpdateManyWithoutJobNestedInput
 }
 
 export type DraftJobUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -380,8 +432,11 @@ export type DraftJobUncheckedUpdateInput = {
 export type DraftJobCreateManyInput = {
   id?: string
   requesterId: string
-  templateId: string
-  templateVersionId: string
+  templateId?: string | null
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -391,6 +446,9 @@ export type DraftJobCreateManyInput = {
 
 export type DraftJobUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -401,8 +459,11 @@ export type DraftJobUpdateManyMutationInput = {
 export type DraftJobUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -425,6 +486,9 @@ export type DraftJobCountOrderByAggregateInput = {
   requesterId?: Prisma.SortOrder
   templateId?: Prisma.SortOrder
   templateVersionId?: Prisma.SortOrder
+  templateName?: Prisma.SortOrder
+  templateVersionNumber?: Prisma.SortOrder
+  categoryName?: Prisma.SortOrder
   status?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
@@ -433,6 +497,7 @@ export type DraftJobCountOrderByAggregateInput = {
 }
 
 export type DraftJobAvgOrderByAggregateInput = {
+  templateVersionNumber?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
 }
@@ -442,6 +507,9 @@ export type DraftJobMaxOrderByAggregateInput = {
   requesterId?: Prisma.SortOrder
   templateId?: Prisma.SortOrder
   templateVersionId?: Prisma.SortOrder
+  templateName?: Prisma.SortOrder
+  templateVersionNumber?: Prisma.SortOrder
+  categoryName?: Prisma.SortOrder
   status?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
@@ -454,6 +522,9 @@ export type DraftJobMinOrderByAggregateInput = {
   requesterId?: Prisma.SortOrder
   templateId?: Prisma.SortOrder
   templateVersionId?: Prisma.SortOrder
+  templateName?: Prisma.SortOrder
+  templateVersionNumber?: Prisma.SortOrder
+  categoryName?: Prisma.SortOrder
   status?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
@@ -462,6 +533,7 @@ export type DraftJobMinOrderByAggregateInput = {
 }
 
 export type DraftJobSumOrderByAggregateInput = {
+  templateVersionNumber?: Prisma.SortOrder
   total?: Prisma.SortOrder
   completed?: Prisma.SortOrder
 }
@@ -613,20 +685,26 @@ export type DraftJobUpdateOneRequiredWithoutDraftsNestedInput = {
 
 export type DraftJobCreateWithoutRequesterInput = {
   id?: string
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  template: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
-  templateVersion: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
+  template?: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
+  templateVersion?: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
   drafts?: Prisma.OutboundDraftCreateNestedManyWithoutJobInput
 }
 
 export type DraftJobUncheckedCreateWithoutRequesterInput = {
   id?: string
-  templateId: string
-  templateVersionId: string
+  templateId?: string | null
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -667,8 +745,11 @@ export type DraftJobScalarWhereInput = {
   NOT?: Prisma.DraftJobScalarWhereInput | Prisma.DraftJobScalarWhereInput[]
   id?: Prisma.StringFilter<"DraftJob"> | string
   requesterId?: Prisma.StringFilter<"DraftJob"> | string
-  templateId?: Prisma.StringFilter<"DraftJob"> | string
-  templateVersionId?: Prisma.StringFilter<"DraftJob"> | string
+  templateId?: Prisma.StringNullableFilter<"DraftJob"> | string | null
+  templateVersionId?: Prisma.StringNullableFilter<"DraftJob"> | string | null
+  templateName?: Prisma.StringFilter<"DraftJob"> | string
+  templateVersionNumber?: Prisma.IntNullableFilter<"DraftJob"> | number | null
+  categoryName?: Prisma.StringNullableFilter<"DraftJob"> | string | null
   status?: Prisma.StringFilter<"DraftJob"> | string
   total?: Prisma.IntFilter<"DraftJob"> | number
   completed?: Prisma.IntFilter<"DraftJob"> | number
@@ -678,20 +759,26 @@ export type DraftJobScalarWhereInput = {
 
 export type DraftJobCreateWithoutTemplateInput = {
   id?: string
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   requester: Prisma.UserCreateNestedOneWithoutDraftJobsInput
-  templateVersion: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
+  templateVersion?: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
   drafts?: Prisma.OutboundDraftCreateNestedManyWithoutJobInput
 }
 
 export type DraftJobUncheckedCreateWithoutTemplateInput = {
   id?: string
   requesterId: string
-  templateVersionId: string
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -728,20 +815,26 @@ export type DraftJobUpdateManyWithWhereWithoutTemplateInput = {
 
 export type DraftJobCreateWithoutTemplateVersionInput = {
   id?: string
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   requester: Prisma.UserCreateNestedOneWithoutDraftJobsInput
-  template: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
+  template?: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
   drafts?: Prisma.OutboundDraftCreateNestedManyWithoutJobInput
 }
 
 export type DraftJobUncheckedCreateWithoutTemplateVersionInput = {
   id?: string
   requesterId: string
-  templateId: string
+  templateId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -778,21 +871,27 @@ export type DraftJobUpdateManyWithWhereWithoutTemplateVersionInput = {
 
 export type DraftJobCreateWithoutDraftsInput = {
   id?: string
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   requester: Prisma.UserCreateNestedOneWithoutDraftJobsInput
-  template: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
-  templateVersion: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
+  template?: Prisma.TemplateCreateNestedOneWithoutDraftJobsInput
+  templateVersion?: Prisma.TemplateVersionCreateNestedOneWithoutDraftJobsInput
 }
 
 export type DraftJobUncheckedCreateWithoutDraftsInput = {
   id?: string
   requesterId: string
-  templateId: string
-  templateVersionId: string
+  templateId?: string | null
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -818,21 +917,27 @@ export type DraftJobUpdateToOneWithWhereWithoutDraftsInput = {
 
 export type DraftJobUpdateWithoutDraftsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   requester?: Prisma.UserUpdateOneRequiredWithoutDraftJobsNestedInput
-  template?: Prisma.TemplateUpdateOneRequiredWithoutDraftJobsNestedInput
-  templateVersion?: Prisma.TemplateVersionUpdateOneRequiredWithoutDraftJobsNestedInput
+  template?: Prisma.TemplateUpdateOneWithoutDraftJobsNestedInput
+  templateVersion?: Prisma.TemplateVersionUpdateOneWithoutDraftJobsNestedInput
 }
 
 export type DraftJobUncheckedUpdateWithoutDraftsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -842,8 +947,11 @@ export type DraftJobUncheckedUpdateWithoutDraftsInput = {
 
 export type DraftJobCreateManyRequesterInput = {
   id?: string
-  templateId: string
-  templateVersionId: string
+  templateId?: string | null
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -853,20 +961,26 @@ export type DraftJobCreateManyRequesterInput = {
 
 export type DraftJobUpdateWithoutRequesterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  template?: Prisma.TemplateUpdateOneRequiredWithoutDraftJobsNestedInput
-  templateVersion?: Prisma.TemplateVersionUpdateOneRequiredWithoutDraftJobsNestedInput
+  template?: Prisma.TemplateUpdateOneWithoutDraftJobsNestedInput
+  templateVersion?: Prisma.TemplateVersionUpdateOneWithoutDraftJobsNestedInput
   drafts?: Prisma.OutboundDraftUpdateManyWithoutJobNestedInput
 }
 
 export type DraftJobUncheckedUpdateWithoutRequesterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -877,8 +991,11 @@ export type DraftJobUncheckedUpdateWithoutRequesterInput = {
 
 export type DraftJobUncheckedUpdateManyWithoutRequesterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -889,7 +1006,10 @@ export type DraftJobUncheckedUpdateManyWithoutRequesterInput = {
 export type DraftJobCreateManyTemplateInput = {
   id?: string
   requesterId: string
-  templateVersionId: string
+  templateVersionId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -899,20 +1019,26 @@ export type DraftJobCreateManyTemplateInput = {
 
 export type DraftJobUpdateWithoutTemplateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   requester?: Prisma.UserUpdateOneRequiredWithoutDraftJobsNestedInput
-  templateVersion?: Prisma.TemplateVersionUpdateOneRequiredWithoutDraftJobsNestedInput
+  templateVersion?: Prisma.TemplateVersionUpdateOneWithoutDraftJobsNestedInput
   drafts?: Prisma.OutboundDraftUpdateManyWithoutJobNestedInput
 }
 
 export type DraftJobUncheckedUpdateWithoutTemplateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -924,7 +1050,10 @@ export type DraftJobUncheckedUpdateWithoutTemplateInput = {
 export type DraftJobUncheckedUpdateManyWithoutTemplateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -935,7 +1064,10 @@ export type DraftJobUncheckedUpdateManyWithoutTemplateInput = {
 export type DraftJobCreateManyTemplateVersionInput = {
   id?: string
   requesterId: string
-  templateId: string
+  templateId?: string | null
+  templateName?: string
+  templateVersionNumber?: number | null
+  categoryName?: string | null
   status?: string
   total?: number
   completed?: number
@@ -945,20 +1077,26 @@ export type DraftJobCreateManyTemplateVersionInput = {
 
 export type DraftJobUpdateWithoutTemplateVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   requester?: Prisma.UserUpdateOneRequiredWithoutDraftJobsNestedInput
-  template?: Prisma.TemplateUpdateOneRequiredWithoutDraftJobsNestedInput
+  template?: Prisma.TemplateUpdateOneWithoutDraftJobsNestedInput
   drafts?: Prisma.OutboundDraftUpdateManyWithoutJobNestedInput
 }
 
 export type DraftJobUncheckedUpdateWithoutTemplateVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -970,7 +1108,10 @@ export type DraftJobUncheckedUpdateWithoutTemplateVersionInput = {
 export type DraftJobUncheckedUpdateManyWithoutTemplateVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   requesterId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateName?: Prisma.StringFieldUpdateOperationsInput | string
+  templateVersionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  categoryName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   total?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1014,14 +1155,17 @@ export type DraftJobSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   requesterId?: boolean
   templateId?: boolean
   templateVersionId?: boolean
+  templateName?: boolean
+  templateVersionNumber?: boolean
+  categoryName?: boolean
   status?: boolean
   total?: boolean
   completed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   requester?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
-  templateVersion?: boolean | Prisma.TemplateVersionDefaultArgs<ExtArgs>
+  template?: boolean | Prisma.DraftJob$templateArgs<ExtArgs>
+  templateVersion?: boolean | Prisma.DraftJob$templateVersionArgs<ExtArgs>
   drafts?: boolean | Prisma.DraftJob$draftsArgs<ExtArgs>
   _count?: boolean | Prisma.DraftJobCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["draftJob"]>
@@ -1031,14 +1175,17 @@ export type DraftJobSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   requesterId?: boolean
   templateId?: boolean
   templateVersionId?: boolean
+  templateName?: boolean
+  templateVersionNumber?: boolean
+  categoryName?: boolean
   status?: boolean
   total?: boolean
   completed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   requester?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
-  templateVersion?: boolean | Prisma.TemplateVersionDefaultArgs<ExtArgs>
+  template?: boolean | Prisma.DraftJob$templateArgs<ExtArgs>
+  templateVersion?: boolean | Prisma.DraftJob$templateVersionArgs<ExtArgs>
 }, ExtArgs["result"]["draftJob"]>
 
 export type DraftJobSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1046,14 +1193,17 @@ export type DraftJobSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   requesterId?: boolean
   templateId?: boolean
   templateVersionId?: boolean
+  templateName?: boolean
+  templateVersionNumber?: boolean
+  categoryName?: boolean
   status?: boolean
   total?: boolean
   completed?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   requester?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
-  templateVersion?: boolean | Prisma.TemplateVersionDefaultArgs<ExtArgs>
+  template?: boolean | Prisma.DraftJob$templateArgs<ExtArgs>
+  templateVersion?: boolean | Prisma.DraftJob$templateVersionArgs<ExtArgs>
 }, ExtArgs["result"]["draftJob"]>
 
 export type DraftJobSelectScalar = {
@@ -1061,6 +1211,9 @@ export type DraftJobSelectScalar = {
   requesterId?: boolean
   templateId?: boolean
   templateVersionId?: boolean
+  templateName?: boolean
+  templateVersionNumber?: boolean
+  categoryName?: boolean
   status?: boolean
   total?: boolean
   completed?: boolean
@@ -1068,38 +1221,47 @@ export type DraftJobSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DraftJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "requesterId" | "templateId" | "templateVersionId" | "status" | "total" | "completed" | "createdAt" | "updatedAt", ExtArgs["result"]["draftJob"]>
+export type DraftJobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "requesterId" | "templateId" | "templateVersionId" | "templateName" | "templateVersionNumber" | "categoryName" | "status" | "total" | "completed" | "createdAt" | "updatedAt", ExtArgs["result"]["draftJob"]>
 export type DraftJobInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   requester?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
-  templateVersion?: boolean | Prisma.TemplateVersionDefaultArgs<ExtArgs>
+  template?: boolean | Prisma.DraftJob$templateArgs<ExtArgs>
+  templateVersion?: boolean | Prisma.DraftJob$templateVersionArgs<ExtArgs>
   drafts?: boolean | Prisma.DraftJob$draftsArgs<ExtArgs>
   _count?: boolean | Prisma.DraftJobCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DraftJobIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   requester?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
-  templateVersion?: boolean | Prisma.TemplateVersionDefaultArgs<ExtArgs>
+  template?: boolean | Prisma.DraftJob$templateArgs<ExtArgs>
+  templateVersion?: boolean | Prisma.DraftJob$templateVersionArgs<ExtArgs>
 }
 export type DraftJobIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   requester?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
-  templateVersion?: boolean | Prisma.TemplateVersionDefaultArgs<ExtArgs>
+  template?: boolean | Prisma.DraftJob$templateArgs<ExtArgs>
+  templateVersion?: boolean | Prisma.DraftJob$templateVersionArgs<ExtArgs>
 }
 
 export type $DraftJobPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DraftJob"
   objects: {
     requester: Prisma.$UserPayload<ExtArgs>
-    template: Prisma.$TemplatePayload<ExtArgs>
-    templateVersion: Prisma.$TemplateVersionPayload<ExtArgs>
+    template: Prisma.$TemplatePayload<ExtArgs> | null
+    templateVersion: Prisma.$TemplateVersionPayload<ExtArgs> | null
     drafts: Prisma.$OutboundDraftPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     requesterId: string
-    templateId: string
-    templateVersionId: string
+    /**
+     * Kept after template delete so Sent history survives (SetNull).
+     */
+    templateId: string | null
+    templateVersionId: string | null
+    /**
+     * Snapshot at send time — used when the template is later deleted
+     */
+    templateName: string
+    templateVersionNumber: number | null
+    categoryName: string | null
     status: string
     total: number
     completed: number
@@ -1500,8 +1662,8 @@ readonly fields: DraftJobFieldRefs;
 export interface Prisma__DraftJobClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   requester<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  template<T extends Prisma.TemplateDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TemplateDefaultArgs<ExtArgs>>): Prisma.Prisma__TemplateClient<runtime.Types.Result.GetResult<Prisma.$TemplatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  templateVersion<T extends Prisma.TemplateVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TemplateVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__TemplateVersionClient<runtime.Types.Result.GetResult<Prisma.$TemplateVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  template<T extends Prisma.DraftJob$templateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DraftJob$templateArgs<ExtArgs>>): Prisma.Prisma__TemplateClient<runtime.Types.Result.GetResult<Prisma.$TemplatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  templateVersion<T extends Prisma.DraftJob$templateVersionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DraftJob$templateVersionArgs<ExtArgs>>): Prisma.Prisma__TemplateVersionClient<runtime.Types.Result.GetResult<Prisma.$TemplateVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   drafts<T extends Prisma.DraftJob$draftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DraftJob$draftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OutboundDraftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1536,6 +1698,9 @@ export interface DraftJobFieldRefs {
   readonly requesterId: Prisma.FieldRef<"DraftJob", 'String'>
   readonly templateId: Prisma.FieldRef<"DraftJob", 'String'>
   readonly templateVersionId: Prisma.FieldRef<"DraftJob", 'String'>
+  readonly templateName: Prisma.FieldRef<"DraftJob", 'String'>
+  readonly templateVersionNumber: Prisma.FieldRef<"DraftJob", 'Int'>
+  readonly categoryName: Prisma.FieldRef<"DraftJob", 'String'>
   readonly status: Prisma.FieldRef<"DraftJob", 'String'>
   readonly total: Prisma.FieldRef<"DraftJob", 'Int'>
   readonly completed: Prisma.FieldRef<"DraftJob", 'Int'>
@@ -1939,6 +2104,44 @@ export type DraftJobDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many DraftJobs to delete.
    */
   limit?: number
+}
+
+/**
+ * DraftJob.template
+ */
+export type DraftJob$templateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Template
+   */
+  select?: Prisma.TemplateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Template
+   */
+  omit?: Prisma.TemplateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TemplateInclude<ExtArgs> | null
+  where?: Prisma.TemplateWhereInput
+}
+
+/**
+ * DraftJob.templateVersion
+ */
+export type DraftJob$templateVersionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TemplateVersion
+   */
+  select?: Prisma.TemplateVersionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TemplateVersion
+   */
+  omit?: Prisma.TemplateVersionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TemplateVersionInclude<ExtArgs> | null
+  where?: Prisma.TemplateVersionWhereInput
 }
 
 /**

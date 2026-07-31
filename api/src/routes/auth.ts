@@ -6,7 +6,7 @@ import { getAuthProvider } from "../providers/auth/index.js";
 const loginBody = z.object({
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
-  role: z.enum(["USER", "ADMIN"]).optional(),
+  role: z.enum(["USER", "DESIGNER", "ADMIN"]).optional(),
 });
 
 export const authRoutes: FastifyPluginAsync = async (app) => {

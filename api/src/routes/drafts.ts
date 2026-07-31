@@ -3,9 +3,10 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
 import { buildOutboundBodyHtml, applyMergeFields, buildMergeFieldMap, parseImageSlotsFromDesignJson, parsePlaceholdersFromDesignJson } from "../lib/emailBody.js";
-import { embedLocalUploadImages } from "../lib/embedEmailImages.js";
+import { embedLocalUploadImages, inlineLocalUploadImagesAsDataUrls } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
+import { canComposeTemplate, isAdmin } from "../lib/roles.js";
 
 const recipientBody = z.object({
   aadOid: z.string().min(1).max(200).optional(),
@@ -55,15 +56,11 @@ const createJobBody = z.object({
     .optional(),
 });
 
-function canView(
-  template: { ownerId: string; visibility: string },
+function canCompose(
+  template: { ownerId: string; visibility: string; status: string },
   user: { id: string; role: string },
 ) {
-  return (
-    template.ownerId === user.id ||
-    template.visibility === "SHARED" ||
-    user.role === "ADMIN"
-  );
+  return canComposeTemplate(template, user);
 }
 
 const draftSelect = {
@@ -88,6 +85,29 @@ const jobInclude = {
   },
 } as const;
 
+function jobTemplateLabel(job: {
+  templateName: string;
+  template: { id: string; name: string } | null;
+  templateVersionNumber: number | null;
+  templateVersion: { id: string; version: number } | null;
+}) {
+  return {
+    id: job.template?.id ?? "deleted",
+    name: job.template?.name ?? job.templateName ?? "Deleted template",
+  };
+}
+
+function jobVersionLabel(job: {
+  templateVersionNumber: number | null;
+  templateVersion: { id: string; version: number } | null;
+}) {
+  return {
+    id: job.templateVersion?.id ?? "deleted",
+    version:
+      job.templateVersion?.version ?? job.templateVersionNumber ?? 0,
+  };
+}
+
 export const draftRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/draft-jobs",
@@ -95,7 +115,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
     async (request) => {
       const user = request.appUser!;
       const jobs = await prisma.draftJob.findMany({
-        where: user.role === "ADMIN" ? {} : { requesterId: user.id },
+        where: isAdmin(user) ? {} : { requesterId: user.id },
         orderBy: { createdAt: "desc" },
         take: 40,
         include: {
@@ -104,7 +124,103 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           _count: { select: { drafts: true } },
         },
       });
-      return { jobs, mailMode: config.mailMode };
+      return {
+        jobs: jobs.map((job) => ({
+          ...job,
+          template: jobTemplateLabel(job),
+          templateVersion: jobVersionLabel(job),
+        })),
+        mailMode: config.mailMode,
+      };
+    },
+  );
+
+  /** Flat per-recipient send history for the signed-in user (or all for admin). */
+  app.get(
+    "/sent",
+    { preHandler: [app.authenticate] },
+    async (request) => {
+      const user = request.appUser!;
+      const q = (request.query as { q?: string }).q?.trim() ?? "";
+      const drafts = await prisma.outboundDraft.findMany({
+        where: {
+          ...(isAdmin(user) ? {} : { job: { requesterId: user.id } }),
+          ...(q
+            ? {
+                OR: [
+                  { subject: { contains: q, mode: "insensitive" } },
+                  { recipientEmail: { contains: q, mode: "insensitive" } },
+                  { recipientName: { contains: q, mode: "insensitive" } },
+                  {
+                    job: {
+                      categoryName: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    job: {
+                      templateName: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    job: {
+                      template: {
+                        name: { contains: q, mode: "insensitive" },
+                      },
+                    },
+                  },
+                  {
+                    job: {
+                      template: {
+                        category: {
+                          name: { contains: q, mode: "insensitive" },
+                        },
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: {
+          ...draftSelect,
+          job: {
+            select: {
+              id: true,
+              status: true,
+              createdAt: true,
+              templateName: true,
+              templateVersionNumber: true,
+              categoryName: true,
+              template: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: { select: { id: true, name: true } },
+                },
+              },
+              templateVersion: { select: { id: true, version: true } },
+              requester: {
+                select: { id: true, displayName: true, email: true },
+              },
+            },
+          },
+        },
+      });
+      return {
+        items: drafts.map((d) => ({
+          ...d,
+          job: {
+            ...d.job,
+            template: jobTemplateLabel(d.job),
+            templateVersion: jobVersionLabel(d.job),
+            categoryName:
+              d.job.categoryName ?? d.job.template?.category?.name ?? null,
+          },
+        })),
+        mailMode: config.mailMode,
+      };
     },
   );
 
@@ -121,10 +237,17 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       if (!job) {
         return reply.code(404).send({ error: "Draft job not found" });
       }
-      if (job.requesterId !== user.id && user.role !== "ADMIN") {
+      if (job.requesterId !== user.id && !isAdmin(user)) {
         return reply.code(403).send({ error: "Not allowed to view this job" });
       }
-      return { job, mailMode: config.mailMode };
+      return {
+        job: {
+          ...job,
+          template: jobTemplateLabel(job),
+          templateVersion: jobVersionLabel(job),
+        },
+        mailMode: config.mailMode,
+      };
     },
   );
 
@@ -179,6 +302,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       const template = await prisma.template.findUnique({
         where: { id: templateId },
         include: {
+          category: { select: { id: true, name: true } },
           assets: {
             where: { kind: "source" },
             select: { fileName: true, storageKey: true },
@@ -186,7 +310,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
-      if (!template || !canView(template, user)) {
+      if (!template || !canCompose(template, user)) {
         return reply.code(404).send({ error: "Template not found" });
       }
 
@@ -231,6 +355,9 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           requesterId: user.id,
           templateId: template.id,
           templateVersionId: version.id,
+          templateName: template.name,
+          templateVersionNumber: version.version,
+          categoryName: template.category?.name ?? null,
           status: "running",
           total: uniqueRecipients.length,
           completed: 0,
@@ -281,10 +408,10 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           }),
         ).trim() || subject;
 
-        // Keep http(s) /uploads URLs for in-app draft preview. SMTP gets a
-        // cid:-rewritten copy so Gmail/Outlook can show images without a
-        // publicly reachable API host.
-        const bodyHtmlForPreview = bodyHtml;
+        // Freeze images into the stored preview so template delete/update
+        // cannot blank or rewrite Sent history. SMTP still uses cid: embeds.
+        const bodyHtmlForPreview =
+          await inlineLocalUploadImagesAsDataUrls(bodyHtml);
 
         let sendHtml = bodyHtml;
         let inlineAttachments:

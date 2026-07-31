@@ -1,67 +1,41 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { roleLabel } from "../lib/roles";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
-type CatalogItem = {
-  type: string;
-  title: string;
-  description: string;
-  available: boolean;
-};
-
+/** App home — pick Emails or Gifts. */
 export function HomePage() {
-  const { token, user } = useAuth();
-  const [items, setItems] = useState<CatalogItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    api
-      .catalog(token)
-      .then((res) => setItems(res.items))
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load catalog"),
-      );
-  }, [token]);
+  const { user } = useAuth();
 
   return (
     <div className="page">
+      <Breadcrumbs items={[{ label: "Home" }]} />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Welcome</p>
+          <p className="eyebrow">Welcome · {roleLabel(user?.role ?? "USER")}</p>
           <h1>{user?.displayName}</h1>
-          <p className="lede">Choose what you want to send.</p>
+          <p className="lede">
+            Choose a product area to get started.
+          </p>
         </div>
       </header>
 
-      {error ? <p className="error">{error}</p> : null}
-
       <div className="catalog-grid">
-        {items.map((item) =>
-          item.available ? (
-            <Link
-              key={item.type}
-              to="/cards"
-              className="catalog-tile catalog-tile--live"
-            >
-              <span className="catalog-type">{item.type}</span>
-              <h2>{item.title}</h2>
-              <p>{item.description}</p>
-            </Link>
-          ) : (
-            <div
-              key={item.type}
-              className="catalog-tile catalog-tile--soon"
-              title={item.description}
-            >
-              <span className="catalog-type">{item.type}</span>
-              <h2>{item.title}</h2>
-              <p>{item.description}</p>
-              <span className="soon-tag">Coming later</span>
-            </div>
-          ),
-        )}
+        <Link to="/emails" className="catalog-tile catalog-tile--live">
+          <span className="catalog-type">EMAILS</span>
+          <h2>Emails</h2>
+          <p>
+            Gratitude cards and templates — browse, design, send, and track
+            history.
+          </p>
+        </Link>
+
+        <div className="catalog-tile catalog-tile--soon" title="Coming soon">
+          <span className="catalog-type">GIFTS</span>
+          <h2>Gifts</h2>
+          <p>Physical gifts and recognition — coming soon.</p>
+          <span className="soon-tag">Coming soon</span>
+        </div>
       </div>
     </div>
   );

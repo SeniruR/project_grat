@@ -4,6 +4,7 @@ import { api, type DraftJobDetail } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { COMPOSE_ENABLED } from "../features";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
 export function DraftJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -50,18 +51,22 @@ export function DraftJobPage() {
 
   return (
     <div className="page">
-      <p className="back">
-        <Link to={`/cards/${job.template.id}`}>← {job.template.name}</Link>
-        {COMPOSE_ENABLED ? (
-          <>
-            {" · "}
-            <Link to={`/cards/${job.template.id}/compose`}>Compose again</Link>
-          </>
-        ) : null}
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "Sent History", to: "/sent" },
+          { label: job.template.name },
+        ]}
+      />
+      {COMPOSE_ENABLED ? (
+        <p className="back">
+          <Link to={`/cards/${job.template.id}/compose`}>Compose again</Link>
+        </p>
+      ) : null}
       <header className="page-header">
         <div>
-          <p className="eyebrow">Draft job</p>
+          <p className="eyebrow">Emails</p>
           <h1>
             {mailMode === "smtp"
               ? `${okCount} message${okCount === 1 ? "" : "s"} sent`

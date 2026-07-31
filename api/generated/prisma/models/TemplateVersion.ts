@@ -434,9 +434,9 @@ export type TemplateVersionSumOrderByAggregateInput = {
   version?: Prisma.SortOrder
 }
 
-export type TemplateVersionScalarRelationFilter = {
-  is?: Prisma.TemplateVersionWhereInput
-  isNot?: Prisma.TemplateVersionWhereInput
+export type TemplateVersionNullableScalarRelationFilter = {
+  is?: Prisma.TemplateVersionWhereInput | null
+  isNot?: Prisma.TemplateVersionWhereInput | null
 }
 
 export type TemplateVersionCreateNestedManyWithoutTemplateInput = {
@@ -495,10 +495,12 @@ export type TemplateVersionCreateNestedOneWithoutDraftJobsInput = {
   connect?: Prisma.TemplateVersionWhereUniqueInput
 }
 
-export type TemplateVersionUpdateOneRequiredWithoutDraftJobsNestedInput = {
+export type TemplateVersionUpdateOneWithoutDraftJobsNestedInput = {
   create?: Prisma.XOR<Prisma.TemplateVersionCreateWithoutDraftJobsInput, Prisma.TemplateVersionUncheckedCreateWithoutDraftJobsInput>
   connectOrCreate?: Prisma.TemplateVersionCreateOrConnectWithoutDraftJobsInput
   upsert?: Prisma.TemplateVersionUpsertWithoutDraftJobsInput
+  disconnect?: Prisma.TemplateVersionWhereInput | boolean
+  delete?: Prisma.TemplateVersionWhereInput | boolean
   connect?: Prisma.TemplateVersionWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.TemplateVersionUpdateToOneWithWhereWithoutDraftJobsInput, Prisma.TemplateVersionUpdateWithoutDraftJobsInput>, Prisma.TemplateVersionUncheckedUpdateWithoutDraftJobsInput>
 }

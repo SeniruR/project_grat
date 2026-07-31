@@ -8,6 +8,11 @@ import {
   suggestedImgTag,
 } from "../lib/htmlAssets.js";
 import { config } from "../config.js";
+import {
+  canEditTemplate,
+  canManageDesigns,
+  canViewTemplate,
+} from "../lib/roles.js";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -17,6 +22,7 @@ import { unlink, stat } from "node:fs/promises";
 const createBody = z.object({
   name: z.string().min(1).max(160),
   visibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
+  categoryId: z.string().min(1).optional(),
   mode: z
     .enum(["blank", "html_import", "canva_html", "image_import"])
     .default("blank"),
@@ -29,6 +35,7 @@ const patchBody = z.object({
   name: z.string().min(1).max(160).optional(),
   visibility: z.enum(["PRIVATE", "SHARED"]).optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+  categoryId: z.string().min(1).nullable().optional(),
   headerHtml: z.string().max(50_000).nullable().optional(),
   footerHtml: z.string().max(50_000).nullable().optional(),
 });
@@ -41,6 +48,7 @@ const versionBody = z.object({
 
 const templateInclude = {
   owner: { select: { id: true, displayName: true, email: true } },
+  category: { select: { id: true, name: true } },
   versions: { orderBy: { version: "desc" as const }, take: 1 },
   /// Only user uploads — compiled flatten outputs are internal
   assets: {
@@ -50,21 +58,17 @@ const templateInclude = {
 };
 
 function canView(
-  template: { ownerId: string; visibility: string },
+  template: { ownerId: string; visibility: string; status: string },
   user: { id: string; role: string },
 ) {
-  return (
-    template.ownerId === user.id ||
-    template.visibility === "SHARED" ||
-    user.role === "ADMIN"
-  );
+  return canViewTemplate(template, user);
 }
 
 function canEdit(
   template: { ownerId: string },
   user: { id: string; role: string },
 ) {
-  return template.ownerId === user.id || user.role === "ADMIN";
+  return canEditTemplate(template, user);
 }
 
 export const templateRoutes: FastifyPluginAsync = async (app) => {
@@ -73,28 +77,73 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: [app.authenticate] },
     async (request) => {
       const user = request.appUser!;
+      // Design studio — own templates only (marketplace is separate).
+      if (!canManageDesigns(user)) {
+        return { templates: [] };
+      }
       const templates = await prisma.template.findMany({
-        where:
-          user.role === "ADMIN"
-            ? { catalogType: "CARD" }
-            : {
-                catalogType: "CARD",
-                OR: [{ ownerId: user.id }, { visibility: "SHARED" }],
-              },
+        where: {
+          catalogType: "CARD",
+          ownerId: user.id,
+        },
         orderBy: { updatedAt: "desc" },
         include: {
           owner: { select: { id: true, displayName: true, email: true } },
+          category: { select: { id: true, name: true } },
           versions: { orderBy: { version: "desc" }, take: 1 },
           _count: { select: { assets: true } },
         },
       });
-      return { templates };
+
+      const ids = templates.map((t) => t.id);
+      const usageByTemplate = new Map<
+        string,
+        { total: Set<string>; sinceEdit: Set<string> }
+      >();
+      for (const id of ids) {
+        usageByTemplate.set(id, { total: new Set(), sinceEdit: new Set() });
+      }
+
+      if (ids.length) {
+        const jobs = await prisma.draftJob.findMany({
+          where: { templateId: { in: ids } },
+          select: {
+            templateId: true,
+            requesterId: true,
+            createdAt: true,
+          },
+        });
+        const editedAt = new Map(
+          templates.map((t) => [t.id, t.updatedAt.getTime()] as const),
+        );
+        for (const job of jobs) {
+          if (!job.templateId) continue;
+          const bucket = usageByTemplate.get(job.templateId);
+          if (!bucket) continue;
+          bucket.total.add(job.requesterId);
+          const cut = editedAt.get(job.templateId) ?? 0;
+          if (job.createdAt.getTime() >= cut) {
+            bucket.sinceEdit.add(job.requesterId);
+          }
+        }
+      }
+
+      return {
+        templates: templates.map((t) => {
+          const usage = usageByTemplate.get(t.id);
+          return {
+            ...t,
+            usageTotalUsers: usage?.total.size ?? 0,
+            usageSinceLastEdit: usage?.sinceEdit.size ?? 0,
+          };
+        }),
+      };
     },
   );
 
   app.post(
     "/templates",
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.requireDesigner] },
     async (request, reply) => {
       const user = request.appUser!;
       const parsed = createBody.safeParse(request.body);
@@ -102,13 +151,22 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid template payload" });
       }
 
-      const { name, visibility, mode, html, headerHtml, footerHtml } =
+      const { name, visibility, mode, html, headerHtml, footerHtml, categoryId } =
         parsed.data;
 
       if (mode === "html_import" && !html?.trim()) {
         return reply
           .code(400)
           .send({ error: "HTML is required for html_import mode" });
+      }
+
+      if (categoryId) {
+        const cat = await prisma.templateCategory.findUnique({
+          where: { id: categoryId },
+        });
+        if (!cat) {
+          return reply.code(400).send({ error: "Category not found" });
+        }
       }
 
       const designJson =
@@ -130,9 +188,10 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         data: {
           name: name.trim(),
           visibility,
-          status: "DRAFT",
+          status: visibility === "SHARED" ? "PUBLISHED" : "DRAFT",
           catalogType: "CARD",
           ownerId: user.id,
+          categoryId: categoryId || null,
           headerHtml: headerHtml?.trim() || null,
           footerHtml: footerHtml?.trim() || null,
           versions: {
@@ -152,7 +211,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         action: "template.created",
         entityType: "template",
         entityId: template.id,
-        payload: { name: template.name, visibility, mode },
+        payload: { name: template.name, visibility, mode, categoryId },
       });
 
       return reply.code(201).send({ template });
@@ -198,6 +257,24 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const data = parsed.data;
+      if (data.categoryId) {
+        const cat = await prisma.templateCategory.findUnique({
+          where: { id: data.categoryId },
+        });
+        if (!cat) {
+          return reply.code(400).send({ error: "Category not found" });
+        }
+      }
+
+      // Keep status aligned with visibility so "Published" means marketplace-ready.
+      const syncedStatus =
+        data.status ??
+        (data.visibility !== undefined
+          ? data.visibility === "SHARED"
+            ? "PUBLISHED"
+            : "DRAFT"
+          : undefined);
+
       const template = await prisma.template.update({
         where: { id },
         data: {
@@ -205,7 +282,10 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           ...(data.visibility !== undefined
             ? { visibility: data.visibility }
             : {}),
-          ...(data.status !== undefined ? { status: data.status } : {}),
+          ...(syncedStatus !== undefined ? { status: syncedStatus } : {}),
+          ...(data.categoryId !== undefined
+            ? { categoryId: data.categoryId }
+            : {}),
           ...(data.headerHtml !== undefined
             ? { headerHtml: data.headerHtml }
             : {}),
@@ -659,9 +739,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         await removeUploadFile(asset.storageKey);
       }
 
-      // Draft jobs reference this template (and its versions) without cascade.
-      await prisma.draftJob.deleteMany({ where: { templateId: id } });
-
+      // Keep DraftJob / OutboundDraft rows for Sent history (FKs SetNull).
       await prisma.template.delete({ where: { id } });
       await writeAudit({
         actorId: user.id,

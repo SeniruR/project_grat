@@ -5,7 +5,42 @@ export type ApiUser = {
   aadOid: string;
   email: string;
   displayName: string;
-  role: "USER" | "ADMIN";
+  role: "USER" | "DESIGNER" | "ADMIN";
+};
+
+export type MarketplaceCard = TemplateSummary & {
+  isFavorite?: boolean;
+  favoritedAt?: string;
+};
+
+export type SentItem = {
+  id: string;
+  recipientOid: string | null;
+  recipientEmail: string;
+  recipientName: string | null;
+  subject: string;
+  bodyHtml: string | null;
+  graphMessageId: string | null;
+  status: string;
+  error: string | null;
+  createdAt: string;
+  job: {
+    id: string;
+    status: string;
+    createdAt: string;
+    categoryName?: string | null;
+    template: { id: string; name: string };
+    requester: { id: string; displayName: string; email: string };
+  };
+};
+
+export type TemplateCategory = {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: { id: string; displayName: string; email: string } | null;
+  _count?: { templates: number };
 };
 
 export type TemplateSummary = {
@@ -19,6 +54,7 @@ export type TemplateSummary = {
   createdAt: string;
   updatedAt: string;
   owner: { id: string; displayName: string; email: string };
+  category?: { id: string; name: string } | null;
   versions: Array<{
     id: string;
     version: number;
@@ -28,6 +64,10 @@ export type TemplateSummary = {
     createdAt: string;
   }>;
   _count?: { assets: number };
+  /** Distinct senders who used this template (all time). */
+  usageTotalUsers?: number;
+  /** Distinct senders who used it since the last template edit. */
+  usageSinceLastEdit?: number;
   assets?: Array<{
     id: string;
     fileName: string;
@@ -172,6 +212,7 @@ export const api = {
     body: {
       name: string;
       visibility: "PRIVATE" | "SHARED";
+      categoryId?: string;
       mode: "blank" | "html_import" | "canva_html" | "image_import";
       html?: string;
       headerHtml?: string;
@@ -191,6 +232,7 @@ export const api = {
       name?: string;
       visibility?: "PRIVATE" | "SHARED";
       status?: "DRAFT" | "PUBLISHED";
+      categoryId?: string | null;
       headerHtml?: string | null;
       footerHtml?: string | null;
     },
@@ -200,6 +242,30 @@ export const api = {
       token,
       body: JSON.stringify(body),
     }),
+
+  categories: (token: string, q?: string) => {
+    const qs = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+    return request<{ categories: TemplateCategory[] }>(`/categories${qs}`, {
+      token,
+    });
+  },
+
+  createCategory: (token: string, name: string) =>
+    request<{ category: TemplateCategory; created: boolean }>("/categories", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ name }),
+    }),
+
+  renameCategory: (token: string, id: string, name: string) =>
+    request<{ category: TemplateCategory }>(`/categories/${id}`, {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ name }),
+    }),
+
+  deleteCategory: (token: string, id: string) =>
+    request<void>(`/categories/${id}`, { method: "DELETE", token }),
 
   saveTemplateVersion: (
     token: string,
@@ -326,12 +392,56 @@ export const api = {
       mailMode: string;
     }>("/draft-jobs", { token }),
 
+  sentHistory: (token: string, q?: string) => {
+    const qs = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+    return request<{ items: SentItem[]; mailMode: string }>(`/sent${qs}`, {
+      token,
+    });
+  },
+
+  marketplace: (
+    token: string,
+    opts?: { q?: string; favorites?: boolean; categoryId?: string | null },
+  ) => {
+    const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.favorites) params.set("favorites", "1");
+    if (opts?.categoryId) params.set("categoryId", opts.categoryId);
+    const qs = params.toString() ? `?${params}` : "";
+    return request<{ templates: MarketplaceCard[] }>(`/marketplace${qs}`, {
+      token,
+    });
+  },
+
+  marketplaceCard: (token: string, id: string) =>
+    request<{
+      template: MarketplaceCard;
+      previewHtml: string | null;
+      previewUrl: string | null;
+    }>(`/marketplace/${id}`, { token }),
+
+  favorites: (token: string) =>
+    request<{ templates: MarketplaceCard[] }>("/favorites", { token }),
+
+  addFavorite: (token: string, templateId: string) =>
+    request<{ ok: boolean; isFavorite: boolean }>(`/favorites/${templateId}`, {
+      method: "POST",
+      token,
+    }),
+
+  removeFavorite: (token: string, templateId: string) =>
+    request<{ ok: boolean; isFavorite: boolean }>(`/favorites/${templateId}`, {
+      method: "DELETE",
+      token,
+    }),
+
   adminStats: (token: string) =>
     request<{
       users: number;
       templates: number;
       drafts: number;
       audits: number;
+      designers?: number;
     }>("/admin/stats", { token }),
 
   adminAudit: (token: string) =>
@@ -344,6 +454,43 @@ export const api = {
         actor: { displayName: string; email: string } | null;
       }>;
     }>("/admin/audit", { token }),
+
+  adminUsers: (token: string) =>
+    request<{
+      users: Array<{
+        id: string;
+        email: string;
+        displayName: string;
+        role: "USER" | "DESIGNER" | "ADMIN";
+        isDirectory: boolean;
+        createdAt: string;
+        _count: { ownedTemplates: number; draftJobs: number };
+      }>;
+    }>("/admin/users", { token }),
+
+  adminUpdateUser: (
+    token: string,
+    id: string,
+    body: { role: "USER" | "DESIGNER" | "ADMIN" },
+  ) =>
+    request<{
+      user: {
+        id: string;
+        email: string;
+        displayName: string;
+        role: "USER" | "DESIGNER" | "ADMIN";
+        isDirectory: boolean;
+        createdAt: string;
+        _count: { ownedTemplates: number; draftJobs: number };
+      };
+    }>(`/admin/users/${id}`, {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(body),
+    }),
+
+  adminDeleteUser: (token: string, id: string) =>
+    request<void>(`/admin/users/${id}`, { method: "DELETE", token }),
 };
 
 export function assetUrl(storageKey: string) {

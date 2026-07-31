@@ -12,6 +12,8 @@ import { adminRoutes } from "./routes/admin.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { templateRoutes } from "./routes/templates.js";
 import { draftRoutes } from "./routes/drafts.js";
+import { marketplaceRoutes } from "./routes/marketplace.js";
+import { categoryRoutes } from "./routes/categories.js";
 import { ensureUploadsDir, uploadsRoot } from "./lib/uploads.js";
 
 await ensureUploadsDir();
@@ -51,6 +53,8 @@ await app.register(adminRoutes);
 await app.register(catalogRoutes);
 await app.register(templateRoutes);
 await app.register(draftRoutes);
+await app.register(marketplaceRoutes);
+await app.register(categoryRoutes);
 
 app.get("/health", async () => ({
   ok: true,

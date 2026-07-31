@@ -9,7 +9,9 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User.js'
+export type * from './models/TemplateCategory.js'
 export type * from './models/Template.js'
+export type * from './models/TemplateFavorite.js'
 export type * from './models/TemplateVersion.js'
 export type * from './models/TemplateAsset.js'
 export type * from './models/DraftJob.js'

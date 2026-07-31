@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type DraftJobSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
 export function DraftsPage() {
   const { token } = useAuth();
@@ -24,9 +25,17 @@ export function DraftsPage() {
 
   return (
     <div className="page">
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "Sent History", to: "/sent" },
+          { label: "Draft jobs" },
+        ]}
+      />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Outbound</p>
+          <p className="eyebrow">Emails</p>
           <h1>Draft jobs</h1>
           <p className="lede">
             Mock Outlook drafts created from cards · mail mode{" "}
