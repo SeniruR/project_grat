@@ -12,6 +12,12 @@ import {
   rasterizeEmailHtmlToFile,
 } from "./rasterizeEmailHtml";
 import {
+  applyHtmlVerticalCrop,
+  cropPngDataUrl,
+  dataUrlToPngFile,
+  detectWhiteVerticalMargins,
+} from "./trimEmailWhiteMargins";
+import {
   parseIgnoredPlaceholdersFromDesignJson,
   parsePlaceholdersFromDesignJson,
   syncPlaceholdersWithHtml,
@@ -52,6 +58,8 @@ export async function importCanvaZipToTemplate(
     previousImageSlots?: ImageSlotDef[];
     previousDesignJson?: Record<string, unknown>;
     ignoredPlaceholders?: string[];
+    /** When true, crop solid white letterboxing above/below the design. */
+    trimWhiteMargins?: boolean;
   },
 ) {
   const { html, assets } = await parseCanvaZip(zipFile);
@@ -104,12 +112,36 @@ export async function importCanvaZipToTemplate(
 
   let previewUrl: string | null = null;
   let emailHeight = 800;
+  let trimMeta: { enabled: boolean; top: number; bottom: number } | null =
+    null;
 
   try {
-    const { file, height } = await rasterizeEmailHtmlToFile(
-      compiledHtml,
-      emailWidth,
-    );
+    const raster = await rasterizeEmailHtmlToFile(compiledHtml, emailWidth);
+    let snapshotFile = raster.file;
+    emailHeight = raster.height;
+
+    if (options?.trimWhiteMargins) {
+      const crop = await detectWhiteVerticalMargins(
+        raster.dataUrl,
+        raster.width,
+        raster.height,
+        raster.pixelRatio,
+      );
+      if (crop) {
+        compiledHtml = applyHtmlVerticalCrop(compiledHtml, crop);
+        const cropped = await cropPngDataUrl(
+          raster.dataUrl,
+          crop,
+          raster.pixelRatio,
+        );
+        snapshotFile = await dataUrlToPngFile(cropped.dataUrl);
+        emailHeight = cropped.height;
+        trimMeta = { enabled: true, top: crop.top, bottom: crop.bottom };
+      } else {
+        trimMeta = { enabled: true, top: 0, bottom: 0 };
+      }
+    }
+
     try {
       await api.purgeCompiledAssets(token, templateId);
     } catch {
@@ -118,11 +150,10 @@ export async function importCanvaZipToTemplate(
     const { asset: compiled } = await api.uploadTemplateAsset(
       token,
       templateId,
-      file,
+      snapshotFile,
       "compiled",
     );
     previewUrl = compiled.url;
-    emailHeight = height;
   } catch {
     /* HTML-only import still works */
   }
@@ -140,12 +171,26 @@ export async function importCanvaZipToTemplate(
       placeholders,
       imageSlots,
       ignoredPlaceholders: ignored,
+      ...(trimMeta
+        ? {
+            trimWhiteMargins: trimMeta.enabled,
+            trimWhiteTop: trimMeta.top,
+            trimWhiteBottom: trimMeta.bottom,
+          }
+        : { trimWhiteMargins: false }),
     },
     compiledHtml,
     previewUrl,
   });
 
-  return { compiledHtml, imageCount, previewUrl, placeholders, imageSlots };
+  return {
+    compiledHtml,
+    imageCount,
+    previewUrl,
+    placeholders,
+    imageSlots,
+    trimmedWhiteMargins: Boolean(trimMeta?.top || trimMeta?.bottom),
+  };
 }
 
 /** Rebuild PNG snapshot from stored Canva HTML (no ZIP re-upload). */

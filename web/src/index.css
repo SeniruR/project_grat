@@ -966,6 +966,20 @@ button.ghost {
   gap: 0.65rem;
 }
 
+.import-trim-option {
+  flex: 1 1 100%;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0.15rem 0 0.25rem;
+}
+
+.import-trim-hint {
+  display: inline;
+  font-weight: 400;
+}
+
 /* Custom file picker — hide the native control; show our button label */
 .file-pick {
   position: relative;

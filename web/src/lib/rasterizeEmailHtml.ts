@@ -266,7 +266,12 @@ async function rasterizeNode(
 export async function rasterizeEmailHtmlToPng(
   html: string,
   width = inferEmailWidth(html),
-): Promise<{ dataUrl: string; width: number; height: number }> {
+): Promise<{
+  dataUrl: string;
+  width: number;
+  height: number;
+  pixelRatio: number;
+}> {
   const w = Math.max(280, Math.min(900, Math.round(width)));
   const iframe = document.createElement("iframe");
   iframe.setAttribute(
@@ -303,12 +308,16 @@ export async function rasterizeEmailHtmlToPng(
       Math.max(120, measureEmailContentHeight(doc, iframe) + 2),
     );
 
+    iframe.style.height = `${height}px`;
+    void doc.body.offsetHeight;
+
     const dataUrl = await rasterizeNode(doc.body, w, height);
 
     return {
       dataUrl,
       width: w,
       height: Math.round(height),
+      pixelRatio: RASTER_PIXEL_RATIO,
     };
   } finally {
     iframe.remove();
@@ -319,16 +328,22 @@ export async function rasterizeEmailHtmlToFile(
   html: string,
   width?: number,
   fileName = "canva-preview.png",
-): Promise<{ file: File; width: number; height: number }> {
-  const { dataUrl, width: w, height } = await rasterizeEmailHtmlToPng(
-    html,
-    width,
-  );
+): Promise<{
+  file: File;
+  width: number;
+  height: number;
+  dataUrl: string;
+  pixelRatio: number;
+}> {
+  const { dataUrl, width: w, height, pixelRatio } =
+    await rasterizeEmailHtmlToPng(html, width);
   const res = await fetch(dataUrl);
   const blob = await res.blob();
   return {
     file: new File([blob], fileName, { type: "image/png" }),
     width: w,
     height,
+    dataUrl,
+    pixelRatio,
   };
 }

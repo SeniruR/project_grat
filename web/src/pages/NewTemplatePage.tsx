@@ -48,6 +48,7 @@ export function NewTemplatePage() {
   const [starter, setStarter] = useState<Starter>("canva_zip");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [trimWhiteMargins, setTrimWhiteMargins] = useState(false);
   const [placeholders, setPlaceholders] = useState<PlaceholderDef[]>([]);
   const [ignoredPlaceholders, setIgnoredPlaceholders] = useState<string[]>([]);
   const [imageSlots, setImageSlots] = useState<ImageSlotDef[]>([]);
@@ -148,6 +149,7 @@ export function NewTemplatePage() {
           previousPlaceholders: cleaned,
           previousImageSlots: cleanedSlots,
           ignoredPlaceholders,
+          trimWhiteMargins,
         });
         navigate("/cards");
         return;
@@ -271,6 +273,22 @@ export function NewTemplatePage() {
               </span>
               <span className="file-pick-name muted">
                 {zipFile ? zipFile.name : "HTML and images ZIP"}
+              </span>
+            </label>
+            <label className="check import-trim-option">
+              <input
+                type="checkbox"
+                checked={trimWhiteMargins}
+                disabled={saving || scanning || !zipFile}
+                onChange={(e) => setTrimWhiteMargins(e.target.checked)}
+              />
+              <span>
+                Trim white margins above and below the design
+                <span className="muted small import-trim-hint">
+                  {" "}
+                  — removes Canva letterboxing if the export has empty white
+                  bands. Leave unchecked to keep the ZIP as exported.
+                </span>
               </span>
             </label>
             {scanNotice ? <p className="notice">{scanNotice}</p> : null}

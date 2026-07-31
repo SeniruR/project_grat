@@ -147,6 +147,7 @@ export function TemplateDetailPage() {
   const [placeholders, setPlaceholders] = useState<PlaceholderDef[]>([]);
   const [ignoredPlaceholders, setIgnoredPlaceholders] = useState<string[]>([]);
   const [imageSlots, setImageSlots] = useState<ImageSlotDef[]>([]);
+  const [trimWhiteMargins, setTrimWhiteMargins] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [assetDeletePrompt, setAssetDeletePrompt] = useState<{
     id: string;
@@ -422,11 +423,13 @@ export function TemplateDetailPage() {
         previewUrl: importedPreview,
         placeholders: nextPh,
         imageSlots: nextSlots,
-      } =         await importCanvaZipToTemplate(token, id, file, {
+        trimmedWhiteMargins,
+      } = await importCanvaZipToTemplate(token, id, file, {
           previousPlaceholders: placeholders,
           previousImageSlots: imageSlots,
           previousDesignJson: latestDesignJson,
           ignoredPlaceholders,
+          trimWhiteMargins,
         });
       await reload();
       const notes: string[] = [];
@@ -441,10 +444,15 @@ export function TemplateDetailPage() {
         );
       }
       const phNote = notes.length ? ` ${notes.join(" and ")} below.` : "";
+      const trimNote = trimmedWhiteMargins
+        ? " White top/bottom margins were trimmed."
+        : trimWhiteMargins
+          ? " (No solid white margins found to trim.)"
+          : "";
       setNotice(
         importedPreview
-          ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${phNote}`
-          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed — re-import to retry.${phNote}`,
+          ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${trimNote}${phNote}`
+          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed — re-import to retry.${trimNote}${phNote}`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Canva import failed");
@@ -756,6 +764,21 @@ export function TemplateDetailPage() {
               <MergeFieldsGuide compact />
               {canEdit ? (
                 <div className="surface-actions import-actions">
+                  <label className="check import-trim-option">
+                    <input
+                      type="checkbox"
+                      checked={trimWhiteMargins}
+                      disabled={saving}
+                      onChange={(e) => setTrimWhiteMargins(e.target.checked)}
+                    />
+                    <span>
+                      Trim white margins above and below
+                      <span className="muted small import-trim-hint">
+                        {" "}
+                        when importing (Canva letterboxing)
+                      </span>
+                    </span>
+                  </label>
                   <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
                     <input
                       type="file"
@@ -822,6 +845,21 @@ export function TemplateDetailPage() {
               </p>
               {canEdit ? (
                 <div className="surface-actions import-actions">
+                  <label className="check import-trim-option">
+                    <input
+                      type="checkbox"
+                      checked={trimWhiteMargins}
+                      disabled={saving}
+                      onChange={(e) => setTrimWhiteMargins(e.target.checked)}
+                    />
+                    <span>
+                      Trim white margins above and below
+                      <span className="muted small import-trim-hint">
+                        {" "}
+                        when importing (Canva letterboxing)
+                      </span>
+                    </span>
+                  </label>
                   <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
                     <input
                       type="file"
