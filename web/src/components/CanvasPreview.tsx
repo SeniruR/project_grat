@@ -10,6 +10,7 @@ import {
   extractEmailBodyHtml,
   extractEmailHeadInner,
 } from "../lib/emailHtml";
+import { measureEmailContentHeight } from "../lib/rasterizeEmailHtml";
 import { EmailBrowserCopyModal } from "./EmailBrowserCopyModal";
 
 type Props = {
@@ -82,7 +83,10 @@ export function CanvasPreview({
   }, [canBoth, png, bodyHtml, pasteMode, htmlOnly]);
 
   useEffect(() => {
-    setMeasuredH(fluidHtml ? Math.max(fixedH, 1200) : fixedH);
+    // Start from stored design height — never pad to 1200 (that left empty
+    // canvas under landscape Canva cards until iframe measure corrected it,
+    // and height:100% markup often prevented that correction).
+    setMeasuredH(fixedH);
   }, [bodyHtml, fixedH, fluidHtml, versionKey]);
 
   // Width-fit for HTML emails; box-fit (W and H) for designer PNG/HTML.
@@ -138,11 +142,11 @@ export function CanvasPreview({
     const card = extractEmailBodyHtml(bodyHtml);
     const sizeCss = fluidHtml
       ? `html, body {
-    margin: 0;
-    padding: 0;
-    width: ${w}px;
-    min-height: 0;
-    height: auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: ${w}px !important;
+    min-height: 0 !important;
+    height: auto !important;
     overflow: hidden !important;
     background: #ffffff;
   }
@@ -168,7 +172,7 @@ ${head}
   ${sizeCss}
   .grat-canvas-stage { position: relative; }
   .grat-obj { position: absolute; box-sizing: border-box; }
-  img { display: block; border: 0; max-width: 100%; height: auto; }
+  img { display: block; border: 0; }
   table { border-collapse: collapse; }
 </style>
 </head>
@@ -183,15 +187,10 @@ ${head}
       try {
         const doc = iframe.contentDocument;
         if (!doc?.body) return;
-        const measured = Math.ceil(
-          Math.max(
-            doc.body.scrollHeight,
-            doc.documentElement?.scrollHeight ?? 0,
-            doc.body.offsetHeight,
-            400,
-          ),
-        );
-        const next = Math.min(12000, Math.max(400, measured + 8));
+        const measured = measureEmailContentHeight(doc, iframe);
+        const next = Math.min(8_000, Math.max(120, measured + 2));
+        // Ignore absurd heights from a bad measure pass (keeps prior / design H).
+        if (next >= 9000) return;
         setMeasuredH((prev) => (Math.abs(prev - next) < 4 ? prev : next));
         iframe.style.height = `${next}px`;
         iframe.style.overflow = "hidden";
@@ -203,6 +202,9 @@ ${head}
     };
 
     syncHeight();
+    // Re-measure after layout / late images (Canva assets).
+    window.setTimeout(syncHeight, 50);
+    window.setTimeout(syncHeight, 250);
     try {
       const doc = iframe.contentDocument;
       if (!doc) return;
@@ -262,7 +264,7 @@ ${head}
           <h2>Preview</h2>
           <p className="muted small tip">
             {showHtmlOnly || (fluidHtml && mode === "html")
-              ? "HTML preview fits the panel width; scroll vertically to see the full email."
+              ? "HTML preview fits panel width; height matches the design (no padded canvas)."
               : `PNG and HTML use the same canvas size (${w}×${fixedH}px) and fit scale. After a canvas resize, Save & compile so both rebuild together.`}
           </p>
         </div>

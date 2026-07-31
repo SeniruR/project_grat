@@ -24,6 +24,95 @@ export function inferEmailWidth(html: string, fallback = 600) {
   return fallback;
 }
 
+/**
+ * True content height of an email document in an iframe.
+ *
+ * Never expands the iframe to a huge temp height — Canva / email CSS often
+ * uses height:100%, which then reports ~10000px and leaves empty canvas.
+ * Measure painted element bounds with html/body forced to height:auto.
+ */
+export function measureEmailContentHeight(
+  doc: Document,
+  iframe?: HTMLIFrameElement | null,
+): number {
+  const body = doc.body;
+  const htmlEl = doc.documentElement;
+  if (!body) return 400;
+
+  const measureStyle = doc.createElement("style");
+  measureStyle.setAttribute("data-grat-h-measure", "1");
+  measureStyle.textContent = `
+    html, body {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+  `;
+  (doc.head ?? body).appendChild(measureStyle);
+
+  const prevIframeH = iframe?.style.height ?? "";
+  // Keep the frame short so %-based wrappers cannot inflate to thousands of px.
+  if (iframe) {
+    iframe.style.height = "1px";
+    void body.offsetHeight;
+  }
+
+  const bodyRect = body.getBoundingClientRect();
+  const bodyTop = bodyRect.top;
+  const emailW = Math.max(bodyRect.width, htmlEl.clientWidth, 1);
+
+  let contentBottom = 0;
+  let artboardBottom = 0;
+
+  const consider = (el: Element) => {
+    try {
+      const he = el as HTMLElement;
+      const rect = he.getBoundingClientRect();
+      if (rect.width < 1 && rect.height < 1) return;
+      // Ignore elements inflated by 100vh / % of a tall ancestor.
+      if (rect.height >= 9000) return;
+      const bottom = rect.bottom - bodyTop;
+      contentBottom = Math.max(contentBottom, bottom);
+      // Root-ish boxes nearly as wide as the email are usually the artboard.
+      if (rect.width >= emailW * 0.9 && rect.height >= 120 && rect.height < 9000) {
+        artboardBottom = Math.max(artboardBottom, bottom);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  for (const child of Array.from(body.children)) consider(child);
+  body.querySelectorAll("table, img").forEach(consider);
+  body
+    .querySelectorAll(
+      '[style*="position:absolute"], [style*="position: absolute"]',
+    )
+    .forEach(consider);
+
+  const scrollH = Math.max(body.scrollHeight, htmlEl.scrollHeight);
+
+  measureStyle.remove();
+  if (iframe) iframe.style.height = prevIframeH;
+
+  let measured = artboardBottom > 120 ? artboardBottom : contentBottom;
+  if (measured < 120 && scrollH >= 120 && scrollH < 4000) measured = scrollH;
+  else if (
+    scrollH >= 120 &&
+    scrollH < 4000 &&
+    Math.abs(scrollH - measured) < 80
+  ) {
+    measured = Math.max(measured, scrollH);
+  }
+
+  if (measured >= 9000 || measured < 120) {
+    measured = artboardBottom > 120 ? artboardBottom : 800;
+  }
+
+  return Math.min(8_000, Math.max(120, Math.ceil(measured)));
+}
+
 function buildRasterSrcDoc(html: string, width: number) {
   const head = extractEmailHeadInner(html);
   const body = extractEmailBodyHtml(buildEmailDocument(html));
@@ -37,13 +126,15 @@ ${head}
     margin: 0;
     padding: 0;
     width: ${width}px;
+    height: auto;
+    min-height: 0;
     background: #ffffff;
     overflow: visible;
   }
   body {
     font-family: Arial, Helvetica, sans-serif;
   }
-  img { max-width: 100%; height: auto; display: block; }
+  img { display: block; border: 0; }
   table { border-collapse: collapse; }
 </style>
 </head>
@@ -180,7 +271,7 @@ export async function rasterizeEmailHtmlToPng(
   const iframe = document.createElement("iframe");
   iframe.setAttribute(
     "style",
-    `position:fixed;left:-12000px;top:0;width:${w}px;height:12000px;border:0;visibility:hidden;`,
+    `position:fixed;left:-12000px;top:0;width:${w}px;height:1px;border:0;visibility:hidden;`,
   );
   iframe.sandbox = "allow-same-origin";
   iframe.srcdoc = buildRasterSrcDoc(html, w);
@@ -208,8 +299,8 @@ export async function rasterizeEmailHtmlToPng(
     await waitForFrameResources(doc);
 
     const height = Math.min(
-      16_000,
-      Math.max(400, Math.ceil(doc.body.scrollHeight) + 4),
+      8_000,
+      Math.max(120, measureEmailContentHeight(doc, iframe) + 2),
     );
 
     const dataUrl = await rasterizeNode(doc.body, w, height);
