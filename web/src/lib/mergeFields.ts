@@ -114,6 +114,10 @@ function humanizeKey(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+export function humanizePlaceholderKey(key: string): string {
+  return humanizeKey(key);
+}
+
 /** Unique token keys found in HTML (preserve first-seen spelling). */
 export function detectMergeFields(html: string): string[] {
   const found = new Map<string, string>();
@@ -150,33 +154,56 @@ export function parsePlaceholdersFromDesignJson(
   return out;
 }
 
+/** Keys the owner removed so Rescan / re-import won’t add them back. */
+export function parseIgnoredPlaceholdersFromDesignJson(
+  designJson: Record<string, unknown> | null | undefined,
+): string[] {
+  const raw = designJson?.ignoredPlaceholders;
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const key = item.trim();
+    if (!key || seen.has(key.toLowerCase())) continue;
+    seen.add(key.toLowerCase());
+    out.push(key);
+  }
+  return out;
+}
+
 /**
  * Build / refresh placeholder defs from detected HTML tokens.
  * Keeps owner labels + sources for keys that still exist.
+ * Skips keys listed in `ignored` (owner removed them on purpose).
  */
 export function syncPlaceholdersWithHtml(
   html: string,
   previous: PlaceholderDef[] = [],
+  ignored: string[] = [],
 ): PlaceholderDef[] {
   const detected = detectMergeFields(html);
+  const ignoredSet = new Set(ignored.map((k) => k.toLowerCase()));
   const prevByKey = new Map(
     previous.map((p) => [p.key.toLowerCase(), p] as const),
   );
-  return detected.map((key) => {
-    const prev = prevByKey.get(key.toLowerCase());
-    if (prev) {
+  return detected
+    .filter((key) => !ignoredSet.has(key.toLowerCase()))
+    .map((key) => {
+      const prev = prevByKey.get(key.toLowerCase());
+      if (prev) {
+        return {
+          key,
+          label: prev.label.trim() || humanizeKey(key),
+          source: prev.source,
+        };
+      }
       return {
         key,
-        label: prev.label.trim() || humanizeKey(key),
-        source: prev.source,
+        label: humanizeKey(key),
+        source: suggestPlaceholderSource(key),
       };
-    }
-    return {
-      key,
-      label: humanizeKey(key),
-      source: suggestPlaceholderSource(key),
-    };
-  });
+    });
 }
 
 /** Replace {{field}} tokens (case-insensitive keys). Unknown tokens left as-is. */

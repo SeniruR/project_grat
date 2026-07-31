@@ -135,6 +135,8 @@ export const api = {
       authMode: string;
       directoryMode: string;
       mailMode: string;
+      smtpFrom?: string | null;
+      smtpFromName?: string | null;
     }>("/auth/mode"),
 
   devLogin: (body: {
@@ -243,7 +245,7 @@ export const api = {
     token: string,
     id: string,
     file: File,
-    kind: "source" | "compiled" = "source",
+    kind: "source" | "compiled" | "override" = "source",
   ) => {
     const form = new FormData();
     form.append("kind", kind);
@@ -288,10 +290,23 @@ export const api = {
         email: string;
         displayName?: string;
         fields?: Record<string, string>;
+        imageSlots?: Record<string, string>;
       }>;
       senderName?: string;
       senderEmail?: string;
       sharedFields?: Record<string, string>;
+      sharedImageSlots?: Record<string, string>;
+      extraPlaceholders?: Array<{
+        key: string;
+        label: string;
+        source:
+          | "recipientName"
+          | "recipientEmail"
+          | "senderName"
+          | "senderEmail"
+          | "shared"
+          | "perRecipient";
+      }>;
     },
   ) =>
     request<{ job: DraftJobDetail; mailMode: string }>("/draft-jobs", {

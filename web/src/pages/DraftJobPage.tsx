@@ -128,7 +128,17 @@ export function DraftJobPage() {
                     </p>
                   ) : null}
                   {d.bodyHtml ? (
-                    <OutlookDualPreview html={d.bodyHtml} />
+                    <>
+                      {/\bcid:/i.test(d.bodyHtml) ? (
+                        <p className="notice">
+                          This older send stored embedded <code>cid:</code>{" "}
+                          image links, which browsers can’t display here. Images
+                          may still have arrived in the real inbox. New sends
+                          keep a normal preview.
+                        </p>
+                      ) : null}
+                      <OutlookDualPreview html={d.bodyHtml} />
+                    </>
                   ) : (
                     <p className="muted">No HTML stored for this draft.</p>
                   )}

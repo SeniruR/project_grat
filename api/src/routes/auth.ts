@@ -14,6 +14,13 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     authMode: config.authMode,
     directoryMode: config.directoryMode,
     mailMode: config.mailMode,
+    ...(config.mailMode === "smtp"
+      ? {
+          smtpFrom:
+            config.smtpFrom?.trim() || config.smtpUser?.trim() || null,
+          smtpFromName: config.smtpFromName?.trim() || null,
+        }
+      : {}),
   }));
 
   app.post("/auth/dev-login", async (request, reply) => {

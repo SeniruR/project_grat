@@ -329,7 +329,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ error: "Template not found" });
       }
 
-      let kind: "source" | "compiled" = "source";
+      let kind: "source" | "compiled" | "override" = "source";
       let saved: {
         absPath: string;
         storageKey: string;
@@ -343,7 +343,13 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         if (part.type !== "file") {
           if (part.fieldname === "kind") {
             const value = String(part.value);
-            if (value === "compiled" || value === "source") kind = value;
+            if (
+              value === "compiled" ||
+              value === "source" ||
+              value === "override"
+            ) {
+              kind = value;
+            }
           }
           continue;
         }
@@ -414,7 +420,12 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
                         ? ".otf"
                         : ".jpg");
 
-        const folder = kind === "compiled" ? "compiled" : "source";
+        const folder =
+          kind === "compiled"
+            ? "compiled"
+            : kind === "override"
+              ? "override"
+              : "source";
         const safeName =
           kind === "compiled"
             ? `preview-${Date.now()}${ext}`
@@ -462,6 +473,44 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           await prisma.templateAsset.deleteMany({
             where: { templateId: id, kind: "compiled" },
           });
+        }
+      }
+
+      // Compose slot replacements — only replace prior file for THIS exact
+      // override stem (shared vs per-recipient must not delete each other).
+      if (kind === "override") {
+        // e.g. img-hero-override-shared-482x300.png
+        //      img-hero-override-r-alex-at-ex-com-482x300.png
+        const stem =
+          saved.fileName
+            .replace(/\.[^.]+$/i, "")
+            .replace(/-\d+x\d+$/i, "")
+            .trim() || null;
+        if (stem) {
+          const old = await prisma.templateAsset.findMany({
+            where: {
+              templateId: id,
+              kind: "override",
+              OR: [
+                { fileName: { startsWith: `${stem}-` } },
+                { fileName: { startsWith: stem } },
+              ],
+            },
+          });
+          const toRemove = old.filter((row) => {
+            const rowStem = row.fileName
+              .replace(/\.[^.]+$/i, "")
+              .replace(/-\d+x\d+$/i, "");
+            return rowStem.toLowerCase() === stem.toLowerCase();
+          });
+          for (const row of toRemove) {
+            await removeUploadFile(row.storageKey);
+          }
+          if (toRemove.length) {
+            await prisma.templateAsset.deleteMany({
+              where: { id: { in: toRemove.map((r) => r.id) } },
+            });
+          }
         }
       }
 

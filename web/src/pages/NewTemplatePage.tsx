@@ -9,7 +9,9 @@ import {
 } from "../lib/importDesign";
 import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
+import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import type { PlaceholderDef } from "../lib/mergeFields";
+import type { ImageSlotDef } from "../lib/imageSlots";
 
 type Starter = "canva_zip" | "image_upload";
 
@@ -47,6 +49,8 @@ export function NewTemplatePage() {
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [placeholders, setPlaceholders] = useState<PlaceholderDef[]>([]);
+  const [ignoredPlaceholders, setIgnoredPlaceholders] = useState<string[]>([]);
+  const [imageSlots, setImageSlots] = useState<ImageSlotDef[]>([]);
   const [scanNotice, setScanNotice] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +58,8 @@ export function NewTemplatePage() {
 
   function resetZipScan() {
     setPlaceholders([]);
+    setIgnoredPlaceholders([]);
+    setImageSlots([]);
     setScanNotice(null);
   }
 
@@ -65,13 +71,23 @@ export function NewTemplatePage() {
 
     setScanning(true);
     try {
-      const { placeholders: found, htmlPath } =
+      const { placeholders: found, imageSlots: slots, htmlPath } =
         await scanCanvaZipPlaceholders(file);
       setPlaceholders(found);
+      setImageSlots(slots);
+      const parts: string[] = [];
+      if (found.length > 0) {
+        parts.push(
+          `${found.length} placeholder${found.length === 1 ? "" : "s"}`,
+        );
+      }
+      if (slots.length > 0) {
+        parts.push(`${slots.length} image${slots.length === 1 ? "" : "s"}`);
+      }
       setScanNotice(
-        found.length > 0
-          ? `Scanned ${htmlPath}: found ${found.length} placeholder${found.length === 1 ? "" : "s"}. Set meaning and “Filled how”, then Save.`
-          : `Scanned ${htmlPath}: no {{placeholders}} found. You can still Save, or add tokens in Canva and choose the ZIP again.`,
+        parts.length > 0
+          ? `Scanned ${htmlPath}: found ${parts.join(" and ")}. Define them below, then Save.`
+          : `Scanned ${htmlPath}: no placeholders or images found. You can still Save, or adjust the Canva export and choose the ZIP again.`,
       );
     } catch (err) {
       setZipFile(null);
@@ -124,8 +140,14 @@ export function NewTemplatePage() {
           label: p.label.trim() || p.key,
           source: p.source,
         }));
+        const cleanedSlots = imageSlots.map((s) => ({
+          ...s,
+          label: s.label.trim() || s.id,
+        }));
         await importCanvaZipToTemplate(token, template.id, zipFile, {
           previousPlaceholders: cleaned,
+          previousImageSlots: cleanedSlots,
+          ignoredPlaceholders,
         });
         navigate("/cards");
         return;
@@ -157,9 +179,9 @@ export function NewTemplatePage() {
         <p className="eyebrow">Cards</p>
         <h1>New template</h1>
         <p className="lede">
-          Design in Canva, choose the ZIP here to scan placeholders, define them,
-          then <strong>Save</strong> — you’ll return to your templates list
-          (Compose is separate, when you send).
+          Design in Canva, choose the ZIP here to scan placeholders and images,
+          define them, then <strong>Save</strong> — you’ll return to your
+          templates list (Compose is separate, when you send).
         </p>
       </header>
 
@@ -228,8 +250,8 @@ export function NewTemplatePage() {
                 <strong>Share → Download → HTML and images</strong> (ZIP).
               </li>
               <li>
-                Choose the ZIP below — placeholders are scanned immediately
-                (no separate import step).
+                Choose the ZIP below — placeholders and images are scanned
+                immediately (no separate import step).
               </li>
             </ol>
             <label
@@ -254,15 +276,54 @@ export function NewTemplatePage() {
             {scanNotice ? <p className="notice">{scanNotice}</p> : null}
             <MergeFieldsGuide />
             {zipFile && !scanning ? (
-              <PlaceholderConfigPanel
-                placeholders={placeholders}
-                canEdit={!saving}
-                saving={saving}
-                onChange={setPlaceholders}
-                showActions={false}
-                title="Define placeholders"
-                description="Found in your ZIP. Set a meaning and how Compose should fill each one. Then press Save at the bottom — you won’t open Compose yet."
-              />
+              <>
+                <PlaceholderConfigPanel
+                  placeholders={placeholders}
+                  canEdit={!saving}
+                  saving={saving}
+                  onChange={setPlaceholders}
+                  ignoredKeys={ignoredPlaceholders}
+                  onIgnoredChange={setIgnoredPlaceholders}
+                  onRestoreIgnored={(key) => {
+                    const nextIgnored = ignoredPlaceholders.filter(
+                      (k) => k.toLowerCase() !== key.toLowerCase(),
+                    );
+                    setIgnoredPlaceholders(nextIgnored);
+                    void scanCanvaZipPlaceholders(zipFile!).then(
+                      ({ placeholders: found }) => {
+                        const prevByKey = new Map(
+                          placeholders.map((p) => [
+                            p.key.toLowerCase(),
+                            p,
+                          ] as const),
+                        );
+                        setPlaceholders(
+                          found
+                            .filter(
+                              (p) =>
+                                !nextIgnored.some(
+                                  (k) => k.toLowerCase() === p.key.toLowerCase(),
+                                ),
+                            )
+                            .map((p) => prevByKey.get(p.key.toLowerCase()) ?? p),
+                        );
+                      },
+                    );
+                  }}
+                  showActions={false}
+                  title="Define placeholders"
+                  description="Found in your ZIP. Set a meaning and how Compose should fill each one. Remove any that were detected by mistake. Then press Save at the bottom."
+                />
+                <ImageSlotConfigPanel
+                  slots={imageSlots}
+                  canEdit={!saving}
+                  saving={saving}
+                  onChange={setImageSlots}
+                  showActions={false}
+                  title="Define image slots"
+                  description="Mark images Compose may replace. Fixed keeps the Canva image; shared or per-person lets senders upload a new picture fitted to the designed size."
+                />
+              </>
             ) : null}
           </div>
         ) : null}

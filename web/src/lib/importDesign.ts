@@ -12,19 +12,28 @@ import {
   rasterizeEmailHtmlToFile,
 } from "./rasterizeEmailHtml";
 import {
+  parseIgnoredPlaceholdersFromDesignJson,
   parsePlaceholdersFromDesignJson,
   syncPlaceholdersWithHtml,
   type PlaceholderDef,
 } from "./mergeFields";
+import {
+  parseImageSlotsFromDesignJson,
+  syncImageSlotsWithHtml,
+  type ImageSlotDef,
+} from "./imageSlots";
 
-/** Parse a Canva ZIP in the browser and list {{placeholders}} (no upload). */
+/** Parse a Canva ZIP in the browser and list placeholders + image slots (no upload). */
 export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
   placeholders: PlaceholderDef[];
+  imageSlots: ImageSlotDef[];
   htmlPath: string;
 }> {
   const { html, htmlPath } = await parseCanvaZip(zipFile);
+  const { slots } = syncImageSlotsWithHtml(html);
   return {
     placeholders: syncPlaceholdersWithHtml(html),
+    imageSlots: slots,
     htmlPath,
   };
 }
@@ -40,7 +49,9 @@ export async function importCanvaZipToTemplate(
   zipFile: File,
   options?: {
     previousPlaceholders?: PlaceholderDef[];
+    previousImageSlots?: ImageSlotDef[];
     previousDesignJson?: Record<string, unknown>;
+    ignoredPlaceholders?: string[];
   },
 ) {
   const { html, assets } = await parseCanvaZip(zipFile);
@@ -65,7 +76,29 @@ export async function importCanvaZipToTemplate(
     });
   }
 
-  const compiledHtml = rewriteCanvaAssetUrls(html, uploads);
+  const previous =
+    options?.previousPlaceholders ??
+    parsePlaceholdersFromDesignJson(options?.previousDesignJson);
+  const previousSlots =
+    options?.previousImageSlots ??
+    parseImageSlotsFromDesignJson(options?.previousDesignJson);
+  const ignored =
+    options?.ignoredPlaceholders ??
+    parseIgnoredPlaceholdersFromDesignJson(options?.previousDesignJson);
+
+  // Tag slots on pre-rewrite HTML so ids match the in-browser ZIP scan,
+  // then rewrite asset URLs and refresh originalSrc while keeping ids/modes.
+  const preSynced = syncImageSlotsWithHtml(html, previousSlots);
+  let compiledHtml = rewriteCanvaAssetUrls(preSynced.html, uploads);
+  const synced = syncImageSlotsWithHtml(compiledHtml, preSynced.slots);
+  compiledHtml = synced.html;
+  const imageSlots = synced.slots;
+
+  const placeholders = syncPlaceholdersWithHtml(
+    compiledHtml,
+    previous,
+    ignored,
+  );
   const imageCount = assets.filter((a) => a.kind === "image").length;
   const emailWidth = inferEmailWidth(compiledHtml);
 
@@ -94,11 +127,6 @@ export async function importCanvaZipToTemplate(
     /* HTML-only import still works */
   }
 
-  const previous =
-    options?.previousPlaceholders ??
-    parsePlaceholdersFromDesignJson(options?.previousDesignJson);
-  const placeholders = syncPlaceholdersWithHtml(compiledHtml, previous);
-
   await api.saveTemplateVersion(token, templateId, {
     designJson: {
       ...(options?.previousDesignJson ?? {}),
@@ -110,12 +138,14 @@ export async function importCanvaZipToTemplate(
       width: emailWidth,
       height: emailHeight,
       placeholders,
+      imageSlots,
+      ignoredPlaceholders: ignored,
     },
     compiledHtml,
     previewUrl,
   });
 
-  return { compiledHtml, imageCount, previewUrl, placeholders };
+  return { compiledHtml, imageCount, previewUrl, placeholders, imageSlots };
 }
 
 /** Rebuild PNG snapshot from stored Canva HTML (no ZIP re-upload). */
@@ -166,6 +196,10 @@ export async function importDesignImageToTemplate(
   templateId: string,
   file: File,
   alt?: string,
+  options?: {
+    previousImageSlots?: ImageSlotDef[];
+    previousDesignJson?: Record<string, unknown>;
+  },
 ) {
   const { blob, fileName, width } = await fileToDesignImageBlob(file);
   const uploadFile = new File([blob], fileName, {
@@ -194,22 +228,31 @@ export async function importDesignImageToTemplate(
     }
   }
 
-  const compiledHtml = buildImageEmailHtml(
+  let compiledHtml = buildImageEmailHtml(
     compiled.url,
     width,
     alt ?? "Gratitude card",
   );
 
+  const previousSlots =
+    options?.previousImageSlots ??
+    parseImageSlotsFromDesignJson(options?.previousDesignJson);
+  const synced = syncImageSlotsWithHtml(compiledHtml, previousSlots);
+  compiledHtml = synced.html;
+  const imageSlots = synced.slots;
+
   await api.saveTemplateVersion(token, templateId, {
     designJson: {
+      ...(options?.previousDesignJson ?? {}),
       mode: "image_import",
       source: "upload",
       width,
       importedAt: new Date().toISOString(),
+      imageSlots,
     },
     compiledHtml,
     previewUrl: compiled.url,
   });
 
-  return { compiledHtml, previewUrl: compiled.url, width };
+  return { compiledHtml, previewUrl: compiled.url, width, imageSlots };
 }

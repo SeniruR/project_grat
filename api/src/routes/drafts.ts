@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
-import { buildOutboundBodyHtml, parsePlaceholdersFromDesignJson } from "../lib/emailBody.js";
+import { buildOutboundBodyHtml, applyMergeFields, buildMergeFieldMap, parseImageSlotsFromDesignJson, parsePlaceholdersFromDesignJson } from "../lib/emailBody.js";
 import { embedLocalUploadImages } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
@@ -13,6 +13,8 @@ const recipientBody = z.object({
   displayName: z.string().min(1).max(200).optional(),
   /** Per-recipient custom merge values (e.g. personalNote). */
   fields: z.record(z.string().max(80), z.string().max(2000)).optional(),
+  /** Per-recipient image slot overrides (slotId → absolute image URL). */
+  imageSlots: z.record(z.string().max(80), z.string().url().max(2000)).optional(),
 });
 
 const createJobBody = z.object({
@@ -26,6 +28,31 @@ const createJobBody = z.object({
   senderEmail: z.string().email().max(320).optional(),
   /** Shared merge values for every recipient (eventName, eventDate, …). */
   sharedFields: z.record(z.string().max(80), z.string().max(2000)).optional(),
+  /** Shared image slot overrides (slotId → absolute image URL). */
+  sharedImageSlots: z
+    .record(z.string().max(80), z.string().url().max(2000))
+    .optional(),
+  /**
+   * Extra placeholder defs for tokens used only in the subject
+   * (not already defined on the template).
+   */
+  extraPlaceholders: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(80),
+        label: z.string().min(1).max(120),
+        source: z.enum([
+          "recipientName",
+          "recipientEmail",
+          "senderName",
+          "senderEmail",
+          "shared",
+          "perRecipient",
+        ]),
+      }),
+    )
+    .max(40)
+    .optional(),
 });
 
 function canView(
@@ -119,13 +146,26 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         senderName,
         senderEmail,
         sharedFields,
+        sharedImageSlots,
+        extraPlaceholders,
       } = parsed.data;
 
       const sender = {
-        displayName: senderName?.trim() || user.displayName,
-        email: senderEmail?.trim() || user.email,
+        displayName:
+          senderName?.trim() ||
+          (config.mailMode === "smtp"
+            ? config.smtpFromName?.trim() || user.displayName
+            : user.displayName),
+        email:
+          config.mailMode === "smtp"
+            ? config.smtpFrom?.trim() ||
+              config.smtpUser?.trim() ||
+              senderEmail?.trim() ||
+              user.email
+            : senderEmail?.trim() || user.email,
       };
       const shared = sharedFields ?? {};
+      const sharedImages = sharedImageSlots ?? {};
 
       // Dedupe by email (case-insensitive)
       const seen = new Set<string>();
@@ -171,7 +211,19 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const placeholders = parsePlaceholdersFromDesignJson(version.designJson);
+      const templatePlaceholders = parsePlaceholdersFromDesignJson(
+        version.designJson,
+      );
+      const templateKeys = new Set(
+        templatePlaceholders.map((p) => p.key.toLowerCase()),
+      );
+      const placeholders = [
+        ...templatePlaceholders,
+        ...(extraPlaceholders ?? []).filter(
+          (p) => !templateKeys.has(p.key.trim().toLowerCase()),
+        ),
+      ];
+      const imageSlots = parseImageSlotsFromDesignJson(version.designJson);
 
       const mail = await getMailProvider();
       const job = await prisma.draftJob.create({
@@ -193,6 +245,10 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       }> = [];
 
       for (const recipient of uniqueRecipients) {
+        const imageOverrides = {
+          ...sharedImages,
+          ...(recipient.imageSlots ?? {}),
+        };
         let bodyHtml = buildOutboundBodyHtml({
           compiledHtml: compiled,
           headerHtml: template.headerHtml,
@@ -207,8 +263,30 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           placeholders,
           shared,
           perRecipient: recipient.fields ?? {},
+          imageOverrides,
+          imageSlots,
         });
 
+        const mergedSubject = applyMergeFields(
+          subject,
+          buildMergeFieldMap({
+            placeholders,
+            recipient: {
+              displayName: recipient.displayName,
+              email: recipient.email,
+            },
+            sender,
+            shared,
+            perRecipient: recipient.fields ?? {},
+          }),
+        ).trim() || subject;
+
+        // Keep http(s) /uploads URLs for in-app draft preview. SMTP gets a
+        // cid:-rewritten copy so Gmail/Outlook can show images without a
+        // publicly reachable API host.
+        const bodyHtmlForPreview = bodyHtml;
+
+        let sendHtml = bodyHtml;
         let inlineAttachments:
           | Awaited<ReturnType<typeof embedLocalUploadImages>>["attachments"]
           | undefined;
@@ -217,7 +295,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             bodyHtml,
             config.publicApiUrl,
           );
-          bodyHtml = embedded.html;
+          sendHtml = embedded.html;
           inlineAttachments = embedded.attachments;
         }
 
@@ -228,8 +306,8 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             recipientEmail: recipient.email,
             recipientName: recipient.displayName,
             recipientOid: recipient.aadOid,
-            subject,
-            bodyHtml,
+            subject: mergedSubject,
+            bodyHtml: sendHtml,
             inlineAttachments,
           });
 
@@ -239,8 +317,8 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
               recipientOid: recipient.aadOid ?? null,
               recipientEmail: recipient.email,
               recipientName: recipient.displayName ?? null,
-              subject,
-              bodyHtml,
+              subject: mergedSubject,
+              bodyHtml: bodyHtmlForPreview,
               graphMessageId:
                 result.graphMessageId ??
                 (result.mode === "smtp" ? result.smtpMessageId : undefined) ??
@@ -272,8 +350,8 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
               recipientOid: recipient.aadOid ?? null,
               recipientEmail: recipient.email,
               recipientName: recipient.displayName ?? null,
-              subject,
-              bodyHtml,
+              subject: mergedSubject,
+              bodyHtml: bodyHtmlForPreview,
               status: "failed",
               error: message,
             },

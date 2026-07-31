@@ -12,13 +12,25 @@ import {
 } from "../lib/importDesign";
 import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
+import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import {
+  parseIgnoredPlaceholdersFromDesignJson,
   parsePlaceholdersFromDesignJson,
   syncPlaceholdersWithHtml,
   type PlaceholderDef,
 } from "../lib/mergeFields";
+import {
+  parseImageSlotsFromDesignJson,
+  syncImageSlotsWithHtml,
+  type ImageSlotDef,
+} from "../lib/imageSlots";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+
+/** Compose slot uploads used to land in Images as source; hide/purge those. */
+function isComposeOverrideFileName(fileName: string) {
+  return /-override-\d+x\d+\./i.test(fileName);
+}
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -133,6 +145,8 @@ export function TemplateDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [placeholders, setPlaceholders] = useState<PlaceholderDef[]>([]);
+  const [ignoredPlaceholders, setIgnoredPlaceholders] = useState<string[]>([]);
+  const [imageSlots, setImageSlots] = useState<ImageSlotDef[]>([]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [assetDeletePrompt, setAssetDeletePrompt] = useState<{
     id: string;
@@ -160,6 +174,16 @@ export function TemplateDetailPage() {
         (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
       ),
     );
+    setIgnoredPlaceholders(
+      parseIgnoredPlaceholdersFromDesignJson(
+        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
+      ),
+    );
+    setImageSlots(
+      parseImageSlotsFromDesignJson(
+        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
+      ),
+    );
   }
 
   useEffect(() => {
@@ -170,7 +194,43 @@ export function TemplateDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, id]);
 
-  const assets = template?.assets ?? [];
+  const assets = (template?.assets ?? []).filter(
+    (a) => !isComposeOverrideFileName(a.fileName),
+  );
+  const legacyComposeOverrides = (template?.assets ?? []).filter((a) =>
+    isComposeOverrideFileName(a.fileName),
+  );
+
+  // Remove leftover Compose replacements that were wrongly stored as design images.
+  useEffect(() => {
+    if (!token || !id || !canEdit || legacyComposeOverrides.length === 0) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      for (const a of legacyComposeOverrides) {
+        try {
+          await api.deleteTemplateAsset(token, id, a.id, {
+            invalidateCompiled: false,
+          });
+        } catch {
+          /* best-effort cleanup */
+        }
+      }
+      if (!cancelled) {
+        try {
+          await reload();
+        } catch {
+          /* ignore */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, id, canEdit, legacyComposeOverrides.length]);
+
   const latestMode =
     typeof template?.versions[0]?.designJson?.mode === "string"
       ? (template.versions[0].designJson.mode as string)
@@ -357,16 +417,30 @@ export function TemplateDetailPage() {
     setNotice(null);
     setSaving(true);
     try {
-      const { imageCount, previewUrl: importedPreview, placeholders: nextPh } =
-        await importCanvaZipToTemplate(token, id, file, {
+      const {
+        imageCount,
+        previewUrl: importedPreview,
+        placeholders: nextPh,
+        imageSlots: nextSlots,
+      } =         await importCanvaZipToTemplate(token, id, file, {
           previousPlaceholders: placeholders,
+          previousImageSlots: imageSlots,
           previousDesignJson: latestDesignJson,
+          ignoredPlaceholders,
         });
       await reload();
-      const phNote =
-        nextPh.length > 0
-          ? ` Define ${nextPh.length} placeholder${nextPh.length === 1 ? "" : "s"} below.`
-          : "";
+      const notes: string[] = [];
+      if (nextPh.length > 0) {
+        notes.push(
+          `Define ${nextPh.length} placeholder${nextPh.length === 1 ? "" : "s"}`,
+        );
+      }
+      if (nextSlots.length > 0) {
+        notes.push(
+          `configure ${nextSlots.length} image slot${nextSlots.length === 1 ? "" : "s"}`,
+        );
+      }
+      const phNote = notes.length ? ` ${notes.join(" and ")} below.` : "";
       setNotice(
         importedPreview
           ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${phNote}`
@@ -390,10 +464,16 @@ export function TemplateDetailPage() {
         label: p.label.trim() || p.key,
         source: p.source,
       }));
+      const cleanedSlots = imageSlots.map((s) => ({
+        ...s,
+        label: s.label.trim() || s.id,
+      }));
       await api.saveTemplateVersion(token, id, {
         designJson: {
           ...latestDesignJson,
           placeholders: cleaned,
+          ignoredPlaceholders,
+          imageSlots: cleanedSlots,
         },
         compiledHtml: html,
         previewUrl: previewImageUrl,
@@ -402,7 +482,7 @@ export function TemplateDetailPage() {
       setNotice(
         cleaned.length
           ? `Saved ${cleaned.length} placeholder definition${cleaned.length === 1 ? "" : "s"}.`
-          : "Saved placeholder definitions (none detected).",
+          : "Saved placeholder definitions (none active).",
       );
     } catch (err) {
       setError(
@@ -413,13 +493,82 @@ export function TemplateDetailPage() {
     }
   }
 
+  async function saveImageSlots() {
+    if (!token || !id || !canEdit || !template) return;
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const cleaned = placeholders.map((p) => ({
+        key: p.key,
+        label: p.label.trim() || p.key,
+        source: p.source,
+      }));
+      const cleanedSlots = imageSlots.map((s) => ({
+        ...s,
+        label: s.label.trim() || s.id,
+      }));
+      await api.saveTemplateVersion(token, id, {
+        designJson: {
+          ...latestDesignJson,
+          placeholders: cleaned,
+          ignoredPlaceholders,
+          imageSlots: cleanedSlots,
+        },
+        compiledHtml: html,
+        previewUrl: previewImageUrl,
+      });
+      await reload();
+      setNotice(
+        cleanedSlots.length
+          ? `Saved ${cleanedSlots.length} image slot setting${cleanedSlots.length === 1 ? "" : "s"}.`
+          : "Saved image slot settings (none detected).",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save image slots",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function rescanPlaceholders() {
-    const next = syncPlaceholdersWithHtml(html, placeholders);
+    const next = syncPlaceholdersWithHtml(
+      html,
+      placeholders,
+      ignoredPlaceholders,
+    );
     setPlaceholders(next);
     setNotice(
       next.length
         ? `Found ${next.length} placeholder${next.length === 1 ? "" : "s"} in HTML. Review labels and “Filled how”, then Save.`
-        : "No {{placeholders}} found in the current HTML.",
+        : ignoredPlaceholders.length
+          ? "No active placeholders — all detected tokens are in Removed, or none found in HTML."
+          : "No {{placeholders}} found in the current HTML.",
+    );
+  }
+
+  function restoreIgnoredPlaceholder(key: string) {
+    const nextIgnored = ignoredPlaceholders.filter(
+      (k) => k.toLowerCase() !== key.toLowerCase(),
+    );
+    setIgnoredPlaceholders(nextIgnored);
+    const next = syncPlaceholdersWithHtml(html, placeholders, nextIgnored);
+    setPlaceholders(next);
+    setNotice(
+      `Restored {{${key}}}. Review it above, then Save placeholder definitions.`,
+    );
+  }
+
+  function rescanImageSlots() {
+    const { slots, html: nextHtml } = syncImageSlotsWithHtml(html, imageSlots);
+    setImageSlots(slots);
+    setHtml(nextHtml);
+    setNotice(
+      slots.length
+        ? `Found ${slots.length} image${slots.length === 1 ? "" : "s"} in HTML. Review labels and replace mode, then Save.`
+        : "No content images found in the current HTML.",
     );
   }
 
@@ -452,10 +601,14 @@ export function TemplateDetailPage() {
         id,
         file,
         name.trim() || "Gratitude card",
+        {
+          previousImageSlots: imageSlots,
+          previousDesignJson: latestDesignJson,
+        },
       );
       await reload();
       setNotice(
-        "Uploaded image email. Looks correct in Outlook; text is not selectable.",
+        "Uploaded image email. Looks correct in Outlook; text is not selectable. Configure the image slot below if Compose should allow replacements.",
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Image import failed");
@@ -593,9 +746,10 @@ export function TemplateDetailPage() {
                 </li>
                 <li>
                   Optional: put your own placeholders in Canva text (e.g.{" "}
-                  <code>{"{{heroName}}"}</code>). After import, define them in
-                  the Placeholders panel — Compose fills values per send without
-                  changing the saved template.
+                  <code>{"{{heroName}}"}</code>). After import, define
+                  placeholders and image slots below — Compose fills values and
+                  optional image swaps per send without changing the saved
+                  template.
                 </li>
                 <li>Re-import below to replace this design.</li>
               </ol>
@@ -739,8 +893,27 @@ export function TemplateDetailPage() {
           canEdit={canEdit}
           saving={saving}
           onChange={setPlaceholders}
+          ignoredKeys={ignoredPlaceholders}
+          onIgnoredChange={setIgnoredPlaceholders}
+          onRestoreIgnored={restoreIgnoredPlaceholder}
           onSave={() => void savePlaceholders()}
           onRescan={rescanPlaceholders}
+        />
+      ) : null}
+
+      {(html.trim() || imageSlots.length > 0) &&
+      (latestMode === "canva_html" ||
+        latestMode === "html_import" ||
+        latestMode === "image_import" ||
+        latestMode === "blank" ||
+        latestMode === "designer") ? (
+        <ImageSlotConfigPanel
+          slots={imageSlots}
+          canEdit={canEdit}
+          saving={saving}
+          onChange={setImageSlots}
+          onSave={() => void saveImageSlots()}
+          onRescan={rescanImageSlots}
         />
       ) : null}
 
@@ -760,8 +933,9 @@ export function TemplateDetailPage() {
       <section className="panel">
         <h2>Images</h2>
         <p className="muted">
-          Images from your Canva ZIP (or image upload). Delete unused files if
-          needed; prefer Replace Canva ZIP / Replace image for layout changes.
+          Design images from your Canva ZIP (or image upload). Compose
+          replacements for a send are stored separately and do not appear here.
+          Prefer Replace Canva ZIP / Replace image for layout changes.
         </p>
         <ul className="asset-list">
           {assets.map((a) => (

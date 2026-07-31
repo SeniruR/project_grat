@@ -91,6 +91,8 @@ export const smtpMailProvider: MailProvider = {
         content: a.content,
         cid: a.cid,
         contentType: a.contentType,
+        // Required for Gmail/Outlook to show cid: images inline (not as files)
+        contentDisposition: "inline" as const,
       })),
     });
 

@@ -9,6 +9,11 @@ type Props = {
   canEdit: boolean;
   saving?: boolean;
   onChange: (next: PlaceholderDef[]) => void;
+  /** Keys removed by the owner (skipped on Rescan). */
+  ignoredKeys?: string[];
+  onIgnoredChange?: (next: string[]) => void;
+  /** Restore a removed key and re-sync from HTML (parent should update ignored + placeholders). */
+  onRestoreIgnored?: (key: string) => void;
   /** When false, hide Save / Rescan (parent form handles save). */
   showActions?: boolean;
   onSave?: () => void;
@@ -26,6 +31,9 @@ export function PlaceholderConfigPanel({
   canEdit,
   saving = false,
   onChange,
+  ignoredKeys = [],
+  onIgnoredChange,
+  onRestoreIgnored,
   showActions = true,
   onSave,
   onRescan,
@@ -41,9 +49,32 @@ export function PlaceholderConfigPanel({
     );
   }
 
+  function removeRow(index: number) {
+    const removed = placeholders[index];
+    if (!removed) return;
+    onChange(placeholders.filter((_, i) => i !== index));
+    if (onIgnoredChange) {
+      const key = removed.key.trim();
+      if (!key) return;
+      const lower = key.toLowerCase();
+      if (ignoredKeys.some((k) => k.toLowerCase() === lower)) return;
+      onIgnoredChange([...ignoredKeys, key]);
+    }
+  }
+
+  function restoreIgnored(key: string) {
+    if (onRestoreIgnored) {
+      onRestoreIgnored(key);
+      return;
+    }
+    if (!onIgnoredChange) return;
+    const lower = key.toLowerCase();
+    onIgnoredChange(ignoredKeys.filter((k) => k.toLowerCase() !== lower));
+  }
+
   const blurb =
     description ??
-    `Type any {{token}} in Canva, then define each token here. Compose uses these definitions for that send only — the HTML template is not overwritten when filling values.`;
+    `Type any {{token}} in Canva, then define each token here. Compose uses these definitions for that send only — the HTML template is not overwritten when filling values. Remove a row if it was detected by mistake.`;
 
   const Wrapper = showActions ? "section" : "div";
   const wrapperClass = showActions
@@ -70,6 +101,7 @@ export function PlaceholderConfigPanel({
                 <th>Placeholder</th>
                 <th>Meaning (label)</th>
                 <th>Filled how</th>
+                {canEdit ? <th className="placeholder-col-actions"> </th> : null}
               </tr>
             </thead>
             <tbody>
@@ -122,12 +154,52 @@ export function PlaceholderConfigPanel({
                       }
                     </span>
                   </td>
+                  {canEdit ? (
+                    <td className="placeholder-col-actions">
+                      <button
+                        type="button"
+                        className="ghost danger-text placeholder-remove"
+                        disabled={saving}
+                        onClick={() => removeRow(index)}
+                        aria-label={`Remove {{${ph.key}}}`}
+                        title="Remove — won’t be asked for on Compose"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {canEdit && ignoredKeys.length > 0 ? (
+        <div className="placeholder-ignored">
+          <p className="muted small">
+            Removed (skipped on Rescan). Restore if you still need them in
+            Compose:
+          </p>
+          <ul className="placeholder-ignored-list">
+            {ignoredKeys.map((key) => (
+              <li key={key.toLowerCase()}>
+                <code>{`{{${key}}}`}</code>
+                {onRestoreIgnored || onIgnoredChange ? (
+                  <button
+                    type="button"
+                    className="ghost small"
+                    disabled={saving}
+                    onClick={() => restoreIgnored(key)}
+                  >
+                    Restore
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {canEdit && showActions && onSave && onRescan ? (
         <div className="surface-actions">

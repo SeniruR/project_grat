@@ -152,6 +152,9 @@ export function buildOutboundBodyHtml(input: {
   placeholders?: PlaceholderDef[];
   shared?: Record<string, string>;
   perRecipient?: Record<string, string>;
+  /** slotId → absolute image URL overrides for this send */
+  imageOverrides?: Record<string, string>;
+  imageSlots?: ImageSlotDef[];
 }) {
   const resolved = resolveHtmlImageSrcs(
     input.compiledHtml,
@@ -176,7 +179,7 @@ export function buildOutboundBodyHtml(input: {
       : null,
   );
 
-  return applyMergeFields(
+  const merged = applyMergeFields(
     wrapped,
     buildMergeFieldMap({
       placeholders: input.placeholders,
@@ -186,4 +189,127 @@ export function buildOutboundBodyHtml(input: {
       perRecipient: input.perRecipient,
     }),
   );
+
+  return applyImageSlotOverrides(
+    merged,
+    input.imageOverrides ?? {},
+    input.imageSlots ?? parseImageSlotsFromDesignJson(null),
+  );
+}
+
+export type ImageSlotDef = {
+  id: string;
+  label: string;
+  mode: "fixed" | "shared" | "perRecipient";
+  originalSrc: string;
+  designedWidth: number;
+  designedHeight: number;
+  borderRadius: number;
+};
+
+export function parseImageSlotsFromDesignJson(
+  designJson: unknown,
+): ImageSlotDef[] {
+  if (!designJson || typeof designJson !== "object") return [];
+  const raw = (designJson as { imageSlots?: unknown }).imageSlots;
+  if (!Array.isArray(raw)) return [];
+  const out: ImageSlotDef[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const id = typeof row.id === "string" ? row.id.trim() : "";
+    if (!id || seen.has(id)) continue;
+    const mode = row.mode;
+    if (mode !== "fixed" && mode !== "shared" && mode !== "perRecipient") {
+      continue;
+    }
+    seen.add(id);
+    out.push({
+      id,
+      label:
+        typeof row.label === "string" && row.label.trim()
+          ? row.label.trim()
+          : id,
+      mode,
+      originalSrc:
+        typeof row.originalSrc === "string" ? row.originalSrc : "",
+      designedWidth:
+        typeof row.designedWidth === "number" && row.designedWidth > 0
+          ? Math.round(row.designedWidth)
+          : 600,
+      designedHeight:
+        typeof row.designedHeight === "number" && row.designedHeight > 0
+          ? Math.round(row.designedHeight)
+          : 400,
+      borderRadius:
+        typeof row.borderRadius === "number" && row.borderRadius > 0
+          ? Math.round(row.borderRadius)
+          : 0,
+    });
+  }
+  return out;
+}
+
+function imgAttr(attrs: string, name: string): string | null {
+  const re = new RegExp(
+    `\\b${name}\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))`,
+    "i",
+  );
+  const m = re.exec(attrs);
+  if (!m) return null;
+  return (m[1] ?? m[2] ?? m[3] ?? "").trim() || null;
+}
+
+function ensureImgBorderRadius(attrs: string, radius: number): string {
+  // Keep existing radius if present; never inject a new one (avoids double-round
+  // with clipped replacement PNGs).
+  void radius;
+  return attrs;
+}
+
+/** Replace src on imgs matching data-grat-slot (or originalSrc fallback). */
+export function applyImageSlotOverrides(
+  html: string,
+  overrides: Record<string, string>,
+  slots: ImageSlotDef[] = [],
+): string {
+  const map = new Map(
+    Object.entries(overrides)
+      .filter(([, url]) => Boolean(url?.trim()))
+      .map(([k, url]) => [k, url.trim()] as const),
+  );
+  if (map.size === 0) return html;
+
+  const slotsById = new Map(slots.map((s) => [s.id, s] as const));
+  const byOriginal = new Map(
+    slots
+      .filter((s) => map.has(s.id))
+      .map((s) => [s.originalSrc, map.get(s.id)!] as const),
+  );
+
+  return html.replace(/<img\b([^>]*?)>/gi, (full, attrs: string) => {
+    const slotId = imgAttr(attrs, "data-grat-slot");
+    const src = imgAttr(attrs, "src") ?? "";
+    const nextUrl =
+      (slotId && map.get(slotId)) ||
+      (src ? byOriginal.get(src) : undefined);
+    if (!nextUrl) return full;
+
+    const slot =
+      (slotId ? slotsById.get(slotId) : undefined) ??
+      slots.find((s) => s.originalSrc === src);
+
+    let nextAttrs = attrs;
+    if (/\bsrc\s*=/i.test(nextAttrs)) {
+      nextAttrs = nextAttrs.replace(
+        /\bsrc\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s>]+)/i,
+        `src="${nextUrl}"`,
+      );
+    } else {
+      nextAttrs = ` src="${nextUrl}"${nextAttrs}`;
+    }
+    nextAttrs = ensureImgBorderRadius(nextAttrs, slot?.borderRadius ?? 0);
+    return `<img${nextAttrs}>`;
+  });
 }

@@ -53,6 +53,7 @@ export async function embedLocalUploadImages(
 ): Promise<{ html: string; attachments: InlineEmailAttachment[] }> {
   const attachments: InlineEmailAttachment[] = [];
   const urlToCid = new Map<string, string>();
+  const missing: string[] = [];
 
   for (const url of collectImageUrls(html)) {
     const key = storageKeyFromUploadUrl(url);
@@ -61,26 +62,47 @@ export async function embedLocalUploadImages(
 
     try {
       const content = await readFile(absoluteUploadPath(key));
-      const cid = `grat-${attachments.length}-${path.basename(key).replace(/[^\w.-]+/g, "")}@grat`;
+      // Stable, mailbox-safe cid (no spaces / odd chars)
+      const safeBase = path
+        .basename(key)
+        .replace(/[^\w.-]+/g, "")
+        .slice(0, 48);
+      const cid = `grat.${attachments.length}.${safeBase}@project.grat`;
       attachments.push({
         cid,
-        filename: path.basename(key),
+        filename: path.basename(key) || `image-${attachments.length}.png`,
         content,
         contentType: guessMime(key),
       });
       urlToCid.set(url, cid);
     } catch {
-      /* missing file on disk — leave URL as-is */
+      missing.push(key);
     }
   }
 
-  if (!urlToCid.size) return { html, attachments };
+  if (!urlToCid.size) {
+    if (missing.length) {
+      console.warn(
+        `[embedLocalUploadImages] no images embedded; missing files: ${missing.slice(0, 5).join(", ")}`,
+      );
+    }
+    return { html, attachments };
+  }
+
+  if (missing.length) {
+    console.warn(
+      `[embedLocalUploadImages] skipped ${missing.length} missing upload(s)`,
+    );
+  }
 
   let out = html;
-  for (const [url, cid] of urlToCid) {
+  // Longest URLs first so we don't partially replace nested paths
+  const entries = [...urlToCid.entries()].sort(
+    (a, b) => b[0].length - a[0].length,
+  );
+  for (const [url, cid] of entries) {
     const cidRef = `cid:${cid}`;
     out = out.split(url).join(cidRef);
-    // HTML-escaped ampersands in stored HTML
     if (url.includes("&")) {
       out = out.split(url.replace(/&/g, "&amp;")).join(cidRef);
     }
