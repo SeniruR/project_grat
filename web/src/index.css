@@ -857,7 +857,7 @@ button.ghost {
   font-size: 0.92rem;
 }
 
-.form-stack input,
+.form-stack input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
 .form-stack textarea,
 .form-stack select {
   width: 100%;
