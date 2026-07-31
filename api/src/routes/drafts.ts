@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
-import { buildOutboundBodyHtml } from "../lib/emailBody.js";
+import { buildOutboundBodyHtml, parsePlaceholdersFromDesignJson } from "../lib/emailBody.js";
 import { embedLocalUploadImages } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
@@ -11,6 +11,8 @@ const recipientBody = z.object({
   aadOid: z.string().min(1).max(200).optional(),
   email: z.string().email().max(320),
   displayName: z.string().min(1).max(200).optional(),
+  /** Per-recipient custom merge values (e.g. personalNote). */
+  fields: z.record(z.string().max(80), z.string().max(2000)).optional(),
 });
 
 const createJobBody = z.object({
@@ -22,6 +24,8 @@ const createJobBody = z.object({
   senderName: z.string().min(1).max(200).optional(),
   /** Optional override for {{senderEmail}} (defaults to signed-in user). */
   senderEmail: z.string().email().max(320).optional(),
+  /** Shared merge values for every recipient (eventName, eventDate, …). */
+  sharedFields: z.record(z.string().max(80), z.string().max(2000)).optional(),
 });
 
 function canView(
@@ -114,12 +118,14 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         recipients,
         senderName,
         senderEmail,
+        sharedFields,
       } = parsed.data;
 
       const sender = {
         displayName: senderName?.trim() || user.displayName,
         email: senderEmail?.trim() || user.email,
       };
+      const shared = sharedFields ?? {};
 
       // Dedupe by email (case-insensitive)
       const seen = new Set<string>();
@@ -161,9 +167,11 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       if (!compiled) {
         return reply.code(400).send({
           error:
-            "This template has no compiled email HTML yet. Save & compile in Designer (or Recompile preview) first.",
+            "This template has no compiled email HTML yet. Import a Canva ZIP (or HTML) first.",
         });
       }
+
+      const placeholders = parsePlaceholdersFromDesignJson(version.designJson);
 
       const mail = await getMailProvider();
       const job = await prisma.draftJob.create({
@@ -196,6 +204,9 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             email: recipient.email,
           },
           sender,
+          placeholders,
+          shared,
+          perRecipient: recipient.fields ?? {},
         });
 
         let inlineAttachments:

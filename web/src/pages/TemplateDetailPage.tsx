@@ -2,12 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, assetUrl, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import {
-  resolveHtmlImageSrcsClient,
-  suggestedImgTag,
-} from "../lib/htmlAssets";
-import { wrapWithHeaderFooter } from "../lib/emailHtml";
-import { copyHtmlSource } from "../lib/copyEmail";
+import { resolveHtmlImageSrcsClient } from "../lib/htmlAssets";
 import { CanvasPreview } from "../components/CanvasPreview";
 import { COMPOSE_ENABLED, COMPOSE_UNAVAILABLE_REASON } from "../features";
 import {
@@ -15,6 +10,13 @@ import {
   importDesignImageToTemplate,
   regenerateCanvaSnapshot,
 } from "../lib/importDesign";
+import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
+import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
+import {
+  parsePlaceholdersFromDesignJson,
+  syncPlaceholdersWithHtml,
+  type PlaceholderDef,
+} from "../lib/mergeFields";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -127,11 +129,10 @@ export function TemplateDetailPage() {
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [html, setHtml] = useState("");
-  const [headerHtml, setHeaderHtml] = useState("");
-  const [footerHtml, setFooterHtml] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [placeholders, setPlaceholders] = useState<PlaceholderDef[]>([]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [assetDeletePrompt, setAssetDeletePrompt] = useState<{
     id: string;
@@ -153,9 +154,12 @@ export function TemplateDetailPage() {
     setName(t.name);
     setVisibility(t.visibility);
     setStatus(t.status);
-    setHeaderHtml(t.headerHtml ?? "");
-    setFooterHtml(t.footerHtml ?? "");
     setHtml(t.versions[0]?.compiledHtml ?? "");
+    setPlaceholders(
+      parsePlaceholdersFromDesignJson(
+        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
+      ),
+    );
   }
 
   useEffect(() => {
@@ -226,28 +230,8 @@ export function TemplateDetailPage() {
             : "Blank";
 
   const previewHtml = useMemo(() => {
-    const body = resolveHtmlImageSrcsClient(html, assets, API_URL);
-    return resolveHtmlImageSrcsClient(
-      wrapWithHeaderFooter(body, headerHtml, footerHtml),
-      assets,
-      API_URL,
-    );
-  }, [headerHtml, html, footerHtml, assets]);
-
-  function insertImgTag(fileName: string) {
-    const tag = suggestedImgTag(fileName);
-    setHtml((prev) => {
-      if (
-        prev.includes(`src="${fileName}"`) ||
-        prev.includes(`src='${fileName}'`)
-      ) {
-        return prev;
-      }
-      const spacer = prev.trim() ? "\n" : "";
-      return `${prev.trimEnd()}${spacer}${tag}\n`;
-    });
-    setNotice(`Inserted src="${fileName}" into HTML. Click Save to keep it.`);
-  }
+    return resolveHtmlImageSrcsClient(html, assets, API_URL);
+  }, [html, assets]);
 
   async function saveAll() {
     if (!token || !id) {
@@ -268,39 +252,9 @@ export function TemplateDetailPage() {
         name: name.trim() || "Untitled",
         visibility,
         status,
-        headerHtml: headerHtml.trim() || null,
-        footerHtml: footerHtml.trim() || null,
       });
-
-      const saved = (template?.versions[0]?.compiledHtml ?? "").trim();
-      const draft = html.trim();
-
-      if (draft !== saved) {
-        const nextMode =
-          !draft
-            ? "blank"
-            : latestMode === "canva_html" || latestMode === "image_import"
-              ? latestMode
-              : "html_import";
-
-        const version = await api.saveTemplateVersion(token, id, {
-          designJson: {
-            ...(nextMode === latestMode ? latestDesignJson : {}),
-            mode: nextMode,
-            ...(nextMode === "html_import" || nextMode === "blank"
-              ? { sourceHtml: html }
-              : {}),
-          },
-          compiledHtml: html,
-          previewUrl:
-            nextMode === "image_import" ? previewImageUrl : null,
-        });
-        await reload();
-        setNotice(`Saved (v${version.version}).`);
-      } else {
-        await reload();
-        setNotice("Saved settings.");
-      }
+      await reload();
+      setNotice("Saved settings.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -397,51 +351,76 @@ export function TemplateDetailPage() {
     }
   }
 
-  async function onUpload(file: File | null) {
-    if (!token || !id || !file || !canEdit) return;
-    setError(null);
-    setNotice(null);
-    try {
-      const { asset } = await api.uploadTemplateAsset(token, id, file);
-      await reload();
-      const tag = asset.suggestedHtml || suggestedImgTag(asset.fileName);
-      setHtml((prev) => {
-        if (
-          prev.includes(`src="${asset.fileName}"`) ||
-          prev.includes(`src='${asset.fileName}'`)
-        ) {
-          return prev;
-        }
-        const spacer = prev.trim() ? "\n" : "";
-        return `${prev.trimEnd()}${spacer}${tag}\n`;
-      });
-      setNotice(
-        `Uploaded ${asset.fileName}. Click Save to store the HTML change.`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    }
-  }
-
   async function onReimportCanvaZip(file: File | null) {
     if (!token || !id || !file || !canEdit) return;
     setError(null);
     setNotice(null);
     setSaving(true);
     try {
-      const { imageCount, previewUrl: importedPreview } =
-        await importCanvaZipToTemplate(token, id, file);
+      const { imageCount, previewUrl: importedPreview, placeholders: nextPh } =
+        await importCanvaZipToTemplate(token, id, file, {
+          previousPlaceholders: placeholders,
+          previousDesignJson: latestDesignJson,
+        });
       await reload();
+      const phNote =
+        nextPh.length > 0
+          ? ` Define ${nextPh.length} placeholder${nextPh.length === 1 ? "" : "s"} below.`
+          : "";
       setNotice(
         importedPreview
-          ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot for Outlook paste.`
-          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed — re-import to retry.`,
+          ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${phNote}`
+          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed — re-import to retry.${phNote}`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Canva import failed");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function savePlaceholders() {
+    if (!token || !id || !canEdit || !template) return;
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const cleaned = placeholders.map((p) => ({
+        key: p.key,
+        label: p.label.trim() || p.key,
+        source: p.source,
+      }));
+      await api.saveTemplateVersion(token, id, {
+        designJson: {
+          ...latestDesignJson,
+          placeholders: cleaned,
+        },
+        compiledHtml: html,
+        previewUrl: previewImageUrl,
+      });
+      await reload();
+      setNotice(
+        cleaned.length
+          ? `Saved ${cleaned.length} placeholder definition${cleaned.length === 1 ? "" : "s"}.`
+          : "Saved placeholder definitions (none detected).",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save placeholders",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function rescanPlaceholders() {
+    const next = syncPlaceholdersWithHtml(html, placeholders);
+    setPlaceholders(next);
+    setNotice(
+      next.length
+        ? `Found ${next.length} placeholder${next.length === 1 ? "" : "s"} in HTML. Review labels and “Filled how”, then Save.`
+        : "No {{placeholders}} found in the current HTML.",
+    );
   }
 
   async function onRegenerateCanvaSnapshot() {
@@ -613,13 +592,14 @@ export function TemplateDetailPage() {
                   <strong>HTML and images</strong> (ZIP).
                 </li>
                 <li>
-                  Optional personalization: put{" "}
-                  <code>{"{{recipientName}}"}</code> /{" "}
-                  <code>{"{{senderName}}"}</code> in text boxes before export.
-                  Compose fills them per send; this template is not overwritten.
+                  Optional: put your own placeholders in Canva text (e.g.{" "}
+                  <code>{"{{heroName}}"}</code>). After import, define them in
+                  the Placeholders panel — Compose fills values per send without
+                  changing the saved template.
                 </li>
                 <li>Re-import below to replace this design.</li>
               </ol>
+              <MergeFieldsGuide compact />
               {canEdit ? (
                 <div className="surface-actions import-actions">
                   <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
@@ -749,6 +729,21 @@ export function TemplateDetailPage() {
         )}
       </div>
 
+      {(html.trim() || placeholders.length > 0) &&
+      (latestMode === "canva_html" ||
+        latestMode === "html_import" ||
+        latestMode === "blank" ||
+        latestMode === "designer") ? (
+        <PlaceholderConfigPanel
+          placeholders={placeholders}
+          canEdit={canEdit}
+          saving={saving}
+          onChange={setPlaceholders}
+          onSave={() => void savePlaceholders()}
+          onRescan={rescanPlaceholders}
+        />
+      ) : null}
+
       {(previewImageUrl || previewHtml.trim()) ? (
         <CanvasPreview
           width={designPreviewWidth}
@@ -764,22 +759,10 @@ export function TemplateDetailPage() {
 
       <section className="panel">
         <h2>Images</h2>
-        <p className="muted">Max 5MB · JPEG/PNG/GIF/WebP</p>
-        {canEdit ? (
-          <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              disabled={saving}
-              onChange={(e) => {
-                void onUpload(e.target.files?.[0] ?? null);
-                e.target.value = "";
-              }}
-            />
-            <span className="file-pick-btn">Choose image</span>
-            <span className="file-pick-name muted">JPEG, PNG, GIF, or WebP</span>
-          </label>
-        ) : null}
+        <p className="muted">
+          Images from your Canva ZIP (or image upload). Delete unused files if
+          needed; prefer Replace Canva ZIP / Replace image for layout changes.
+        </p>
         <ul className="asset-list">
           {assets.map((a) => (
             <li key={a.id}>
@@ -797,14 +780,6 @@ export function TemplateDetailPage() {
                 <div className="asset-actions">
                   <button
                     type="button"
-                    className="ghost"
-                    onClick={() => insertImgTag(a.fileName)}
-                    title="Insert into Advanced HTML"
-                  >
-                    Insert into HTML
-                  </button>
-                  <button
-                    type="button"
                     className="ghost danger-text"
                     onClick={() =>
                       void onDeleteAsset(a.id, a.fileName, a.storageKey)
@@ -820,72 +795,9 @@ export function TemplateDetailPage() {
           ))}
         </ul>
         {assets.length === 0 ? (
-          <p className="muted">No images uploaded yet.</p>
+          <p className="muted">No images on this card yet.</p>
         ) : null}
       </section>
-
-      <details className="panel card-advanced">
-        <summary>Advanced</summary>
-        <div className="card-advanced-body form-stack">
-          <p className="muted small">
-            Power-user HTML. Prefer re-importing a Canva ZIP for layout changes.
-            Saving edited HTML here updates the card body for this template.
-          </p>
-          <label>
-            Email HTML
-            <span className="field-hint">
-              Wrapped with header/footer for preview. Use{" "}
-              <code>src=&quot;filename.jpg&quot;</code> for uploaded images.
-            </span>
-            <textarea
-              value={html}
-              onChange={(e) => setHtml(e.target.value)}
-              rows={12}
-              disabled={!canEdit || saving}
-              spellCheck={false}
-              className="html-code"
-            />
-          </label>
-          <div className="surface-actions">
-            <button
-              type="button"
-              className="ghost"
-              disabled={!html.trim()}
-              onClick={() => {
-                void copyHtmlSource(html)
-                  .then(() => setNotice("HTML source copied to clipboard."))
-                  .catch((err) =>
-                    setError(
-                      err instanceof Error ? err.message : "Copy failed",
-                    ),
-                  );
-              }}
-            >
-              Copy HTML source
-            </button>
-          </div>
-          <label>
-            Header HTML <span className="optional-tag">(optional)</span>
-            <textarea
-              value={headerHtml}
-              onChange={(e) => setHeaderHtml(e.target.value)}
-              rows={3}
-              disabled={!canEdit || saving}
-              placeholder="Optional company banner"
-            />
-          </label>
-          <label>
-            Footer HTML <span className="optional-tag">(optional)</span>
-            <textarea
-              value={footerHtml}
-              onChange={(e) => setFooterHtml(e.target.value)}
-              rows={3}
-              disabled={!canEdit || saving}
-              placeholder="Optional disclaimer"
-            />
-          </label>
-        </div>
-      </details>
 
       {assetDeletePrompt ? (
         <div

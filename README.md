@@ -116,18 +116,16 @@ For selectable Outlook text when designing in Canva:
 
 **Copy picture for Outlook** = matches Canva. **Copy HTML** = selectable text but Outlook may shift layout. **Compose** = server sends HTML (best for real delivery).
 
-### Merge fields (personalize without editing the template)
+### Merge fields (owner-defined placeholders)
 
-In Canva text boxes, type tokens as normal text before you export the ZIP:
-
-| Token | Filled with |
-|-------|-------------|
-| `{{recipientName}}` | Each recipient’s name (`{{name}}` / `{{displayName}}` also work) |
-| `{{recipientEmail}}` | Each recipient’s email (`{{email}}` also works) |
-| `{{senderName}}` | Sender name on Compose (defaults to you) |
-| `{{senderEmail}}` | Sender email on Compose (defaults to you) |
-
-Compose replaces tokens **per send**. The saved template HTML is not changed. Fonts and colors stay because only the text inside the token is swapped.
+1. In Canva, type any tokens as normal text: `{{heroName}}`, `{{eventTitle}}`, `{{shipDate}}`, …
+2. Import the HTML ZIP into Grat.
+3. On the card, open **Placeholders** and set a **meaning** + **filled how** for each detected token:
+   - Recipient name / email — auto from selected people  
+   - Sender name / email — from Compose sender fields  
+   - Shared — one value for everyone  
+   - Per person — different value per recipient  
+4. On **Compose**, fill shared / per-person values; preview updates live. The saved template HTML is not overwritten.
 
 Do not expect PNG/PDF uploads to become editable selectable HTML — that path is image-in-table only.
 

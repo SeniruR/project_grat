@@ -3,7 +3,6 @@ import {
   buildEmailDocument,
   buildOutlookPngEmailHtml,
   copyEmailHtmlForPaste,
-  copyHtmlSource,
   copyOutlookPngForPaste,
   isCanvasAbsoluteEmail,
   looksLikeAbsoluteEmail,
@@ -179,28 +178,6 @@ export function EmailBrowserCopyModal({
     }
   }
 
-  async function copySource() {
-    if (!html.trim()) {
-      setError("Email HTML is empty.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await copyHtmlSource(html);
-      setNotice(
-        useHtmlPaste
-          ? "HTML source copied. For Outlook paste, use Copy for Outlook."
-          : "HTML source copied (for debugging). For Outlook Desktop paste, use Copy for Outlook.",
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Copy failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function copyHtmlSelectable() {
     if (!html.trim()) return;
     setBusy(true);
@@ -334,16 +311,6 @@ export function EmailBrowserCopyModal({
               onClick={() => void copyHtmlSelectable()}
             >
               Copy HTML (selectable)
-            </button>
-          ) : null}
-          {html.trim() ? (
-            <button
-              type="button"
-              className="ghost"
-              disabled={busy}
-              onClick={() => void copySource()}
-            >
-              Copy HTML source
             </button>
           ) : null}
           <button type="button" className="ghost" onClick={onClose}>

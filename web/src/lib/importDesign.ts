@@ -11,16 +11,37 @@ import {
   inferEmailWidth,
   rasterizeEmailHtmlToFile,
 } from "./rasterizeEmailHtml";
+import {
+  parsePlaceholdersFromDesignJson,
+  syncPlaceholdersWithHtml,
+  type PlaceholderDef,
+} from "./mergeFields";
+
+/** Parse a Canva ZIP in the browser and list {{placeholders}} (no upload). */
+export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
+  placeholders: PlaceholderDef[];
+  htmlPath: string;
+}> {
+  const { html, htmlPath } = await parseCanvaZip(zipFile);
+  return {
+    placeholders: syncPlaceholdersWithHtml(html),
+    htmlPath,
+  };
+}
 
 /**
  * Import a Canva Email HTML ZIP into an existing template:
  * upload images + fonts, rewrite src/url(...), save compiledHtml,
- * and rasterize a PNG snapshot for pixel-perfect Outlook paste.
+ * detect {{placeholders}}, and rasterize a PNG snapshot for Outlook paste.
  */
 export async function importCanvaZipToTemplate(
   token: string,
   templateId: string,
   zipFile: File,
+  options?: {
+    previousPlaceholders?: PlaceholderDef[];
+    previousDesignJson?: Record<string, unknown>;
+  },
 ) {
   const { html, assets } = await parseCanvaZip(zipFile);
   const uploads: Array<{ fileName: string; path: string; url: string }> = [];
@@ -73,8 +94,14 @@ export async function importCanvaZipToTemplate(
     /* HTML-only import still works */
   }
 
+  const previous =
+    options?.previousPlaceholders ??
+    parsePlaceholdersFromDesignJson(options?.previousDesignJson);
+  const placeholders = syncPlaceholdersWithHtml(compiledHtml, previous);
+
   await api.saveTemplateVersion(token, templateId, {
     designJson: {
+      ...(options?.previousDesignJson ?? {}),
       mode: "canva_html",
       source: "canva_zip",
       importedAt: new Date().toISOString(),
@@ -82,12 +109,13 @@ export async function importCanvaZipToTemplate(
       fontCount: assets.filter((a) => a.kind === "font").length,
       width: emailWidth,
       height: emailHeight,
+      placeholders,
     },
     compiledHtml,
     previewUrl,
   });
 
-  return { compiledHtml, imageCount, previewUrl };
+  return { compiledHtml, imageCount, previewUrl, placeholders };
 }
 
 /** Rebuild PNG snapshot from stored Canva HTML (no ZIP re-upload). */

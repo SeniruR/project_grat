@@ -164,6 +164,8 @@ button.ghost {
 .app-shell > main {
   flex: 1;
   padding-top: 0;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .topnav {
@@ -240,8 +242,11 @@ button.ghost {
 }
 
 .page {
-  width: min(960px, calc(100% - 2rem));
+  width: min(1320px, calc(100% - 2rem));
+  max-width: 100%;
   margin: 1.6rem auto 3rem;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .page-header {
@@ -326,6 +331,14 @@ button.ghost {
   flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 0.9rem;
+}
+
+.surface-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
 }
 
 .people-list {
@@ -1144,6 +1157,43 @@ button.danger-text {
   margin-top: 0.25rem;
 }
 
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(28, 36, 32, 0.45);
+}
+
+.app-modal {
+  width: min(420px, 100%);
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(28, 36, 32, 0.22);
+  padding: 1.15rem 1.2rem 1.1rem;
+}
+
+.app-modal h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.2rem;
+}
+
+.app-modal p {
+  margin: 0 0 1rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.app-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .email-browser-copy-modal kbd {
   font-size: 0.85em;
   padding: 0.05rem 0.3rem;
@@ -1372,11 +1422,11 @@ button.danger-text {
 .compose-layout {
   display: grid;
   gap: 1.25rem;
-  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
   align-items: start;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   .compose-layout {
     grid-template-columns: 1fr;
   }
@@ -1469,10 +1519,15 @@ button.danger-text {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: color-mix(in srgb, var(--ink) 2.5%, #fff);
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .merge-fields-panel .card-section-title {
-  margin: 0 0 0.55rem;
+  margin: 0;
   font-size: 0.95rem;
 }
 
@@ -1495,13 +1550,220 @@ button.danger-text {
 .merge-fields-list code,
 .compose-sender code,
 .compose-recipients code,
-.page-header code {
+.page-header code,
+.merge-guide-table code,
+.merge-live-table code,
+.merge-input-block code {
   font-size: 0.82em;
+}
+
+.placeholder-config {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.placeholder-config.is-embedded {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 2%, #fff);
+}
+
+.placeholder-config.is-embedded h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.placeholder-config-table input,
+.placeholder-config-table select {
+  width: 100%;
+  max-width: 16rem;
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.placeholder-config-table select {
+  max-width: 14rem;
+}
+
+.merge-fields-guide {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 2%, #fff);
+  display: grid;
+  gap: 0.55rem;
+}
+
+.merge-fields-guide.is-compact {
+  margin-top: 0.75rem;
+}
+
+.merge-guide-table-wrap,
+.merge-live-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.merge-guide-table,
+.merge-live-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.88rem;
+}
+
+.merge-guide-table th,
+.merge-guide-table td,
+.merge-live-table th,
+.merge-live-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.45rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.merge-guide-table th,
+.merge-live-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.merge-live-table th:nth-child(1),
+.merge-live-table td:nth-child(1) {
+  width: 34%;
+}
+
+.merge-live-table th:nth-child(3),
+.merge-live-table td:nth-child(3) {
+  width: 30%;
+}
+
+.merge-alias {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.merge-field-hint {
+  display: block;
+  margin-top: 0.2rem;
+  max-width: 22rem;
+}
+
+.merge-live-value {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.merge-source-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.merge-source-badge.is-recipient {
+  background: color-mix(in srgb, #2f6fed 12%, #fff);
+  border-color: color-mix(in srgb, #2f6fed 28%, var(--line));
+  color: #1a4fb5;
+}
+
+.merge-source-badge.is-sender {
+  background: color-mix(in srgb, #6b5ce7 12%, #fff);
+  border-color: color-mix(in srgb, #6b5ce7 28%, var(--line));
+  color: #4338a8;
+}
+
+.merge-source-badge.is-shared {
+  background: color-mix(in srgb, #0f7a4a 12%, #fff);
+  border-color: color-mix(in srgb, #0f7a4a 28%, var(--line));
+  color: #0b5c38;
+}
+
+.merge-source-badge.is-perRecipient {
+  background: color-mix(in srgb, #b45309 12%, #fff);
+  border-color: color-mix(in srgb, #b45309 28%, var(--line));
+  color: #8a3f07;
+}
+
+.merge-input-block {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--line);
+}
+
+.merge-input-title {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.merge-per-person-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.merge-per-person-name {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+}
+
+.compose-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.compose-preview-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.compose-preview-pick select {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .compose-preview-title {
   margin: 0 0 0.35rem;
   font-size: 1.15rem;
+}
+
+.compose-preview-head .compose-preview-title {
+  margin: 0;
 }
 
 .btn-link-ghost {

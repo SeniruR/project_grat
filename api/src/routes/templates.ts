@@ -610,6 +610,9 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         await removeUploadFile(asset.storageKey);
       }
 
+      // Draft jobs reference this template (and its versions) without cascade.
+      await prisma.draftJob.deleteMany({ where: { templateId: id } });
+
       await prisma.template.delete({ where: { id } });
       await writeAudit({
         actorId: user.id,

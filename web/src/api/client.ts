@@ -287,9 +287,11 @@ export const api = {
         aadOid?: string;
         email: string;
         displayName?: string;
+        fields?: Record<string, string>;
       }>;
       senderName?: string;
       senderEmail?: string;
+      sharedFields?: Record<string, string>;
     },
   ) =>
     request<{ job: DraftJobDetail; mailMode: string }>("/draft-jobs", {

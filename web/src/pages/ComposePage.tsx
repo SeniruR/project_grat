@@ -10,9 +10,12 @@ import { wrapWithHeaderFooter } from "../lib/emailHtml";
 import { resolveHtmlImageSrcsClient } from "../lib/htmlAssets";
 import {
   applyMergeFields,
-  buildMergeFieldMap,
-  describeMergeField,
-  detectMergeFields,
+  buildMergeFieldMapFromPlaceholders,
+  parsePlaceholdersFromDesignJson,
+  perRecipientPlaceholderKeys,
+  placeholderSourceLabel,
+  sharedPlaceholderKeys,
+  type PlaceholderDef,
 } from "../lib/mergeFields";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 
@@ -32,6 +35,10 @@ function parseTypedEmail(raw: string): DirectoryPerson | null {
   return { aadOid: `manual-${email}`, email, displayName };
 }
 
+function personKey(p: DirectoryPerson) {
+  return p.email.trim().toLowerCase();
+}
+
 export function ComposePage() {
   const { id } = useParams<{ id: string }>();
   const { token, user } = useAuth();
@@ -41,6 +48,11 @@ export function ComposePage() {
   const [subject, setSubject] = useState("");
   const [senderName, setSenderName] = useState("");
   const [senderEmail, setSenderEmail] = useState("");
+  const [sharedFields, setSharedFields] = useState<Record<string, string>>({});
+  const [perRecipientFields, setPerRecipientFields] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [previewPersonEmail, setPreviewPersonEmail] = useState("");
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<DirectoryPerson[]>([]);
   const [selected, setSelected] = useState<DirectoryPerson[]>([]);
@@ -96,22 +108,64 @@ export function ComposePage() {
   const compiled = (template?.versions[0]?.compiledHtml ?? "").trim();
   const assets = template?.assets ?? [];
 
-  const detectedFields = useMemo(
+  const placeholders: PlaceholderDef[] = useMemo(
     () =>
-      detectMergeFields(
-        [
-          compiled,
-          template?.headerHtml ?? "",
-          template?.footerHtml ?? "",
-        ].join("\n"),
+      parsePlaceholdersFromDesignJson(
+        (template?.versions[0]?.designJson ?? {}) as Record<string, unknown>,
       ),
-    [compiled, template?.headerHtml, template?.footerHtml],
+    [template],
+  );
+
+  const sharedKeys = useMemo(
+    () => sharedPlaceholderKeys(placeholders),
+    [placeholders],
+  );
+  const perPersonKeys = useMemo(
+    () => perRecipientPlaceholderKeys(placeholders),
+    [placeholders],
+  );
+
+  const previewPerson =
+    selected.find((p) => personKey(p) === previewPersonEmail) ??
+    selected[0] ??
+    null;
+
+  useEffect(() => {
+    if (!selected.length) {
+      setPreviewPersonEmail("");
+      return;
+    }
+    if (
+      !previewPersonEmail ||
+      !selected.some((p) => personKey(p) === previewPersonEmail)
+    ) {
+      setPreviewPersonEmail(personKey(selected[0]));
+    }
+  }, [selected, previewPersonEmail]);
+
+  const sampleCtx = useMemo(
+    () => ({
+      recipientName: previewPerson?.displayName ?? "Alex",
+      recipientEmail: previewPerson?.email ?? "alex@example.com",
+      senderName: senderName.trim() || user?.displayName || "You",
+      senderEmail: senderEmail.trim() || user?.email || "you@example.com",
+      shared: sharedFields,
+      perRecipient: previewPerson
+        ? (perRecipientFields[personKey(previewPerson)] ?? {})
+        : {},
+    }),
+    [
+      previewPerson,
+      senderName,
+      senderEmail,
+      sharedFields,
+      perRecipientFields,
+      user,
+    ],
   );
 
   const previewHtml = useMemo(() => {
     if (!template || !compiled) return "";
-    const sampleName = selected[0]?.displayName ?? "Alex";
-    const sampleEmail = selected[0]?.email ?? "alex@example.com";
     let body = resolveHtmlImageSrcsClient(compiled, assets, API_URL);
     body = wrapWithHeaderFooter(
       body,
@@ -120,29 +174,14 @@ export function ComposePage() {
     );
     body = applyMergeFields(
       body,
-      buildMergeFieldMap({
-        recipientName: sampleName,
-        recipientEmail: sampleEmail,
-        senderName: senderName.trim() || user?.displayName || "You",
-        senderEmail: senderEmail.trim() || user?.email || "you@example.com",
-      }),
+      buildMergeFieldMapFromPlaceholders(placeholders, sampleCtx),
     );
     return resolveHtmlImageSrcsClient(body, assets, API_URL);
-  }, [
-    template,
-    compiled,
-    assets,
-    selected,
-    senderName,
-    senderEmail,
-    user,
-  ]);
+  }, [template, compiled, assets, placeholders, sampleCtx]);
 
   function addPerson(person: DirectoryPerson) {
     setSelected((prev) => {
-      if (prev.some((p) => p.email.toLowerCase() === person.email.toLowerCase())) {
-        return prev;
-      }
+      if (prev.some((p) => personKey(p) === personKey(person))) return prev;
       return [...prev, person];
     });
     setQuery("");
@@ -162,14 +201,49 @@ export function ComposePage() {
   const typedRecipient = parseTypedEmail(query);
   const showTypedAdd =
     typedRecipient &&
-    !selected.some(
-      (s) => s.email.toLowerCase() === typedRecipient.email.toLowerCase(),
-    );
+    !selected.some((s) => personKey(s) === personKey(typedRecipient));
 
   function removePerson(email: string) {
-    setSelected((prev) =>
-      prev.filter((p) => p.email.toLowerCase() !== email.toLowerCase()),
-    );
+    const key = email.trim().toLowerCase();
+    setSelected((prev) => prev.filter((p) => personKey(p) !== key));
+    setPerRecipientFields((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function setShared(key: string, value: string) {
+    setSharedFields((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setPerPerson(email: string, key: string, value: string) {
+    const ek = email.trim().toLowerCase();
+    setPerRecipientFields((prev) => ({
+      ...prev,
+      [ek]: { ...(prev[ek] ?? {}), [key]: value },
+    }));
+  }
+
+  function validateMergeInputs(): string | null {
+    for (const key of sharedKeys) {
+      if (!(sharedFields[key] ?? "").trim()) {
+        const label =
+          placeholders.find((p) => p.key === key)?.label ?? key;
+        return `Fill shared field {{${key}}} (${label}).`;
+      }
+    }
+    for (const person of selected) {
+      const ek = personKey(person);
+      for (const key of perPersonKeys) {
+        if (!(perRecipientFields[ek]?.[key] ?? "").trim()) {
+          const label =
+            placeholders.find((p) => p.key === key)?.label ?? key;
+          return `Fill {{${key}}} (${label}) for ${person.displayName}.`;
+        }
+      }
+    }
+    return null;
   }
 
   async function createDrafts() {
@@ -189,28 +263,47 @@ export function ComposePage() {
       return;
     }
     if (!senderName.trim()) {
-      setError("Sender name is required for merge fields.");
+      setError("Sender name is required.");
       return;
     }
     if (!EMAIL_RE.test(senderEmail.trim())) {
       setError("Enter a valid sender email.");
       return;
     }
+    const mergeErr = validateMergeInputs();
+    if (mergeErr) {
+      setError(mergeErr);
+      return;
+    }
 
     setBusy(true);
     setError(null);
     try {
+      const trimmedShared: Record<string, string> = {};
+      for (const key of sharedKeys) {
+        trimmedShared[key] = (sharedFields[key] ?? "").trim();
+      }
+
       const { job } = await api.createDraftJob(token, {
         templateId: template.id,
         templateVersionId: template.versions[0]?.id,
         subject: subject.trim(),
         senderName: senderName.trim(),
         senderEmail: senderEmail.trim().toLowerCase(),
-        recipients: selected.map((p) => ({
-          aadOid: p.aadOid,
-          email: p.email,
-          displayName: p.displayName,
-        })),
+        sharedFields: trimmedShared,
+        recipients: selected.map((p) => {
+          const ek = personKey(p);
+          const fields: Record<string, string> = {};
+          for (const key of perPersonKeys) {
+            fields[key] = (perRecipientFields[ek]?.[key] ?? "").trim();
+          }
+          return {
+            aadOid: p.aadOid,
+            email: p.email,
+            displayName: p.displayName,
+            ...(Object.keys(fields).length ? { fields } : {}),
+          };
+        }),
       });
       navigate(`/drafts/${job.id}`);
     } catch (err) {
@@ -249,10 +342,9 @@ export function ComposePage() {
             {mailMode === "smtp" ? "Send email" : "Create Outlook drafts"}
           </h1>
           <p className="lede">
-            Type an email and press Enter, or search the directory. Merge fields
-            in the card HTML (like{" "}
-            <code>{"{{recipientName}}"}</code>) are filled per recipient —
-            the saved template is not changed.
+            Fill values for the placeholders the template owner defined. Auto
+            fields use recipients and sender; shared and per-person fields need
+            your input. The saved template is not changed.
           </p>
         </div>
       </header>
@@ -280,7 +372,7 @@ export function ComposePage() {
           </label>
 
           <fieldset className="choice-set compose-sender">
-            <legend>Sender (for merge fields)</legend>
+            <legend>Sender</legend>
             <label>
               Sender name
               <input
@@ -302,11 +394,6 @@ export function ComposePage() {
                 placeholder="you@example.com"
               />
             </label>
-            <p className="muted small">
-              Fills <code>{"{{senderName}}"}</code> and{" "}
-              <code>{"{{senderEmail}}"}</code> in the email. Defaults to your
-              account.
-            </p>
           </fieldset>
 
           <div className="compose-recipients">
@@ -360,7 +447,7 @@ export function ComposePage() {
               <ul className="recipient-hits">
                 {hits.map((p) => {
                   const taken = selected.some(
-                    (s) => s.email.toLowerCase() === p.email.toLowerCase(),
+                    (s) => personKey(s) === personKey(p),
                   );
                   return (
                     <li key={p.aadOid || p.email}>
@@ -377,30 +464,125 @@ export function ComposePage() {
                 })}
               </ul>
             ) : null}
-            <p className="muted small">
-              Type any email address, or pick from directory search.{" "}
-              <code>{"{{recipientName}}"}</code> /{" "}
-              <code>{"{{recipientEmail}}"}</code> are filled per person.
-            </p>
           </div>
 
           <div className="merge-fields-panel">
-            <h3 className="card-section-title">Merge fields in this card</h3>
-            {detectedFields.length > 0 ? (
-              <ul className="merge-fields-list">
-                {detectedFields.map((key) => (
-                  <li key={key.toLowerCase()}>
-                    <code>{`{{${key}}}`}</code>
-                    <span className="muted">{describeMergeField(key)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
+            <h3 className="card-section-title">Placeholders</h3>
+            {placeholders.length === 0 ? (
               <p className="muted small">
-                No <code>{"{{…}}"}</code> tokens found. In Canva, type tokens as
-                normal text (e.g. <code>{"{{recipientName}}"}</code>), then
-                re-export the HTML ZIP.
+                No placeholders defined on this card. Open the template, import
+                Canva HTML with <code>{"{{tokens}}"}</code>, then save
+                placeholder definitions.
               </p>
+            ) : (
+              <>
+                <div className="merge-live-table-wrap">
+                  <table className="merge-live-table">
+                    <thead>
+                      <tr>
+                        <th>Placeholder</th>
+                        <th>Meaning</th>
+                        <th>Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {placeholders.map((ph) => (
+                        <tr key={ph.key.toLowerCase()}>
+                          <td>
+                            <code>{`{{${ph.key}}}`}</code>
+                          </td>
+                          <td>{ph.label}</td>
+                          <td>
+                            <span
+                              className={`merge-source-badge is-${
+                                ph.source === "perRecipient"
+                                  ? "perRecipient"
+                                  : ph.source === "shared"
+                                    ? "shared"
+                                    : ph.source.startsWith("sender")
+                                      ? "sender"
+                                      : "recipient"
+                              }`}
+                            >
+                              {placeholderSourceLabel(ph.source)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {sharedKeys.length > 0 ? (
+                  <div className="merge-input-block">
+                    <h4 className="merge-input-title">Shared fields</h4>
+                    <p className="muted small">
+                      Same value for every recipient in this send.
+                    </p>
+                    {placeholders
+                      .filter((p) => p.source === "shared")
+                      .map((ph) => (
+                        <label key={ph.key}>
+                          {ph.label} <code>{`{{${ph.key}}}`}</code>
+                          <input
+                            value={sharedFields[ph.key] ?? ""}
+                            onChange={(e) => setShared(ph.key, e.target.value)}
+                            disabled={busy}
+                            maxLength={2000}
+                            placeholder={ph.label}
+                          />
+                        </label>
+                      ))}
+                  </div>
+                ) : null}
+
+                {perPersonKeys.length > 0 ? (
+                  <div className="merge-input-block">
+                    <h4 className="merge-input-title">Per-person fields</h4>
+                    {!selected.length ? (
+                      <p className="muted small">
+                        Add recipients first, then fill each person’s values.
+                      </p>
+                    ) : (
+                      selected.map((person) => (
+                        <div
+                          key={person.email}
+                          className="merge-per-person-card"
+                        >
+                          <p className="merge-per-person-name">
+                            <strong>{person.displayName}</strong>
+                            <span className="muted">{person.email}</span>
+                          </p>
+                          {placeholders
+                            .filter((p) => p.source === "perRecipient")
+                            .map((ph) => (
+                              <label key={ph.key}>
+                                {ph.label} <code>{`{{${ph.key}}}`}</code>
+                                <input
+                                  value={
+                                    perRecipientFields[personKey(person)]?.[
+                                      ph.key
+                                    ] ?? ""
+                                  }
+                                  onChange={(e) =>
+                                    setPerPerson(
+                                      person.email,
+                                      ph.key,
+                                      e.target.value,
+                                    )
+                                  }
+                                  disabled={busy}
+                                  maxLength={2000}
+                                  placeholder={`For ${person.displayName}`}
+                                />
+                              </label>
+                            ))}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
 
@@ -425,18 +607,33 @@ export function ComposePage() {
         </section>
 
         <section className="compose-preview">
-          <h2 className="compose-preview-title">Preview</h2>
+          <div className="compose-preview-head">
+            <h2 className="compose-preview-title">Preview</h2>
+            {selected.length > 1 ? (
+              <label className="compose-preview-pick">
+                <span className="muted small">Show as</span>
+                <select
+                  value={previewPersonEmail}
+                  onChange={(e) => setPreviewPersonEmail(e.target.value)}
+                  disabled={busy}
+                >
+                  {selected.map((p) => (
+                    <option key={p.email} value={personKey(p)}>
+                      {p.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
           <p className="muted small">
-            Sample merge uses recipient{" "}
-            <strong>
-              {selected[0]?.displayName ?? "Alex"}
-            </strong>
+            Live merge for{" "}
+            <strong>{previewPerson?.displayName ?? "Alex"}</strong>
             {" · "}
-            sender <strong>{senderName.trim() || user?.displayName || "You"}</strong>.
-            Each send fills tokens per recipient; the template is unchanged.
+            sender <strong>{sampleCtx.senderName}</strong>.
           </p>
           {previewHtml ? (
-            <OutlookDualPreview html={previewHtml} />
+            <OutlookDualPreview html={previewHtml} embedded />
           ) : (
             <p className="muted">Nothing to preview yet.</p>
           )}

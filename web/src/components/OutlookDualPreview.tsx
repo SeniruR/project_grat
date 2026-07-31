@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { copyHtmlSource, openEmailInNewTab } from "../lib/copyEmail";
+import { openEmailInNewTab } from "../lib/copyEmail";
 import { EmailBrowserCopyModal } from "./EmailBrowserCopyModal";
 
 type Props = {
@@ -149,16 +149,6 @@ export function OutlookDualPreview({
     }
   }
 
-  async function copySource() {
-    setCopyNotice(null);
-    try {
-      await copyHtmlSource(safe);
-      setCopyNotice("HTML source copied (code only — not for Outlook paste).");
-    } catch (err) {
-      setCopyNotice(err instanceof Error ? err.message : "Copy failed");
-    }
-  }
-
   const Wrapper = embedded ? "div" : "section";
   const wrapperClass = embedded
     ? "outlook-preview-embedded"
@@ -212,13 +202,6 @@ export function OutlookDualPreview({
                 onClick={openToCopy}
               >
                 Open in new tab
-              </button>
-              <button
-                type="button"
-                className="ghost small"
-                onClick={() => void copySource()}
-              >
-                Copy HTML source
               </button>
             </div>
           ) : null}

@@ -5,7 +5,11 @@ import { useAuth } from "../auth/AuthContext";
 import {
   importCanvaZipToTemplate,
   importDesignImageToTemplate,
+  scanCanvaZipPlaceholders,
 } from "../lib/importDesign";
+import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
+import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
+import type { PlaceholderDef } from "../lib/mergeFields";
 
 type Starter = "canva_zip" | "image_upload";
 
@@ -42,19 +46,61 @@ export function NewTemplatePage() {
   const [starter, setStarter] = useState<Starter>("canva_zip");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [headerHtml, setHeaderHtml] = useState("");
-  const [footerHtml, setFooterHtml] = useState("");
+  const [placeholders, setPlaceholders] = useState<PlaceholderDef[]>([]);
+  const [scanNotice, setScanNotice] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  function resetZipScan() {
+    setPlaceholders([]);
+    setScanNotice(null);
+  }
+
+  async function onZipSelected(file: File | null) {
+    setZipFile(file);
+    setError(null);
+    resetZipScan();
+    if (!file) return;
+
+    setScanning(true);
+    try {
+      const { placeholders: found, htmlPath } =
+        await scanCanvaZipPlaceholders(file);
+      setPlaceholders(found);
+      setScanNotice(
+        found.length > 0
+          ? `Scanned ${htmlPath}: found ${found.length} placeholder${found.length === 1 ? "" : "s"}. Set meaning and “Filled how”, then Save.`
+          : `Scanned ${htmlPath}: no {{placeholders}} found. You can still Save, or add tokens in Canva and choose the ZIP again.`,
+      );
+    } catch (err) {
+      setZipFile(null);
+      resetZipScan();
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not read that ZIP. Use Canva’s HTML and images export.",
+      );
+      if (zipInputRef.current) zipInputRef.current.value = "";
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!token) return;
     setError(null);
 
-    if (starter === "canva_zip" && !zipFile) {
-      setError("Choose a Canva HTML ZIP to import.");
-      return;
+    if (starter === "canva_zip") {
+      if (!zipFile) {
+        setError("Choose a Canva HTML ZIP to import.");
+        return;
+      }
+      if (scanning) {
+        setError("Still scanning the ZIP — wait a moment.");
+        return;
+      }
     }
     if (starter === "image_upload" && !imageFile) {
       setError("Choose a PNG, JPEG, or PDF to upload.");
@@ -70,13 +116,18 @@ export function NewTemplatePage() {
         name,
         visibility,
         mode: createMode,
-        headerHtml: headerHtml.trim() || undefined,
-        footerHtml: footerHtml.trim() || undefined,
       });
 
       if (starter === "canva_zip" && zipFile) {
-        await importCanvaZipToTemplate(token, template.id, zipFile);
-        navigate(`/cards/${template.id}`);
+        const cleaned = placeholders.map((p) => ({
+          key: p.key,
+          label: p.label.trim() || p.key,
+          source: p.source,
+        }));
+        await importCanvaZipToTemplate(token, template.id, zipFile, {
+          previousPlaceholders: cleaned,
+        });
+        navigate("/cards");
         return;
       }
 
@@ -87,7 +138,7 @@ export function NewTemplatePage() {
           imageFile,
           name.trim() || "Gratitude card",
         );
-        navigate(`/cards/${template.id}`);
+        navigate("/cards");
         return;
       }
     } catch (err) {
@@ -106,9 +157,9 @@ export function NewTemplatePage() {
         <p className="eyebrow">Cards</p>
         <h1>New template</h1>
         <p className="lede">
-          Design in Canva, then import an{" "}
-          <strong>HTML and images</strong> ZIP for selectable text in Outlook.
-          Or upload a PNG/PDF if you only need a picture.
+          Design in Canva, choose the ZIP here to scan placeholders, define them,
+          then <strong>Save</strong> — you’ll return to your templates list
+          (Compose is separate, when you send).
         </p>
       </header>
 
@@ -121,6 +172,7 @@ export function NewTemplatePage() {
             required
             maxLength={160}
             placeholder="Q3 thank-you card"
+            disabled={saving}
           />
         </label>
 
@@ -137,7 +189,20 @@ export function NewTemplatePage() {
                   name="starter"
                   value={s.id}
                   checked={starter === s.id}
-                  onChange={() => setStarter(s.id)}
+                  disabled={saving}
+                  onChange={() => {
+                    setStarter(s.id);
+                    setError(null);
+                    if (s.id !== "canva_zip") {
+                      setZipFile(null);
+                      resetZipScan();
+                      if (zipInputRef.current) zipInputRef.current.value = "";
+                    }
+                    if (s.id !== "image_upload") {
+                      setImageFile(null);
+                      if (imageInputRef.current) imageInputRef.current.value = "";
+                    }
+                  }}
                 />
                 <span className="starter-card-title">{s.title}</span>
                 <span className="starter-card-blurb">{s.blurb}</span>
@@ -156,31 +221,49 @@ export function NewTemplatePage() {
               </li>
               <li>Prefer text boxes and layout blocks — not one flattened image.</li>
               <li>
-                For personalization, type merge tokens as normal text, e.g.{" "}
-                <code>{"{{recipientName}}"}</code> or{" "}
-                <code>{"{{senderName}}"}</code>. Styles stay when Compose fills
-                them.
+                Type any placeholder as normal text, e.g.{" "}
+                <code>{"{{heroName}}"}</code> or <code>{"{{eventTitle}}"}</code>.
               </li>
               <li>
                 <strong>Share → Download → HTML and images</strong> (ZIP).
               </li>
-              <li>Upload that ZIP below.</li>
+              <li>
+                Choose the ZIP below — placeholders are scanned immediately
+                (no separate import step).
+              </li>
             </ol>
-            <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+            <label
+              className={`file-pick ${saving || scanning ? "is-disabled" : ""}`}
+            >
               <input
                 ref={zipInputRef}
                 type="file"
                 accept=".zip,application/zip"
-                disabled={saving}
+                disabled={saving || scanning}
                 onChange={(e) => {
-                  setZipFile(e.target.files?.[0] ?? null);
+                  void onZipSelected(e.target.files?.[0] ?? null);
                 }}
               />
-              <span className="file-pick-btn">Choose Canva ZIP</span>
+              <span className="file-pick-btn">
+                {scanning ? "Scanning ZIP…" : "Choose Canva ZIP"}
+              </span>
               <span className="file-pick-name muted">
                 {zipFile ? zipFile.name : "HTML and images ZIP"}
               </span>
             </label>
+            {scanNotice ? <p className="notice">{scanNotice}</p> : null}
+            <MergeFieldsGuide />
+            {zipFile && !scanning ? (
+              <PlaceholderConfigPanel
+                placeholders={placeholders}
+                canEdit={!saving}
+                saving={saving}
+                onChange={setPlaceholders}
+                showActions={false}
+                title="Define placeholders"
+                description="Found in your ZIP. Set a meaning and how Compose should fill each one. Then press Save at the bottom — you won’t open Compose yet."
+              />
+            ) : null}
           </div>
         ) : null}
 
@@ -216,6 +299,7 @@ export function NewTemplatePage() {
               name="visibility"
               checked={visibility === "PRIVATE"}
               onChange={() => setVisibility("PRIVATE")}
+              disabled={saving}
             />
             Private — only you (and admins)
           </label>
@@ -225,46 +309,23 @@ export function NewTemplatePage() {
               name="visibility"
               checked={visibility === "SHARED"}
               onChange={() => setVisibility("SHARED")}
+              disabled={saving}
             />
             Shared — visible to everyone in the org
           </label>
         </fieldset>
 
-        <details className="card-advanced">
-          <summary>Optional header / footer HTML</summary>
-          <div className="card-advanced-body form-stack">
-            <label>
-              Header HTML
-              <textarea
-                value={headerHtml}
-                onChange={(e) => setHeaderHtml(e.target.value)}
-                rows={3}
-                placeholder="Company banner snippet (optional)"
-              />
-            </label>
-            <label>
-              Footer HTML
-              <textarea
-                value={footerHtml}
-                onChange={(e) => setFooterHtml(e.target.value)}
-                rows={3}
-                placeholder="Disclaimer / signature block (optional)"
-              />
-            </label>
-          </div>
-        </details>
-
         {error ? <p className="error">{error}</p> : null}
 
         <div className="actions">
-          <button type="submit" disabled={saving}>
+          <button type="submit" disabled={saving || scanning}>
             {saving
               ? starter === "canva_zip"
-                ? "Importing…"
+                ? "Saving template…"
                 : "Uploading…"
-              : starter === "canva_zip"
-                ? "Import Canva ZIP"
-                : "Upload image"}
+              : scanning
+                ? "Scanning ZIP…"
+                : "Save"}
           </button>
           <Link to="/cards" className="ghost-link">
             Cancel

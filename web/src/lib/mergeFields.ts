@@ -1,41 +1,183 @@
-/** Shared merge-field helpers for Canva HTML personalization. */
+/** Owner-defined placeholders detected from Canva / email HTML. */
 
 export const MERGE_FIELD_TOKEN_RE = /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g;
 
-/** Canonical tokens we document and fill at compose/send time. */
-export const KNOWN_MERGE_FIELDS = [
-  {
-    key: "recipientName",
-    aliases: ["name", "displayName"],
-    label: "Recipient name",
-    example: "{{recipientName}}",
-  },
-  {
-    key: "recipientEmail",
-    aliases: ["email"],
-    label: "Recipient email",
-    example: "{{recipientEmail}}",
-  },
-  {
-    key: "senderName",
-    aliases: [],
-    label: "Sender name",
-    example: "{{senderName}}",
-  },
-  {
-    key: "senderEmail",
-    aliases: [],
-    label: "Sender email",
-    example: "{{senderEmail}}",
-  },
-] as const;
+/**
+ * How Compose fills a placeholder.
+ * recipient/sender fields = auto; shared = once for all; perRecipient = per person.
+ */
+export type PlaceholderSource =
+  | "recipientName"
+  | "recipientEmail"
+  | "senderName"
+  | "senderEmail"
+  | "shared"
+  | "perRecipient";
 
-export type MergeFieldValues = {
-  recipientName: string;
-  recipientEmail: string;
-  senderName: string;
-  senderEmail: string;
+export type PlaceholderDef = {
+  /** Token spelling as found in HTML (without braces). */
+  key: string;
+  /** Owner-written meaning shown on Compose. */
+  label: string;
+  source: PlaceholderSource;
 };
+
+export const PLACEHOLDER_SOURCES: Array<{
+  value: PlaceholderSource;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "recipientName",
+    label: "Recipient name",
+    hint: "Auto from each selected person’s name",
+  },
+  {
+    value: "recipientEmail",
+    label: "Recipient email",
+    hint: "Auto from each selected person’s email",
+  },
+  {
+    value: "senderName",
+    label: "Sender name",
+    hint: "From Compose sender name (same for all)",
+  },
+  {
+    value: "senderEmail",
+    label: "Sender email",
+    hint: "From Compose sender email (same for all)",
+  },
+  {
+    value: "shared",
+    label: "Shared (all recipients)",
+    hint: "Composer enters one value for everyone",
+  },
+  {
+    value: "perRecipient",
+    label: "Per person",
+    hint: "Composer enters a value for each recipient",
+  },
+];
+
+export function placeholderSourceLabel(source: PlaceholderSource): string {
+  return (
+    PLACEHOLDER_SOURCES.find((s) => s.value === source)?.label ?? source
+  );
+}
+
+export function isPlaceholderSource(v: unknown): v is PlaceholderSource {
+  return (
+    typeof v === "string" &&
+    PLACEHOLDER_SOURCES.some((s) => s.value === v)
+  );
+}
+
+/** Guess a sensible default from the token name (owner can change it). */
+export function suggestPlaceholderSource(key: string): PlaceholderSource {
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  if (
+    k === "email" ||
+    k === "recipientemail" ||
+    k.endsWith("email") && k.includes("recipient")
+  ) {
+    return "recipientEmail";
+  }
+  if (
+    k === "name" ||
+    k === "displayname" ||
+    k === "recipientname" ||
+    k === "firstname" ||
+    k === "fullname"
+  ) {
+    return "recipientName";
+  }
+  if (k === "senderemail" || k === "fromemail") return "senderEmail";
+  if (k === "sendername" || k === "fromname" || k === "sender") {
+    return "senderName";
+  }
+  if (
+    k.includes("note") ||
+    k.includes("message") ||
+    k.includes("personal")
+  ) {
+    return "perRecipient";
+  }
+  return "shared";
+}
+
+function humanizeKey(key: string): string {
+  const spaced = key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_.-]+/g, " ")
+    .trim();
+  if (!spaced) return key;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** Unique token keys found in HTML (preserve first-seen spelling). */
+export function detectMergeFields(html: string): string[] {
+  const found = new Map<string, string>();
+  const re = new RegExp(MERGE_FIELD_TOKEN_RE.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const raw = m[1];
+    const lower = raw.toLowerCase();
+    if (!found.has(lower)) found.set(lower, raw);
+  }
+  return [...found.values()];
+}
+
+export function parsePlaceholdersFromDesignJson(
+  designJson: Record<string, unknown> | null | undefined,
+): PlaceholderDef[] {
+  const raw = designJson?.placeholders;
+  if (!Array.isArray(raw)) return [];
+  const out: PlaceholderDef[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const key = typeof row.key === "string" ? row.key.trim() : "";
+    if (!key || seen.has(key.toLowerCase())) continue;
+    if (!isPlaceholderSource(row.source)) continue;
+    const label =
+      typeof row.label === "string" && row.label.trim()
+        ? row.label.trim()
+        : humanizeKey(key);
+    seen.add(key.toLowerCase());
+    out.push({ key, label, source: row.source });
+  }
+  return out;
+}
+
+/**
+ * Build / refresh placeholder defs from detected HTML tokens.
+ * Keeps owner labels + sources for keys that still exist.
+ */
+export function syncPlaceholdersWithHtml(
+  html: string,
+  previous: PlaceholderDef[] = [],
+): PlaceholderDef[] {
+  const detected = detectMergeFields(html);
+  const prevByKey = new Map(
+    previous.map((p) => [p.key.toLowerCase(), p] as const),
+  );
+  return detected.map((key) => {
+    const prev = prevByKey.get(key.toLowerCase());
+    if (prev) {
+      return {
+        key,
+        label: prev.label.trim() || humanizeKey(key),
+        source: prev.source,
+      };
+    }
+    return {
+      key,
+      label: humanizeKey(key),
+      source: suggestPlaceholderSource(key),
+    };
+  });
+}
 
 /** Replace {{field}} tokens (case-insensitive keys). Unknown tokens left as-is. */
 export function applyMergeFields(
@@ -51,43 +193,76 @@ export function applyMergeFields(
   });
 }
 
-/** Build the full alias map used for recipient + sender personalization. */
-export function buildMergeFieldMap(values: MergeFieldValues): Record<string, string> {
-  const name = values.recipientName.trim() || values.recipientEmail;
-  const sender = values.senderName.trim() || values.senderEmail;
-  return {
-    name,
-    displayName: name,
-    recipientName: name,
-    email: values.recipientEmail,
-    recipientEmail: values.recipientEmail,
-    senderName: sender,
-    senderEmail: values.senderEmail,
-  };
-}
+export type MergeValueContext = {
+  recipientName: string;
+  recipientEmail: string;
+  senderName: string;
+  senderEmail: string;
+  shared: Record<string, string>;
+  perRecipient: Record<string, string>;
+};
 
-/** Unique token keys found in HTML (lowercased original spelling preserved via first hit). */
-export function detectMergeFields(html: string): string[] {
-  const found = new Map<string, string>();
-  const re = new RegExp(MERGE_FIELD_TOKEN_RE.source, "g");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    const raw = m[1];
-    const lower = raw.toLowerCase();
-    if (!found.has(lower)) found.set(lower, raw);
-  }
-  return [...found.values()];
-}
+/** Build token → value map from owner defs + compose values. */
+export function buildMergeFieldMapFromPlaceholders(
+  placeholders: PlaceholderDef[],
+  ctx: MergeValueContext,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  const name = ctx.recipientName.trim() || ctx.recipientEmail;
+  const sender = ctx.senderName.trim() || ctx.senderEmail;
 
-export function describeMergeField(key: string): string {
-  const lower = key.toLowerCase();
-  for (const field of KNOWN_MERGE_FIELDS) {
-    if (
-      field.key.toLowerCase() === lower ||
-      field.aliases.some((a) => a.toLowerCase() === lower)
-    ) {
-      return field.label;
+  for (const ph of placeholders) {
+    switch (ph.source) {
+      case "recipientName":
+        map[ph.key] = name;
+        break;
+      case "recipientEmail":
+        map[ph.key] = ctx.recipientEmail;
+        break;
+      case "senderName":
+        map[ph.key] = sender;
+        break;
+      case "senderEmail":
+        map[ph.key] = ctx.senderEmail;
+        break;
+      case "shared":
+        map[ph.key] = (ctx.shared[ph.key] ?? "").trim();
+        break;
+      case "perRecipient":
+        map[ph.key] = (ctx.perRecipient[ph.key] ?? "").trim();
+        break;
     }
   }
-  return key;
+
+  // Convenience aliases still work if someone used classic names without defining them
+  map.name = name;
+  map.displayName = name;
+  map.recipientName = name;
+  map.email = ctx.recipientEmail;
+  map.recipientEmail = ctx.recipientEmail;
+  map.senderName = sender;
+  map.senderEmail = ctx.senderEmail;
+
+  return map;
+}
+
+export function sampleValueForPlaceholder(
+  ph: PlaceholderDef,
+  ctx: MergeValueContext,
+): string {
+  const map = buildMergeFieldMapFromPlaceholders([ph], ctx);
+  const v = map[ph.key]?.trim() ?? "";
+  return v || "—";
+}
+
+export function sharedPlaceholderKeys(placeholders: PlaceholderDef[]): string[] {
+  return placeholders.filter((p) => p.source === "shared").map((p) => p.key);
+}
+
+export function perRecipientPlaceholderKeys(
+  placeholders: PlaceholderDef[],
+): string[] {
+  return placeholders
+    .filter((p) => p.source === "perRecipient")
+    .map((p) => p.key);
 }
