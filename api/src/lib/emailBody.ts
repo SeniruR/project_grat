@@ -58,6 +58,16 @@ const PLACEHOLDER_SOURCES = new Set<string>([
   "perRecipient",
 ]);
 
+function recipientNameValueForKey(key: string, fullName: string): string {
+  const name = fullName.trim();
+  if (!name) return "";
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  if (k === "firstname" || k === "fname") {
+    return name.split(/\s+/)[0] ?? name;
+  }
+  return name;
+}
+
 export function parsePlaceholdersFromDesignJson(
   designJson: unknown,
 ): PlaceholderDef[] {
@@ -104,7 +114,7 @@ export function buildMergeFieldMap(input: {
   for (const ph of input.placeholders ?? []) {
     switch (ph.source) {
       case "recipientName":
-        map[ph.key] = name;
+        map[ph.key] = recipientNameValueForKey(ph.key, name);
         break;
       case "recipientEmail":
         map[ph.key] = input.recipient.email;
@@ -124,13 +134,17 @@ export function buildMergeFieldMap(input: {
     }
   }
 
-  map.name = name;
-  map.displayName = name;
-  map.recipientName = name;
-  map.email = input.recipient.email;
-  map.recipientEmail = input.recipient.email;
-  map.senderName = senderName;
-  map.senderEmail = input.sender.email;
+  // Aliases only when the token was never defined on the template.
+  const setAlias = (key: string, value: string) => {
+    if (!(key in map)) map[key] = value;
+  };
+  setAlias("name", name);
+  setAlias("displayName", name);
+  setAlias("recipientName", name);
+  setAlias("email", input.recipient.email);
+  setAlias("recipientEmail", input.recipient.email);
+  setAlias("senderName", senderName);
+  setAlias("senderEmail", input.sender.email);
 
   return map;
 }

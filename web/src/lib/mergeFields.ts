@@ -75,20 +75,10 @@ export function isPlaceholderSource(v: unknown): v is PlaceholderSource {
 /** Guess a sensible default from the token name (owner can change it). */
 export function suggestPlaceholderSource(key: string): PlaceholderSource {
   const k = key.toLowerCase().replace(/[_.-]/g, "");
-  if (
-    k === "email" ||
-    k === "recipientemail" ||
-    k.endsWith("email") && k.includes("recipient")
-  ) {
+  if (isRecipientEmailToken(key)) {
     return "recipientEmail";
   }
-  if (
-    k === "name" ||
-    k === "displayname" ||
-    k === "recipientname" ||
-    k === "firstname" ||
-    k === "fullname"
-  ) {
+  if (isRecipientNameToken(key)) {
     return "recipientName";
   }
   if (k === "senderemail" || k === "fromemail") return "senderEmail";
@@ -103,6 +93,38 @@ export function suggestPlaceholderSource(key: string): PlaceholderSource {
     return "perRecipient";
   }
   return "shared";
+}
+
+/** Tokens that typically map to recipient name (default suggestion only). */
+export function isRecipientNameToken(key: string): boolean {
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  return (
+    k === "name" ||
+    k === "displayname" ||
+    k === "recipientname" ||
+    k === "firstname" ||
+    k === "fullname" ||
+    k === "fullname"
+  );
+}
+
+export function isRecipientEmailToken(key: string): boolean {
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  return (
+    k === "email" ||
+    k === "recipientemail" ||
+    (k.endsWith("email") && k.includes("recipient"))
+  );
+}
+
+export function recipientNameValueForKey(key: string, fullName: string): string {
+  const name = fullName.trim();
+  if (!name) return "";
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  if (k === "firstname" || k === "fullname") {
+    return name.split(/\s+/)[0] ?? name;
+  }
+  return name;
 }
 
 function humanizeKey(key: string): string {
@@ -241,7 +263,7 @@ export function buildMergeFieldMapFromPlaceholders(
   for (const ph of placeholders) {
     switch (ph.source) {
       case "recipientName":
-        map[ph.key] = name;
+        map[ph.key] = recipientNameValueForKey(ph.key, name);
         break;
       case "recipientEmail":
         map[ph.key] = ctx.recipientEmail;
@@ -261,14 +283,17 @@ export function buildMergeFieldMapFromPlaceholders(
     }
   }
 
-  // Convenience aliases still work if someone used classic names without defining them
-  map.name = name;
-  map.displayName = name;
-  map.recipientName = name;
-  map.email = ctx.recipientEmail;
-  map.recipientEmail = ctx.recipientEmail;
-  map.senderName = sender;
-  map.senderEmail = ctx.senderEmail;
+  // Aliases only when the token was never defined on the template.
+  const setAlias = (key: string, value: string) => {
+    if (!(key in map)) map[key] = value;
+  };
+  setAlias("name", name);
+  setAlias("displayName", name);
+  setAlias("recipientName", name);
+  setAlias("email", ctx.recipientEmail);
+  setAlias("recipientEmail", ctx.recipientEmail);
+  setAlias("senderName", sender);
+  setAlias("senderEmail", ctx.senderEmail);
 
   return map;
 }
