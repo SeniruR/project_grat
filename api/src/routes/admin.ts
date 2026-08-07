@@ -3,14 +3,53 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
 import { parseAppRole } from "../lib/roles.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 
 export const adminRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/admin/audit",
     { preHandler: [app.requireAdmin] },
-    async () => {
+    async (request) => {
+      const query = request.query as {
+        take?: string;
+        q?: string;
+        action?: string;
+      };
+      const takeRaw = Number(query.take ?? 50);
+      const take = Number.isFinite(takeRaw)
+        ? Math.min(200, Math.max(1, Math.floor(takeRaw)))
+        : 50;
+      const q = query.q?.trim() ?? "";
+      const action = query.action?.trim() ?? "";
+
+      const where: Prisma.AuditEventWhereInput = {
+        ...(action
+          ? { action: { equals: action, mode: "insensitive" } }
+          : {}),
+        ...(q
+          ? {
+              OR: [
+                { action: { contains: q, mode: "insensitive" } },
+                { entityType: { contains: q, mode: "insensitive" } },
+                { entityId: { contains: q, mode: "insensitive" } },
+                {
+                  actor: {
+                    displayName: { contains: q, mode: "insensitive" },
+                  },
+                },
+                {
+                  actor: {
+                    email: { contains: q, mode: "insensitive" },
+                  },
+                },
+              ],
+            }
+          : {}),
+      };
+
       const events = await prisma.auditEvent.findMany({
-        take: 50,
+        where,
+        take,
         orderBy: { createdAt: "desc" },
         include: {
           actor: {
@@ -34,6 +73,105 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
         prisma.user.count({ where: { role: "DESIGNER" } }),
       ]);
       return { users, templates, drafts, audits, designers };
+    },
+  );
+
+  /**
+   * Per-user send summary for admins: all jobs + per-message details.
+   */
+  app.get(
+    "/admin/send-summary",
+    { preHandler: [app.requireAdmin] },
+    async () => {
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          role: true,
+          draftJobs: {
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              status: true,
+              total: true,
+              completed: true,
+              templateName: true,
+              categoryName: true,
+              createdAt: true,
+              drafts: {
+                orderBy: { createdAt: "desc" },
+                select: {
+                  id: true,
+                  subject: true,
+                  recipientName: true,
+                  recipientEmail: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+              _count: { select: { drafts: true } },
+            },
+          },
+          _count: {
+            select: { draftJobs: true },
+          },
+        },
+      });
+
+      const rows = users
+        .map((u) => {
+          const jobs = u.draftJobs;
+          const messageCount = jobs.reduce(
+            (sum, j) => sum + j._count.drafts,
+            0,
+          );
+          const lastSentAt = jobs[0]?.createdAt ?? null;
+          return {
+            id: u.id,
+            email: u.email,
+            displayName: u.displayName,
+            role: u.role,
+            jobCount: u._count.draftJobs,
+            messageCount,
+            lastSentAt: lastSentAt?.toISOString() ?? null,
+            recentJobs: jobs.map((j) => ({
+              id: j.id,
+              status: j.status,
+              total: j.total,
+              completed: j.completed,
+              messageCount: j._count.drafts,
+              templateName: j.templateName,
+              categoryName: j.categoryName,
+              createdAt: j.createdAt.toISOString(),
+              messages: j.drafts.map((d) => ({
+                id: d.id,
+                subject: d.subject,
+                recipientName: d.recipientName,
+                recipientEmail: d.recipientEmail,
+                status: d.status,
+                createdAt: d.createdAt.toISOString(),
+              })),
+            })),
+            recentTemplates: [
+              ...new Set(
+                jobs
+                  .map((j) => j.templateName)
+                  .filter((n) => Boolean(n?.trim())),
+              ),
+            ].slice(0, 8),
+          };
+        })
+        .sort((a, b) => {
+          if (a.lastSentAt && b.lastSentAt) {
+            return b.lastSentAt.localeCompare(a.lastSentAt);
+          }
+          if (a.lastSentAt) return -1;
+          if (b.lastSentAt) return 1;
+          return b.messageCount - a.messageCount;
+        });
+
+      return { users: rows };
     },
   );
 

@@ -13,6 +13,54 @@ export type MarketplaceCard = TemplateSummary & {
   favoritedAt?: string;
 };
 
+export type AdminAuditEvent = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  payload: unknown;
+  createdAt: string;
+  actor: {
+    id: string;
+    displayName: string;
+    email: string;
+    role?: string;
+  } | null;
+};
+
+export type AdminSendSummaryMessage = {
+  id: string;
+  subject: string;
+  recipientName: string | null;
+  recipientEmail: string;
+  status: string;
+  createdAt: string;
+};
+
+export type AdminSendSummaryJob = {
+  id: string;
+  status: string;
+  total: number;
+  completed: number;
+  messageCount: number;
+  templateName: string;
+  categoryName: string | null;
+  createdAt: string;
+  messages?: AdminSendSummaryMessage[];
+};
+
+export type AdminSendSummaryUser = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: "USER" | "DESIGNER" | "ADMIN";
+  jobCount: number;
+  messageCount: number;
+  lastSentAt: string | null;
+  recentJobs: AdminSendSummaryJob[];
+  recentTemplates: string[];
+};
+
 export type SentItem = {
   id: string;
   recipientOid: string | null;
@@ -444,16 +492,24 @@ export const api = {
       designers?: number;
     }>("/admin/stats", { token }),
 
-  adminAudit: (token: string) =>
-    request<{
-      events: Array<{
-        id: string;
-        action: string;
-        entityType: string;
-        createdAt: string;
-        actor: { displayName: string; email: string } | null;
-      }>;
-    }>("/admin/audit", { token }),
+  adminSendSummary: (token: string) =>
+    request<{ users: AdminSendSummaryUser[] }>("/admin/send-summary", {
+      token,
+    }),
+
+  adminAudit: (
+    token: string,
+    opts?: { q?: string; action?: string; take?: number },
+  ) => {
+    const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.action?.trim()) params.set("action", opts.action.trim());
+    if (opts?.take) params.set("take", String(opts.take));
+    const qs = params.toString() ? `?${params}` : "";
+    return request<{ events: AdminAuditEvent[] }>(`/admin/audit${qs}`, {
+      token,
+    });
+  },
 
   adminUsers: (token: string) =>
     request<{

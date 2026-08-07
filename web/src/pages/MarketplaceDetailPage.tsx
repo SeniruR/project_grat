@@ -127,15 +127,22 @@ export function MarketplaceDetailPage() {
 
       {error ? <p className="error">{error}</p> : null}
 
-      {previewUrl || previewHtml ? (
+      {previewHtml ? (
+        <CanvasPreview
+          width={width}
+          height={height}
+          html={previewHtml}
+          versionKey={card.versions[0]?.version}
+          pasteMode="html"
+          htmlOnly
+        />
+      ) : previewUrl ? (
         <CanvasPreview
           width={width}
           height={height}
           pngUrl={previewUrl}
-          html={previewHtml ?? undefined}
           versionKey={card.versions[0]?.version}
-          pasteMode={previewUrl ? "png" : "html"}
-          htmlOnly={!previewUrl}
+          pasteMode="png"
         />
       ) : (
         <p className="muted">No preview available for this card yet.</p>

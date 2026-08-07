@@ -9,6 +9,7 @@ import {
 } from "../lib/htmlAssets.js";
 import { config } from "../config.js";
 import {
+  canComposeTemplate,
   canEditTemplate,
   canManageDesigns,
   canViewTemplate,
@@ -405,7 +406,14 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       const { id } = request.params as { id: string };
 
       const existing = await prisma.template.findUnique({ where: { id } });
-      if (!existing || !canEdit(existing, user)) {
+      if (!existing) {
+        return reply.code(404).send({ error: "Template not found" });
+      }
+      // Owners/editors upload source/compiled; composers may only upload overrides.
+      if (
+        !canEdit(existing, user) &&
+        !canComposeTemplate(existing, user)
+      ) {
         return reply.code(404).send({ error: "Template not found" });
       }
 
@@ -528,6 +536,17 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
 
       if (!saved) {
         return reply.code(400).send({ error: "Expected multipart file field" });
+      }
+
+      // Non-owners may only attach compose replacement images (override).
+      if (kind === "override") {
+        if (!canComposeTemplate(existing, user)) {
+          await unlink(saved.absPath).catch(() => undefined);
+          return reply.code(404).send({ error: "Template not found" });
+        }
+      } else if (!canEdit(existing, user)) {
+        await unlink(saved.absPath).catch(() => undefined);
+        return reply.code(404).send({ error: "Template not found" });
       }
 
       const maxBytes = 5 * 1024 * 1024;

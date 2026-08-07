@@ -13,6 +13,9 @@ import { SentPage } from "./pages/SentPage";
 import { MarketplacePage } from "./pages/MarketplacePage";
 import { MarketplaceDetailPage } from "./pages/MarketplaceDetailPage";
 import { AdminPage } from "./pages/AdminPage";
+import { AdminPeoplePage } from "./pages/AdminPeoplePage";
+import { AdminSendSummaryPage } from "./pages/AdminSendSummaryPage";
+import { AdminAuditPage } from "./pages/AdminAuditPage";
 import { EmailsHomePage } from "./pages/EmailsHomePage";
 import { COMPOSE_ENABLED } from "./features";
 import { canManageDesigns, isAdmin } from "./lib/roles";
@@ -102,6 +105,30 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/summary"
+              element={
+                <AdminRoute>
+                  <AdminSendSummaryPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/people"
+              element={
+                <AdminRoute>
+                  <AdminPeoplePage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/audit"
+              element={
+                <AdminRoute>
+                  <AdminAuditPage />
                 </AdminRoute>
               }
             />

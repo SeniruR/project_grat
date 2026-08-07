@@ -580,6 +580,213 @@ button.ghost {
   width: 1%;
 }
 
+.admin-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+}
+
+.admin-subnav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-subnav a:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  text-decoration: none;
+}
+
+.admin-subnav a.active,
+.admin-subnav a[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent) 12%, #fff);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  color: var(--accent-deep);
+}
+
+.admin-subnav-hub {
+  margin-right: 0.25rem;
+}
+
+.admin-expand-row {
+  cursor: pointer;
+}
+
+.admin-expand-row:hover td {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.admin-expand-row.is-open td {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.admin-expand-detail td {
+  background: color-mix(in srgb, #fff 70%, var(--paper));
+  padding: 0.85rem 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-job-list li {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-job-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.admin-message-list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0.45rem 0 0;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.admin-message-list li {
+  border: 0;
+  border-radius: 0;
+  padding: 0.25rem 0;
+  background: transparent;
+}
+
+.admin-recent-templates {
+  margin: 0.75rem 0 0;
+}
+
+.admin-audit-toolbar {
+  margin-bottom: 1rem;
+}
+
+.admin-entity-id code {
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.admin-audit-detail {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: start;
+}
+
+.admin-audit-kv {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem 1.25rem;
+  width: 100%;
+}
+
+.admin-audit-kv > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 10rem) 1fr;
+  gap: 0.35rem 0.85rem;
+  align-items: baseline;
+}
+
+.admin-audit-kv dt {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.admin-audit-kv dd {
+  margin: 0;
+  font-size: 0.92rem;
+  word-break: break-word;
+}
+
+.admin-audit-payload {
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.82rem;
+  overflow-x: auto;
+  max-height: 280px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.audit-summary {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.audit-cat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--line);
+  background: #fff;
+  white-space: nowrap;
+}
+
+.audit-cat-badge.is-auth {
+  background: color-mix(in srgb, #4b6bfb 12%, #fff);
+  border-color: color-mix(in srgb, #4b6bfb 30%, var(--line));
+  color: #2f4fd0;
+}
+
+.audit-cat-badge.is-people {
+  background: color-mix(in srgb, #0f6b5c 12%, #fff);
+  border-color: color-mix(in srgb, #0f6b5c 30%, var(--line));
+  color: var(--accent-deep);
+}
+
+.audit-cat-badge.is-templates {
+  background: color-mix(in srgb, #b45309 12%, #fff);
+  border-color: color-mix(in srgb, #b45309 30%, var(--line));
+  color: #92400e;
+}
+
+.audit-cat-badge.is-categories {
+  background: color-mix(in srgb, #7c3aed 12%, #fff);
+  border-color: color-mix(in srgb, #7c3aed 30%, var(--line));
+  color: #5b21b6;
+}
+
+.audit-cat-badge.is-sends {
+  background: color-mix(in srgb, #0e7490 12%, #fff);
+  border-color: color-mix(in srgb, #0e7490 30%, var(--line));
+  color: #155e75;
+}
+
+.audit-cat-badge.is-other {
+  color: var(--muted);
+}
+
 button.linkish {
   padding: 0;
   margin: 0;
@@ -945,6 +1152,11 @@ button.linkish:disabled {
 
 .outlook-preview-embedded .outlook-preview-toolbar {
   padding: 0;
+  justify-content: flex-end;
+}
+
+.outlook-preview-embedded .outlook-preview-actions {
+  width: 100%;
 }
 
 .template-card-frame {
@@ -1669,9 +1881,10 @@ button.danger-text {
 
 .outlook-preview-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem 0.75rem;
 }
 
 .outlook-copy {

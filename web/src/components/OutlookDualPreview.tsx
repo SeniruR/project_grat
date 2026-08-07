@@ -25,31 +25,7 @@ const ZOOM_PRESETS = [
   { label: "100%", value: 1 },
 ];
 
-type ViewMode = "dual" | "desktop" | "web";
-
-const VIEW_PRESETS: Array<{ id: ViewMode; label: string }> = [
-  { id: "dual", label: "Both" },
-  { id: "desktop", label: "Desktop" },
-  { id: "web", label: "Web" },
-];
-
-const PANE_META: Record<
-  Exclude<ViewMode, "dual"> | "desktop" | "web",
-  { label: string; meta: string; sim: string }
-> = {
-  desktop: {
-    label: "Outlook Desktop",
-    meta: "Word engine",
-    sim: "outlook-desktop-sim",
-  },
-  web: {
-    label: "Outlook Web",
-    meta: "Browser engine",
-    sim: "outlook-web-sim",
-  },
-};
-
-/** Approximate classic Outlook (Word) vs Outlook on the web for side-by-side checks. */
+/** HTML email preview (Outlook Web-style) with zoom + copy actions. */
 export function OutlookDualPreview({
   html,
   pngUrl,
@@ -63,15 +39,12 @@ export function OutlookDualPreview({
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<"fit" | number>(1);
   const [fitZoom, setFitZoom] = useState(1);
-  const [view, setView] = useState<ViewMode>("web");
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [browserCopyOpen, setBrowserCopyOpen] = useState(false);
 
   // Measure a stable width probe that is NOT affected by email zoom, so Fit
   // cannot ResizeObserver-loop (that was the preview "vibration").
-  // Fit may scale ABOVE 100% so a 600px design fills a wide single pane
-  // the way the designer canvas fills its stage — previously capped at 1,
-  // which left a tiny left-aligned card in a large empty panel.
+  // Fit may scale ABOVE 100% so a 600px design fills a wide single pane.
   useEffect(() => {
     const el = measureRef.current;
     if (!el) return;
@@ -97,45 +70,11 @@ export function OutlookDualPreview({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [designWidth, safe, view]);
+  }, [designWidth, safe]);
 
   if (!safe) return null;
 
   const zoom = mode === "fit" ? fitZoom : mode;
-  const single = view !== "dual";
-
-  function renderPane(kind: "desktop" | "web") {
-    const meta = PANE_META[kind];
-    return (
-      <article className="outlook-pane">
-        <header className="outlook-pane-head">
-          <span className="outlook-pane-label">{meta.label}</span>
-          <span className="outlook-pane-meta">{meta.meta}</span>
-        </header>
-        <div className="outlook-pane-body">
-          <div
-            className="email-preview-scale"
-            style={
-              {
-                "--preview-zoom": String(zoom),
-                "--preview-design-width": `${designWidth}px`,
-              } as CSSProperties
-            }
-          >
-            <div
-              className={`email-preview ${meta.sim}`}
-              style={{
-                width: designWidth,
-                minWidth: designWidth,
-                maxWidth: designWidth,
-              }}
-              dangerouslySetInnerHTML={{ __html: safe }}
-            />
-          </div>
-        </div>
-      </article>
-    );
-  }
 
   function openToCopy() {
     setCopyNotice(null);
@@ -157,36 +96,13 @@ export function OutlookDualPreview({
   return (
     <Wrapper className={wrapperClass}>
       <div className="outlook-preview-toolbar">
-        {embedded ? (
-          <div>
-            <p className="muted small tip" style={{ margin: 0 }}>
-              HTML client preview — use Desktop / Web and Zoom below.
-            </p>
-          </div>
-        ) : (
+        {embedded ? null : (
           <div>
             <h2>Preview</h2>
             <p className="muted small tip">
-              {single ? (
-                <>
-                  Full-width{" "}
-                  <strong>
-                    {view === "desktop" ? "Outlook Desktop" : "Outlook Web"}
-                  </strong>{" "}
-                  locked to canvas width ({designWidth}px) so absolute layout
-                  stays aligned. Default zoom is <strong>100%</strong> (true
-                  size). <strong>Fit</strong> only visually scales — it does not
-                  resize the card layout. After canvas edits, Save &amp; compile.
-                </>
-              ) : (
-                <>
-                  Same HTML in both panes. <strong>Desktop</strong> squares
-                  corners (Word ignores <code>border-radius</code>).{" "}
-                  <strong>Web</strong> keeps rounded corners. Use{" "}
-                  <strong>Desktop</strong>/<strong>Web</strong> for a bigger
-                  single view.
-                </>
-              )}
+              Locked to canvas width ({designWidth}px). Default zoom is{" "}
+              <strong>100%</strong> (true size). <strong>Fit</strong> only
+              visually scales — it does not resize the card layout.
             </p>
           </div>
         )}
@@ -205,19 +121,6 @@ export function OutlookDualPreview({
               </button>
             </div>
           ) : null}
-          <div className="outlook-zoom" role="group" aria-label="Preview view">
-            <span className="outlook-zoom-label">View</span>
-            {VIEW_PRESETS.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                className={`ghost small ${view === v.id ? "active" : ""}`}
-                onClick={() => setView(v.id)}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
           <div className="outlook-zoom" role="group" aria-label="Preview zoom">
             <span className="outlook-zoom-label">Zoom</span>
             {ZOOM_PRESETS.map((p) => (
@@ -238,21 +141,31 @@ export function OutlookDualPreview({
       </div>
       {copyNotice ? <p className="notice">{copyNotice}</p> : null}
       <div className="outlook-dual-scroll">
-        {/* Width probe: matches a single pane's inner width so Fit zoom is stable */}
-        <div
-          className={`outlook-measure-probe ${single ? "full" : ""}`}
-          ref={measureRef}
-          aria-hidden
-        />
-        <div className={`outlook-dual ${single ? "single" : ""}`}>
-          {view === "dual" ? (
-            <>
-              {renderPane("desktop")}
-              {renderPane("web")}
-            </>
-          ) : (
-            renderPane(view)
-          )}
+        <div className="outlook-measure-probe full" ref={measureRef} aria-hidden />
+        <div className="outlook-dual single">
+          <article className="outlook-pane">
+            <div className="outlook-pane-body">
+              <div
+                className="email-preview-scale"
+                style={
+                  {
+                    "--preview-zoom": String(zoom),
+                    "--preview-design-width": `${designWidth}px`,
+                  } as CSSProperties
+                }
+              >
+                <div
+                  className="email-preview outlook-web-sim"
+                  style={{
+                    width: designWidth,
+                    minWidth: designWidth,
+                    maxWidth: designWidth,
+                  }}
+                  dangerouslySetInnerHTML={{ __html: safe }}
+                />
+              </div>
+            </div>
+          </article>
         </div>
       </div>
 

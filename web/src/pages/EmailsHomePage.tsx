@@ -53,7 +53,7 @@ export function EmailsHomePage() {
             <span className="catalog-type">ADMIN</span>
             <h2>Admin Panel</h2>
             <p>
-              Assign Admin, Designer, or User roles and review audit activity.
+              Send summary, people & roles, and a detailed audit log.
             </p>
           </Link>
         ) : null}

@@ -410,8 +410,17 @@ export function applyImageSlotOverrides(
 }
 
 /**
- * Cover-crop resize to designed slot size.
- * When borderRadius > 0, clips corners and returns a transparent PNG.
+ * Canva emails often ship 2×–2.5× raster assets with smaller HTML width/height.
+ * Crushing uploads to the CSS size made replacements look soft next to originals.
+ */
+const SLOT_MIN_PIXEL_RATIO = 2;
+const SLOT_MAX_PIXEL_RATIO = 3;
+
+/**
+ * Prepare a compose slot upload for the designed HTML box.
+ * Keeps original bytes when aspect fits and no corner clip is needed (only
+ * downscales huge files to 3×). Otherwise cover-crops at 2×–3× CSS pixels so
+ * retina / Fit zoom stay sharp. HTML width/height attributes stay designed-size.
  */
 export async function resizeImageFileToSlot(
   file: File,
@@ -426,35 +435,84 @@ export async function resizeImageFileToSlot(
 ): Promise<File> {
   const w = Math.max(40, Math.round(designedWidth));
   const h = Math.max(40, Math.round(designedHeight));
-  const radius = clampSlotBorderRadius(
+  const radiusCss = clampSlotBorderRadius(
     opts?.borderRadius ?? 0,
     w,
     h,
   );
-  const mime = opts?.mime ?? (radius > 0 ? "image/png" : "image/jpeg");
-  const quality = opts?.quality ?? 0.9;
+
+  const sourceType = (file.type || "").toLowerCase();
+  const preferPng =
+    radiusCss > 0 ||
+    sourceType === "image/png" ||
+    sourceType === "image/webp" ||
+    sourceType === "image/gif";
+  const mime = opts?.mime ?? (preferPng ? "image/png" : "image/jpeg");
+  const quality = opts?.quality ?? (mime === "image/jpeg" ? 0.98 : undefined);
+
+  const base =
+    opts?.fileName?.replace(/\.[a-z0-9]+$/i, "") ||
+    file.name.replace(/\.[a-z0-9]+$/i, "") ||
+    "slot";
+  const ext = mime === "image/png" ? "png" : "jpg";
 
   const bitmap = await createImageBitmap(file);
   try {
+    const srcAspect = bitmap.width / Math.max(1, bitmap.height);
+    const slotAspect = w / h;
+    const aspectFits = Math.abs(srcAspect - slotAspect) < 0.03;
+    const sourceIsJpeg =
+      sourceType === "image/jpeg" || sourceType === "image/jpg";
+    const sourceIsPng = sourceType === "image/png";
+    // No clip + aspect matches → keep the upload’s pixels (Canva-style retina).
+    // Only re-encode when larger than 3× the slot (keeps uploads under size limits).
+    if (radiusCss === 0 && aspectFits && (sourceIsPng || sourceIsJpeg)) {
+      const maxW = w * SLOT_MAX_PIXEL_RATIO;
+      const maxH = h * SLOT_MAX_PIXEL_RATIO;
+      if (bitmap.width <= maxW + 2 && bitmap.height <= maxH + 2) {
+        return new File(
+          [file],
+          `${base}-${bitmap.width}x${bitmap.height}.${sourceIsPng ? "png" : "jpg"}`,
+          { type: sourceIsJpeg ? "image/jpeg" : "image/png" },
+        );
+      }
+    }
+
+    // Cover-crop / radius clip at retina resolution — never 1× CSS size.
+    const coverScale = Math.max(w / bitmap.width, h / bitmap.height);
+    const availableRatio = coverScale > 0 ? 1 / coverScale : 1;
+    const ratio =
+      availableRatio >= SLOT_MIN_PIXEL_RATIO
+        ? Math.min(SLOT_MAX_PIXEL_RATIO, availableRatio)
+        : Math.max(1, availableRatio);
+
+    const outW = Math.max(1, Math.round(w * ratio));
+    const outH = Math.max(1, Math.round(h * ratio));
+    const radius = radiusCss * (outW / w);
+    const outName = `${base}-${outW}x${outH}.${ext}`;
+
     const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Could not prepare image canvas.");
 
-    const scale = Math.max(w / bitmap.width, h / bitmap.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    const scale = Math.max(outW / bitmap.width, outH / bitmap.height);
     const dw = bitmap.width * scale;
     const dh = bitmap.height * scale;
-    const dx = (w - dw) / 2;
-    const dy = (h - dh) / 2;
+    const dx = (outW - dw) / 2;
+    const dy = (outH - dh) / 2;
 
-    ctx.clearRect(0, 0, w, h);
+    ctx.clearRect(0, 0, outW, outH);
     if (radius > 0) {
-      roundedRectPath(ctx, 0, 0, w, h, radius);
+      roundedRectPath(ctx, 0, 0, outW, outH, radius);
       ctx.clip();
-    } else {
+    } else if (mime === "image/jpeg") {
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, 0, outW, outH);
     }
     ctx.drawImage(bitmap, dx, dy, dw, dh);
 
@@ -466,12 +524,7 @@ export async function resizeImageFileToSlot(
       );
     });
 
-    const base =
-      opts?.fileName?.replace(/\.[a-z0-9]+$/i, "") ||
-      file.name.replace(/\.[a-z0-9]+$/i, "") ||
-      "slot";
-    const ext = mime === "image/png" ? "png" : "jpg";
-    return new File([blob], `${base}-${w}x${h}.${ext}`, { type: mime });
+    return new File([blob], outName, { type: mime });
   } finally {
     bitmap.close();
   }
