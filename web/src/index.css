@@ -53,7 +53,7 @@ a {
 }
 
 a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 button,
@@ -335,7 +335,8 @@ button.ghost {
 }
 
 .breadcrumbs a:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  color: var(--ink);
 }
 
 .breadcrumbs-sep {
@@ -807,7 +808,8 @@ button.linkish.danger-text {
 }
 
 button.linkish:hover:not(:disabled) {
-  text-decoration: underline;
+  text-decoration: none;
+  opacity: 0.85;
 }
 
 button.linkish:disabled {
