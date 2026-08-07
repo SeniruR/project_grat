@@ -15,7 +15,7 @@ export function EmailsHomePage() {
       />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Emails · {roleLabel(user?.role ?? "USER")}</p>
+          <p className="eyebrow">Emails - {roleLabel(user?.role ?? "USER")}</p>
           <h1>Emails</h1>
           <p className="lede">
             {canManageDesigns(user)

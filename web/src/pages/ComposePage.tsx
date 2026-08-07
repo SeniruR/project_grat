@@ -118,7 +118,7 @@ export function ComposePage() {
       .template(token, id)
       .then(({ template: t }) => {
         setTemplate(t);
-        setSubject((prev) => prev || `Thank you — ${t.name}`);
+        setSubject((prev) => prev || `Thank you - ${t.name}`);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load template"),
@@ -657,7 +657,7 @@ export function ComposePage() {
                 or <code>{`{{${templatePlaceholders[0].key}}}`}</code>
               </>
             ) : null}
-            ), or type a new <code>{"{{token}}"}</code> — define how it’s filled
+            ), or type a new <code>{"{{token}}"}</code> - define how it’s filled
             below. Each recipient gets their own merged subject.
           </p>
           {previewSubject && previewSubject !== subject.trim() ? (
@@ -671,7 +671,7 @@ export function ComposePage() {
               <h4 className="merge-input-title">New subject placeholders</h4>
               <p className="muted small">
                 These tokens are only in the subject (not on the card). Choose
-                shared vs per-person (or auto fields) — Compose will ask for
+                shared vs per-person (or auto fields) - Compose will ask for
                 values the same way as card placeholders.
               </p>
               <div className="merge-guide-table-wrap">
@@ -990,7 +990,7 @@ export function ComposePage() {
                         <div className="image-slot-upload-meta">
                           <strong>{slot.label}</strong>
                           <span className="muted small">
-                            {slot.designedWidth}×{slot.designedHeight} ·{" "}
+                            {slot.designedWidth}×{slot.designedHeight} -{" "}
                             {imageSlotModeLabel(slot.mode)}
                           </span>
                         </div>
@@ -1188,7 +1188,7 @@ export function ComposePage() {
           <p className="muted small">
             Live merge for{" "}
             <strong>{previewPerson?.displayName ?? "Alex"}</strong>
-            {" · "}
+            {" - "}
             sender <strong>{sampleCtx.senderName}</strong>.
           </p>
           {previewHtml ? (

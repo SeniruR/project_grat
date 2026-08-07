@@ -88,7 +88,7 @@ export function MarketplaceDetailPage() {
           <h1>{card.name}</h1>
           <p className="lede">
             {card.category?.name ?? "Uncategorized"}
-            {" · "}
+            {" - "}
             Designed by {card.owner.displayName}. Preview below, then personalize
             and send.
           </p>

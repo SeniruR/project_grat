@@ -12,7 +12,7 @@ export function HomePage() {
       <Breadcrumbs items={[{ label: "Home" }]} />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Welcome · {roleLabel(user?.role ?? "USER")}</p>
+          <p className="eyebrow">Welcome - {roleLabel(user?.role ?? "USER")}</p>
           <h1>{user?.displayName}</h1>
           <p className="lede">
             Choose a product area to get started.
@@ -25,7 +25,7 @@ export function HomePage() {
           <span className="catalog-type">EMAILS</span>
           <h2>Emails</h2>
           <p>
-            Gratitude cards and templates — browse, design, send, and track
+            Gratitude cards and templates - browse, design, send, and track
             history.
           </p>
         </Link>
@@ -33,7 +33,7 @@ export function HomePage() {
         <div className="catalog-tile catalog-tile--soon" title="Coming soon">
           <span className="catalog-type">GIFTS</span>
           <h2>Gifts</h2>
-          <p>Physical gifts and recognition — coming soon.</p>
+          <p>Physical gifts and recognition - coming soon.</p>
           <span className="soon-tag">Coming soon</span>
         </div>
       </div>
