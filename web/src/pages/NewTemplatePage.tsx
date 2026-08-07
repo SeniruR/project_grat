@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -59,8 +59,19 @@ export function NewTemplatePage() {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const previewObjectUrlsRef = useRef<string[]>([]);
+
+  function revokeZipPreviews() {
+    for (const url of previewObjectUrlsRef.current) {
+      URL.revokeObjectURL(url);
+    }
+    previewObjectUrlsRef.current = [];
+  }
+
+  useEffect(() => () => revokeZipPreviews(), []);
 
   function resetZipScan() {
+    revokeZipPreviews();
     setPlaceholders([]);
     setIgnoredPlaceholders([]);
     setImageSlots([]);
@@ -75,8 +86,13 @@ export function NewTemplatePage() {
 
     setScanning(true);
     try {
-      const { placeholders: found, imageSlots: slots, htmlPath } =
-        await scanCanvaZipPlaceholders(file);
+      const {
+        placeholders: found,
+        imageSlots: slots,
+        htmlPath,
+        previewObjectUrls,
+      } = await scanCanvaZipPlaceholders(file);
+      previewObjectUrlsRef.current = previewObjectUrls;
       setPlaceholders(found);
       setImageSlots(slots);
       const parts: string[] = [];
@@ -150,8 +166,13 @@ export function NewTemplatePage() {
           source: p.source,
         }));
         const cleanedSlots = imageSlots.map((s) => ({
-          ...s,
+          id: s.id,
           label: s.label.trim() || s.id,
+          mode: s.mode,
+          originalSrc: s.originalSrc,
+          designedWidth: s.designedWidth,
+          designedHeight: s.designedHeight,
+          borderRadius: s.borderRadius,
         }));
         await importCanvaZipToTemplate(token, template.id, zipFile, {
           previousPlaceholders: cleaned,
@@ -159,6 +180,7 @@ export function NewTemplatePage() {
           ignoredPlaceholders,
           trimWhiteMargins,
         });
+        revokeZipPreviews();
         navigate("/cards");
         return;
       }

@@ -1,5 +1,6 @@
 import {
   IMAGE_SLOT_MODES,
+  imageSlotThumbSrc,
   type ImageSlotDef,
   type ImageSlotMode,
 } from "../lib/imageSlots";
@@ -70,70 +71,72 @@ export function ImageSlotConfigPanel({
               </tr>
             </thead>
             <tbody>
-              {slots.map((slot, index) => (
-                <tr key={slot.id}>
-                  <td>
-                    <div className="image-slot-thumb-row">
-                      {slot.originalSrc &&
-                      /^(https?:|\/|blob:|data:)/i.test(slot.originalSrc) ? (
-                        <img
-                          className="image-slot-thumb"
-                          src={slot.originalSrc}
-                          alt=""
+              {slots.map((slot, index) => {
+                const thumb = imageSlotThumbSrc(slot);
+                return (
+                  <tr key={slot.id}>
+                    <td>
+                      <div className="image-slot-thumb-row">
+                        {thumb ? (
+                          <img
+                            className="image-slot-thumb"
+                            src={thumb}
+                            alt=""
+                          />
+                        ) : null}
+                        <code className="image-slot-id">{slot.id}</code>
+                      </div>
+                    </td>
+                    <td>
+                      {canEdit ? (
+                        <input
+                          value={slot.label}
+                          onChange={(e) =>
+                            updateRow(index, { label: e.target.value })
+                          }
+                          disabled={saving}
+                          maxLength={120}
+                          aria-label={`Label for ${slot.id}`}
                         />
-                      ) : null}
-                      <code className="image-slot-id">{slot.id}</code>
-                    </div>
-                  </td>
-                  <td>
-                    {canEdit ? (
-                      <input
-                        value={slot.label}
-                        onChange={(e) =>
-                          updateRow(index, { label: e.target.value })
-                        }
-                        disabled={saving}
-                        maxLength={120}
-                        aria-label={`Label for ${slot.id}`}
-                      />
-                    ) : (
-                      slot.label
-                    )}
-                  </td>
-                  <td className="muted small">
-                    {slot.designedWidth}×{slot.designedHeight}
-                  </td>
-                  <td>
-                    {canEdit ? (
-                      <select
-                        value={slot.mode}
-                        onChange={(e) =>
-                          updateRow(index, {
-                            mode: e.target.value as ImageSlotMode,
-                          })
-                        }
-                        disabled={saving}
-                        aria-label={`Mode for ${slot.id}`}
-                      >
-                        {IMAGE_SLOT_MODES.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      IMAGE_SLOT_MODES.find((m) => m.value === slot.mode)
-                        ?.label ?? slot.mode
-                    )}
-                    <span className="muted small merge-alias">
-                      {
+                      ) : (
+                        slot.label
+                      )}
+                    </td>
+                    <td className="muted small">
+                      {slot.designedWidth}×{slot.designedHeight}
+                    </td>
+                    <td>
+                      {canEdit ? (
+                        <select
+                          value={slot.mode}
+                          onChange={(e) =>
+                            updateRow(index, {
+                              mode: e.target.value as ImageSlotMode,
+                            })
+                          }
+                          disabled={saving}
+                          aria-label={`Mode for ${slot.id}`}
+                        >
+                          {IMAGE_SLOT_MODES.map((m) => (
+                            <option key={m.value} value={m.value}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
                         IMAGE_SLOT_MODES.find((m) => m.value === slot.mode)
-                          ?.hint
-                      }
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                          ?.label ?? slot.mode
+                      )}
+                      <span className="muted small merge-alias">
+                        {
+                          IMAGE_SLOT_MODES.find((m) => m.value === slot.mode)
+                            ?.hint
+                        }
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

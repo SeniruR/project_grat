@@ -1,5 +1,6 @@
 import { api } from "../api/client";
 import {
+  createZipImagePreviewUrls,
   parseCanvaZip,
   rewriteCanvaAssetUrls,
 } from "./importCanvaZip";
@@ -34,13 +35,21 @@ export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
   placeholders: PlaceholderDef[];
   imageSlots: ImageSlotDef[];
   htmlPath: string;
+  /** blob: URLs created for thumbs — revoke when discarding the scan. */
+  previewObjectUrls: string[];
 }> {
-  const { html, htmlPath } = await parseCanvaZip(zipFile);
+  const { html, htmlPath, assets } = await parseCanvaZip(zipFile);
   const { slots } = syncImageSlotsWithHtml(html);
+  const previews = createZipImagePreviewUrls(assets);
+  const imageSlots = slots.map((slot) => {
+    const previewSrc = previews.resolve(slot.originalSrc) ?? undefined;
+    return previewSrc ? { ...slot, previewSrc } : slot;
+  });
   return {
     placeholders: syncPlaceholdersWithHtml(html),
-    imageSlots: slots,
+    imageSlots,
     htmlPath,
+    previewObjectUrls: previews.urls,
   };
 }
 

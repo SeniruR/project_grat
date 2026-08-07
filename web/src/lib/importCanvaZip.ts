@@ -157,6 +157,28 @@ function resolveLocalUrl(
 }
 
 /**
+ * Create blob: URLs for ZIP images so the UI can preview slots before upload.
+ * Caller must revokeObjectURL each entry when done.
+ */
+export function createZipImagePreviewUrls(assets: CanvaZipAsset[]): {
+  urls: string[];
+  resolve: (src: string) => string | null;
+} {
+  const uploads = assets
+    .filter((a) => a.kind === "image")
+    .map((a) => ({
+      fileName: a.fileName,
+      path: a.path,
+      url: URL.createObjectURL(a.blob),
+    }));
+  const { byName, byPath } = buildUploadLookup(uploads);
+  return {
+    urls: uploads.map((u) => u.url),
+    resolve: (src: string) => resolveLocalUrl(src, byName, byPath),
+  };
+}
+
+/**
  * Rewrite local image srcs and CSS url(...) (fonts/images) to uploaded URLs.
  */
 export function rewriteCanvaAssetUrls(

@@ -14,7 +14,24 @@ export type ImageSlotDef = {
   designedHeight: number;
   /** Corner radius from Canva/HTML style (px). Applied on replacements. */
   borderRadius: number;
+  /**
+   * Browser-only thumb URL (e.g. blob: from a ZIP scan before upload).
+   * Not persisted to designJson.
+   */
+  previewSrc?: string;
 };
+
+/** True when src can be used as an <img src> in the browser. */
+export function isDisplayableImageSrc(src: string | undefined | null): boolean {
+  return Boolean(src && /^(https?:|\/|blob:|data:)/i.test(src));
+}
+
+/** Prefer previewSrc, else originalSrc when browser-displayable. */
+export function imageSlotThumbSrc(slot: ImageSlotDef): string | null {
+  if (isDisplayableImageSrc(slot.previewSrc)) return slot.previewSrc!;
+  if (isDisplayableImageSrc(slot.originalSrc)) return slot.originalSrc;
+  return null;
+}
 
 export const IMAGE_SLOT_MODES: Array<{
   value: ImageSlotMode;
@@ -289,7 +306,7 @@ export function syncImageSlotsWithHtml(
     if (usedIds.has(id)) id = `${id}-${i}`;
     usedIds.add(id);
 
-    slots.push({
+    const next: ImageSlotDef = {
       id,
       label: prev?.label?.trim() || basenameHint(img.src),
       mode: prev?.mode ?? "fixed",
@@ -300,7 +317,12 @@ export function syncImageSlotsWithHtml(
         prev?.borderRadius && prev.borderRadius > 0
           ? prev.borderRadius
           : img.borderRadius,
-    });
+    };
+    // Keep ZIP blob thumbs only while originalSrc is still a local path.
+    if (prev?.previewSrc && !isDisplayableImageSrc(img.src)) {
+      next.previewSrc = prev.previewSrc;
+    }
+    slots.push(next);
   }
 
   let slotIndex = 0;
