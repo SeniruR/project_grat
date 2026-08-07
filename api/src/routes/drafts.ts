@@ -6,7 +6,7 @@ import { buildOutboundBodyHtml, applyMergeFields, buildMergeFieldMap, parseImage
 import { embedLocalUploadImages, inlineLocalUploadImagesAsDataUrls } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
-import { canComposeTemplate, isAdmin } from "../lib/roles.js";
+import { canComposeTemplate, canUseAdvancedCompose, isAdmin } from "../lib/roles.js";
 
 const recipientBody = z.object({
   aadOid: z.string().min(1).max(200).optional(),
@@ -287,8 +287,52 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
               user.email
             : senderEmail?.trim() || user.email,
       };
-      const shared = sharedFields ?? {};
-      const sharedImages = sharedImageSlots ?? {};
+
+      const advancedCompose = canUseAdvancedCompose(user);
+      if (!advancedCompose) {
+        if (sharedFields && Object.keys(sharedFields).length > 0) {
+          return reply.code(403).send({
+            error:
+              "Shared placeholders are only available to designers and admins.",
+          });
+        }
+        if (sharedImageSlots && Object.keys(sharedImageSlots).length > 0) {
+          return reply.code(403).send({
+            error:
+              "Image replacement is only available to designers and admins.",
+          });
+        }
+        if (
+          extraPlaceholders?.some(
+            (p) => p.source === "shared" || p.source === "perRecipient",
+          )
+        ) {
+          return reply.code(403).send({
+            error:
+              "Shared and per-person subject placeholders are only available to designers and admins.",
+          });
+        }
+        for (const recipient of recipients) {
+          if (recipient.fields && Object.keys(recipient.fields).length > 0) {
+            return reply.code(403).send({
+              error:
+                "Per-person placeholders are only available to designers and admins.",
+            });
+          }
+          if (
+            recipient.imageSlots &&
+            Object.keys(recipient.imageSlots).length > 0
+          ) {
+            return reply.code(403).send({
+              error:
+                "Image replacement is only available to designers and admins.",
+            });
+          }
+        }
+      }
+
+      const shared = advancedCompose ? (sharedFields ?? {}) : {};
+      const sharedImages = advancedCompose ? (sharedImageSlots ?? {}) : {};
 
       // Dedupe by email (case-insensitive)
       const seen = new Set<string>();
@@ -343,9 +387,15 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       );
       const placeholders = [
         ...templatePlaceholders,
-        ...(extraPlaceholders ?? []).filter(
-          (p) => !templateKeys.has(p.key.trim().toLowerCase()),
-        ),
+        ...(extraPlaceholders ?? [])
+          .filter(
+            (p) =>
+              advancedCompose ||
+              (p.source !== "shared" && p.source !== "perRecipient"),
+          )
+          .filter(
+            (p) => !templateKeys.has(p.key.trim().toLowerCase()),
+          ),
       ];
       const imageSlots = parseImageSlotsFromDesignJson(version.designJson);
 
@@ -372,10 +422,12 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       }> = [];
 
       for (const recipient of uniqueRecipients) {
-        const imageOverrides = {
-          ...sharedImages,
-          ...(recipient.imageSlots ?? {}),
-        };
+        const imageOverrides = advancedCompose
+          ? {
+              ...sharedImages,
+              ...(recipient.imageSlots ?? {}),
+            }
+          : {};
         let bodyHtml = buildOutboundBodyHtml({
           compiledHtml: compiled,
           headerHtml: template.headerHtml,
@@ -389,7 +441,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           sender,
           placeholders,
           shared,
-          perRecipient: recipient.fields ?? {},
+          perRecipient: advancedCompose ? (recipient.fields ?? {}) : {},
           imageOverrides,
           imageSlots,
         });
@@ -404,7 +456,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             },
             sender,
             shared,
-            perRecipient: recipient.fields ?? {},
+            perRecipient: advancedCompose ? (recipient.fields ?? {}) : {},
           }),
         ).trim() || subject;
 

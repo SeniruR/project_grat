@@ -127,6 +127,40 @@ export function recipientNameValueForKey(key: string, fullName: string): string 
   return name;
 }
 
+
+export type NameHonorific = {
+  value: string;
+  label: string;
+};
+
+/** Optional title prefixes for recipient / sender name merges (defaults). */
+export const DEFAULT_NAME_HONORIFICS: NameHonorific[] = [
+  { value: "Mr.", label: "Mr." },
+  { value: "Mrs.", label: "Mrs." },
+  { value: "Miss", label: "Miss" },
+  { value: "Ms.", label: "Ms." },
+  { value: "Dr.", label: "Dr." },
+  { value: "Sir", label: "Sir" },
+  { value: "Madam", label: "Madam" },
+];
+
+/** @deprecated Prefer DEFAULT_NAME_HONORIFICS / API settings */
+export const NAME_HONORIFICS = DEFAULT_NAME_HONORIFICS;
+
+/** Prefix a display name with Mr./Mrs./… when a title is chosen. */
+export function withHonorific(
+  title: string | null | undefined,
+  name: string,
+): string {
+  const n = name.trim();
+  const t = (title ?? "").trim();
+  if (!n) return "";
+  if (!t) return n;
+  const lower = n.toLowerCase();
+  if (lower.startsWith(`${t.toLowerCase()} `)) return n;
+  return `${t} ${n}`;
+}
+
 function humanizeKey(key: string): string {
   const spaced = key
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -317,4 +351,25 @@ export function perRecipientPlaceholderKeys(
   return placeholders
     .filter((p) => p.source === "perRecipient")
     .map((p) => p.key);
+}
+
+/** Fallback when a template has no default subject saved. */
+export const FALLBACK_DEFAULT_SUBJECT = "Thank you, {{recipientName}}";
+
+/** Read owner-configured default email subject from designJson. */
+export function parseDefaultSubjectFromDesignJson(
+  designJson: Record<string, unknown> | null | undefined,
+): string {
+  const raw = designJson?.defaultSubject;
+  if (typeof raw !== "string") return "";
+  return raw.trim().slice(0, 300);
+}
+
+/** Subject Compose should start with for this template. */
+export function resolveTemplateDefaultSubject(
+  designJson: Record<string, unknown> | null | undefined,
+): string {
+  return (
+    parseDefaultSubjectFromDesignJson(designJson) || FALLBACK_DEFAULT_SUBJECT
+  );
 }

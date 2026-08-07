@@ -17,6 +17,10 @@ const ACTION_META: Record<string, ActionMeta> = {
   "auth.login": { label: "Signed in", category: "auth" },
   "user.role_change": { label: "Changed user role", category: "people" },
   "user.deleted": { label: "Deleted user", category: "people" },
+  "settings.name_honorifics_update": {
+    label: "Updated name prefixes",
+    category: "other",
+  },
   "template.created": { label: "Created template", category: "templates" },
   "template.updated": { label: "Updated template", category: "templates" },
   "template.version_saved": {

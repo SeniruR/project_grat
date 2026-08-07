@@ -13,6 +13,7 @@ import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import type { PlaceholderDef } from "../lib/mergeFields";
+import { FALLBACK_DEFAULT_SUBJECT } from "../lib/mergeFields";
 import type { ImageSlotDef } from "../lib/imageSlots";
 
 type Starter = "canva_zip" | "image_upload";
@@ -46,6 +47,7 @@ export function NewTemplatePage() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState("");
+  const [defaultSubject, setDefaultSubject] = useState(FALLBACK_DEFAULT_SUBJECT);
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [starter, setStarter] = useState<Starter>("canva_zip");
@@ -179,6 +181,7 @@ export function NewTemplatePage() {
           previousImageSlots: cleanedSlots,
           ignoredPlaceholders,
           trimWhiteMargins,
+          defaultSubject,
         });
         revokeZipPreviews();
         navigate("/cards");
@@ -191,6 +194,7 @@ export function NewTemplatePage() {
           template.id,
           imageFile,
           name.trim() || "Gratitude card",
+          { defaultSubject },
         );
         navigate("/cards");
         return;
@@ -234,6 +238,22 @@ export function NewTemplatePage() {
             disabled={saving}
           />
         </label>
+
+        <label>
+          Default subject
+          <input
+            value={defaultSubject}
+            onChange={(e) => setDefaultSubject(e.target.value)}
+            maxLength={300}
+            placeholder={FALLBACK_DEFAULT_SUBJECT}
+            disabled={saving}
+          />
+        </label>
+        <p className="muted small">
+          Compose starts with this subject. Use placeholders like{" "}
+          <code>{"{{recipientName}}"}</code>. Normal users can add or remove
+          tags but cannot rewrite the text.
+        </p>
 
         <fieldset className="choice-set">
           <legend>How do you want to start?</legend>

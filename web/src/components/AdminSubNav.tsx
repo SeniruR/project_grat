@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 const LINKS = [
   { to: "/admin/summary", label: "Send summary" },
   { to: "/admin/people", label: "People" },
+  { to: "/admin/settings", label: "Settings" },
   { to: "/admin/audit", label: "Audit log" },
 ] as const;
 

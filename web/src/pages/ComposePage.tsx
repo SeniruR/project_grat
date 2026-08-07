@@ -13,12 +13,17 @@ import {
   buildMergeFieldMapFromPlaceholders,
   detectMergeFields,
   humanizePlaceholderKey,
+  isRecipientNameToken,
+  DEFAULT_NAME_HONORIFICS,
   parsePlaceholdersFromDesignJson,
   perRecipientPlaceholderKeys,
   PLACEHOLDER_SOURCES,
   placeholderSourceLabel,
+  resolveTemplateDefaultSubject,
   sharedPlaceholderKeys,
   suggestPlaceholderSource,
+  withHonorific,
+  type NameHonorific,
   type PlaceholderDef,
   type PlaceholderSource,
 } from "../lib/mergeFields";
@@ -36,11 +41,15 @@ import {
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { ToastBanner } from "../components/ToastBanner";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
-import { canManageDesigns } from "../lib/roles";
+import { canManageDesigns, canUseAdvancedCompose } from "../lib/roles";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const COMPOSE_PLACEHOLDER_SOURCES = PLACEHOLDER_SOURCES.filter(
+  (s) => s.value !== "shared" && s.value !== "perRecipient",
+);
 
 function parseTypedEmail(raw: string): DirectoryPerson | null {
   const email = raw.trim().toLowerCase();
@@ -56,6 +65,17 @@ function parseTypedEmail(raw: string): DirectoryPerson | null {
 
 function personKey(p: DirectoryPerson) {
   return p.email.trim().toLowerCase();
+}
+
+function composePlaceholderSource(
+  source: PlaceholderSource,
+  advanced: boolean,
+): PlaceholderSource {
+  if (advanced) return source;
+  if (source === "shared" || source === "perRecipient") {
+    return "recipientName";
+  }
+  return source;
 }
 
 export function ComposePage() {
@@ -86,6 +106,18 @@ export function ComposePage() {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<DirectoryPerson[]>([]);
   const [selected, setSelected] = useState<DirectoryPerson[]>([]);
+  /** Tick → show Mr/Mrs/Miss for that recipient (when name placeholders are used). */
+  const [recipientTitleEnabled, setRecipientTitleEnabled] = useState<
+    Record<string, boolean>
+  >({});
+  const [recipientTitles, setRecipientTitles] = useState<
+    Record<string, string>
+  >({});
+  const [senderTitleEnabled, setSenderTitleEnabled] = useState(false);
+  const [senderTitle, setSenderTitle] = useState("Mr.");
+  const [nameHonorifics, setNameHonorifics] = useState<NameHonorific[]>([
+    ...DEFAULT_NAME_HONORIFICS,
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [errorTick, setErrorTick] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -113,12 +145,33 @@ export function ComposePage() {
   }, []);
 
   useEffect(() => {
+    if (!token) return;
+    api
+      .nameHonorifics(token)
+      .then((res) => {
+        if (res.honorifics?.length) {
+          setNameHonorifics(res.honorifics);
+          setSenderTitle((prev) => {
+            if (res.honorifics.some((h) => h.value === prev)) return prev;
+            return res.honorifics[0]?.value ?? prev;
+          });
+        }
+      })
+      .catch(() => undefined);
+  }, [token]);
+
+  useEffect(() => {
     if (!token || !id) return;
     api
       .template(token, id)
       .then(({ template: t }) => {
         setTemplate(t);
-        setSubject((prev) => prev || `Thank you - ${t.name}`);
+        setSubject((prev) =>
+          prev ||
+          resolveTemplateDefaultSubject(
+            (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
+          ),
+        );
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load template"),
@@ -168,6 +221,7 @@ export function ComposePage() {
 
   // Keep subject-only defs in sync with {{tokens}} typed in the subject.
   useEffect(() => {
+    const advanced = canUseAdvancedCompose(user);
     const keys = detectMergeFields(subject);
     const templateKeys = new Set(
       templatePlaceholders.map((p) => p.key.toLowerCase()),
@@ -179,15 +233,24 @@ export function ComposePage() {
       );
       return unknown.map((key) => {
         const existing = prevBy.get(key.toLowerCase());
-        if (existing) return { ...existing, key };
+        if (existing) {
+          return {
+            ...existing,
+            key,
+            source: composePlaceholderSource(existing.source, advanced),
+          };
+        }
         return {
           key,
           label: humanizePlaceholderKey(key),
-          source: suggestPlaceholderSource(key),
+          source: composePlaceholderSource(
+            suggestPlaceholderSource(key),
+            advanced,
+          ),
         };
       });
     });
-  }, [subject, templatePlaceholders]);
+  }, [subject, templatePlaceholders, user]);
 
   const placeholders: PlaceholderDef[] = useMemo(() => {
     const seen = new Set(templatePlaceholders.map((p) => p.key.toLowerCase()));
@@ -248,16 +311,29 @@ export function ComposePage() {
   }, [selected, previewPersonEmail]);
 
   const sampleCtx = useMemo(
-    () => ({
-      recipientName: previewPerson?.displayName ?? "Alex",
-      recipientEmail: previewPerson?.email ?? "alex@example.com",
-      senderName: senderName.trim() || user?.displayName || "You",
-      senderEmail: senderEmail.trim() || user?.email || "you@example.com",
-      shared: sharedFields,
-      perRecipient: previewPerson
-        ? (perRecipientFields[personKey(previewPerson)] ?? {})
-        : {},
-    }),
+    () => {
+      const previewKey = previewPerson ? personKey(previewPerson) : "";
+      const titledRecipient = withHonorific(
+        previewKey && recipientTitleEnabled[previewKey]
+          ? recipientTitles[previewKey] || nameHonorifics[0]?.value || "Mr."
+          : "",
+        previewPerson?.displayName ?? "Alex",
+      );
+      const titledSender = withHonorific(
+        senderTitleEnabled ? senderTitle : "",
+        senderName.trim() || user?.displayName || "You",
+      );
+      return {
+        recipientName: titledRecipient,
+        recipientEmail: previewPerson?.email ?? "alex@example.com",
+        senderName: titledSender,
+        senderEmail: senderEmail.trim() || user?.email || "you@example.com",
+        shared: sharedFields,
+        perRecipient: previewPerson
+          ? (perRecipientFields[personKey(previewPerson)] ?? {})
+          : {},
+      };
+    },
     [
       previewPerson,
       senderName,
@@ -265,6 +341,11 @@ export function ComposePage() {
       sharedFields,
       perRecipientFields,
       user,
+      recipientTitleEnabled,
+      recipientTitles,
+      senderTitleEnabled,
+      senderTitle,
+      nameHonorifics,
     ],
   );
 
@@ -348,6 +429,48 @@ export function ComposePage() {
       delete next[key];
       return next;
     });
+    setRecipientTitleEnabled((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setRecipientTitles((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function titledRecipientName(person: DirectoryPerson): string {
+    const ek = personKey(person);
+    return withHonorific(
+      recipientTitleEnabled[ek]
+        ? recipientTitles[ek] || nameHonorifics[0]?.value || "Mr."
+        : "",
+      person.displayName,
+    );
+  }
+
+  function titledSenderName(): string {
+    return withHonorific(
+      senderTitleEnabled ? senderTitle : "",
+      senderName.trim() || user?.displayName || "",
+    );
+  }
+
+  function toggleSubjectTag(key: string) {
+    const token = `{{${key}}}`;
+    setSubject((prev) => {
+      if (prev.includes(token)) {
+        return prev
+          .split(token)
+          .join("")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+      }
+      const base = prev.trim();
+      return base ? `${base} ${token}` : token;
+    });
   }
 
   function setShared(key: string, value: string) {
@@ -380,7 +503,7 @@ export function ComposePage() {
     file: File,
     scope: "shared" | { recipientEmail: string },
   ) {
-    if (!token || !template) return;
+    if (!token || !template || !canUseAdvancedCompose(user)) return;
     const uploadKey =
       scope === "shared"
         ? `shared:${slot.id}`
@@ -460,6 +583,7 @@ export function ComposePage() {
   }
 
   function validateMergeInputs(): string | null {
+    if (!canUseAdvancedCompose(user)) return null;
     for (const key of sharedKeys) {
       if (!(sharedFields[key] ?? "").trim()) {
         const label =
@@ -514,50 +638,67 @@ export function ComposePage() {
     setError(null);
     try {
       const trimmedShared: Record<string, string> = {};
-      for (const key of sharedKeys) {
-        trimmedShared[key] = (sharedFields[key] ?? "").trim();
+      if (canUseAdvancedCompose(user)) {
+        for (const key of sharedKeys) {
+          trimmedShared[key] = (sharedFields[key] ?? "").trim();
+        }
       }
 
       const sharedImages: Record<string, string> = {};
-      for (const slot of sharedSlots) {
-        const url = (sharedImageUrls[slot.id] ?? "").trim();
-        if (url) sharedImages[slot.id] = url;
+      if (canUseAdvancedCompose(user)) {
+        for (const slot of sharedSlots) {
+          const url = (sharedImageUrls[slot.id] ?? "").trim();
+          if (url) sharedImages[slot.id] = url;
+        }
       }
+
+      const extrasForSubmit = subjectExtras
+        .filter(
+          (p) =>
+            canUseAdvancedCompose(user) ||
+            (p.source !== "shared" && p.source !== "perRecipient"),
+        )
+        .map((p) => ({
+          key: p.key,
+          label: p.label.trim() || p.key,
+          source: p.source,
+        }));
 
       const { job } = await api.createDraftJob(token, {
         templateId: template.id,
         templateVersionId: template.versions[0]?.id,
         subject: subject.trim(),
         senderName:
-          mailMode === "smtp"
-            ? (smtpFromName || senderName || "Gratitude cards").trim()
-            : senderName.trim(),
+          titledSenderName().trim() ||
+          (mailMode === "smtp" ? "Gratitude cards" : senderName.trim()),
         senderEmail:
           mailMode === "smtp"
             ? (smtpFrom || senderEmail).trim().toLowerCase()
             : senderEmail.trim().toLowerCase(),
-        sharedFields: trimmedShared,
-        sharedImageSlots: sharedImages,
-        extraPlaceholders: subjectExtras.map((p) => ({
-          key: p.key,
-          label: p.label.trim() || p.key,
-          source: p.source,
-        })),
+        ...(Object.keys(trimmedShared).length
+          ? { sharedFields: trimmedShared }
+          : {}),
+        ...(Object.keys(sharedImages).length
+          ? { sharedImageSlots: sharedImages }
+          : {}),
+        ...(extrasForSubmit.length ? { extraPlaceholders: extrasForSubmit } : {}),
         recipients: selected.map((p) => {
           const ek = personKey(p);
           const fields: Record<string, string> = {};
-          for (const key of perPersonKeys) {
-            fields[key] = (perRecipientFields[ek]?.[key] ?? "").trim();
-          }
           const imageSlotUrls: Record<string, string> = {};
-          for (const slot of perPersonSlots) {
-            const url = (perRecipientImageUrls[ek]?.[slot.id] ?? "").trim();
-            if (url) imageSlotUrls[slot.id] = url;
+          if (canUseAdvancedCompose(user)) {
+            for (const key of perPersonKeys) {
+              fields[key] = (perRecipientFields[ek]?.[key] ?? "").trim();
+            }
+            for (const slot of perPersonSlots) {
+              const url = (perRecipientImageUrls[ek]?.[slot.id] ?? "").trim();
+              if (url) imageSlotUrls[slot.id] = url;
+            }
           }
           return {
             aadOid: p.aadOid,
             email: p.email,
-            displayName: p.displayName,
+            displayName: titledRecipientName(p),
             ...(Object.keys(fields).length ? { fields } : {}),
             ...(Object.keys(imageSlotUrls).length
               ? { imageSlots: imageSlotUrls }
@@ -572,6 +713,46 @@ export function ComposePage() {
       setBusy(false);
     }
   }
+
+  const advancedCompose = canUseAdvancedCompose(user);
+  const composePlaceholderSources = advancedCompose
+    ? PLACEHOLDER_SOURCES
+    : COMPOSE_PLACEHOLDER_SOURCES;
+
+  const usesRecipientName = useMemo(() => {
+    if (placeholders.some((p) => p.source === "recipientName")) return true;
+    return detectMergeFields(subject).some((k) => isRecipientNameToken(k));
+  }, [placeholders, subject]);
+
+  const usesSenderName = useMemo(() => {
+    if (placeholders.some((p) => p.source === "senderName")) return true;
+    return detectMergeFields(subject).some((k) => {
+      const n = k.toLowerCase().replace(/[_.-]/g, "");
+      return n === "sendername" || n === "fromname" || n === "sender";
+    });
+  }, [placeholders, subject]);
+
+  const subjectTagOptions = useMemo(() => {
+    const byKey = new Map<string, PlaceholderDef>();
+    for (const ph of placeholders) {
+      if (ph.source === "shared" || ph.source === "perRecipient") continue;
+      byKey.set(ph.key.toLowerCase(), ph);
+    }
+    const ensure = (
+      key: string,
+      label: string,
+      source: PlaceholderSource,
+    ) => {
+      if (!byKey.has(key.toLowerCase())) {
+        byKey.set(key.toLowerCase(), { key, label, source });
+      }
+    };
+    ensure("recipientName", "Recipient name", "recipientName");
+    ensure("senderName", "Sender name", "senderName");
+    ensure("recipientEmail", "Recipient email", "recipientEmail");
+    ensure("senderEmail", "Sender email", "senderEmail");
+    return [...byKey.values()];
+  }, [placeholders]);
 
   if (!template && !error) {
     return (
@@ -592,6 +773,10 @@ export function ComposePage() {
 
   const fromDesigns =
     canManageDesigns(user) && template.owner.id === user?.id;
+  const hasAdvancedPlaceholders =
+    sharedKeys.length > 0 || perPersonKeys.length > 0;
+  const hasReplaceableImages =
+    sharedSlots.length > 0 || perPersonSlots.length > 0;
   const parentCrumb = fromDesigns
     ? { label: "My Designs", to: "/cards" }
     : { label: "Templates", to: "/marketplace" };
@@ -622,9 +807,21 @@ export function ComposePage() {
             {mailMode === "smtp" ? "Send email" : "Create Outlook drafts"}
           </h1>
           <p className="lede">
-            Fill placeholders and optional image replacements the template owner
-            defined. Auto fields use recipients and sender; shared and per-person
-            values apply to this send only. The saved template is not changed.
+            {advancedCompose ? (
+              <>
+                Fill placeholders and optional image replacements the template
+                owner defined. Auto fields use recipients and sender; shared and
+                per-person values apply to this send only. The saved template is
+                not changed.
+              </>
+            ) : (
+              <>
+                Fill automatic placeholders from recipients and sender details.
+                Shared and per-person fields, and image changes, are only
+                available to designers and admins — your send uses the template
+                as designed.
+              </>
+            )}
           </p>
         </div>
       </header>
@@ -643,36 +840,94 @@ export function ComposePage() {
             Subject
             <input
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                if (!advancedCompose) return;
+                setSubject(e.target.value);
+              }}
+              readOnly={!advancedCompose}
               disabled={busy}
               maxLength={300}
-              placeholder="Thank you, {{recipientName}}"
+              placeholder={
+                resolveTemplateDefaultSubject(
+                  (template.versions[0]?.designJson ?? {}) as Record<
+                    string,
+                    unknown
+                  >,
+                )
+              }
+              aria-describedby="compose-subject-hint"
             />
           </label>
-          <p className="muted small compose-subject-hint">
-            Use card placeholders (e.g. <code>{"{{recipientName}}"}</code>
-            {templatePlaceholders.length > 0 ? (
+          <p id="compose-subject-hint" className="muted small compose-subject-hint">
+            {advancedCompose ? (
               <>
-                {" "}
-                or <code>{`{{${templatePlaceholders[0].key}}}`}</code>
+                Use card placeholders (e.g. <code>{"{{recipientName}}"}</code>
+                {templatePlaceholders.length > 0 ? (
+                  <>
+                    {" "}
+                    or <code>{`{{${templatePlaceholders[0].key}}}`}</code>
+                  </>
+                ) : null}
+                ), or type a new <code>{"{{token}}"}</code> — define how it’s
+                filled below. Each recipient gets their own merged subject.
               </>
-            ) : null}
-            ), or type a new <code>{"{{token}}"}</code> - define how it’s filled
-            below. Each recipient gets their own merged subject.
+            ) : (
+              <>
+                Subject text is locked for your account. Use the tags below to
+                insert placeholders only — free typing is unavailable. Each
+                recipient gets their own merged subject.
+              </>
+            )}
           </p>
+          {!advancedCompose ? (
+            <div className="compose-subject-tags" role="group" aria-label="Subject tags">
+              {subjectTagOptions.map((tag) => {
+                const token = `{{${tag.key}}}`;
+                const active = subject.includes(token);
+                return (
+                  <button
+                    key={tag.key}
+                    type="button"
+                    className={`compose-subject-tag ${active ? "is-active" : ""}`}
+                    disabled={busy}
+                    onClick={() => toggleSubjectTag(tag.key)}
+                    title={
+                      active
+                        ? `Remove ${token} from subject`
+                        : `Insert ${token} into subject`
+                    }
+                  >
+                    {token}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           {previewSubject && previewSubject !== subject.trim() ? (
             <p className="compose-subject-preview muted small">
               Preview: <strong>{previewSubject}</strong>
             </p>
           ) : null}
 
-          {subjectExtras.length > 0 ? (
+          {advancedCompose && subjectExtras.length > 0 ? (
             <div className="compose-subject-extras">
               <h4 className="merge-input-title">New subject placeholders</h4>
               <p className="muted small">
                 These tokens are only in the subject (not on the card). Choose
-                shared vs per-person (or auto fields) - Compose will ask for
-                values the same way as card placeholders.
+                {advancedCompose ? (
+                  <>
+                    {" "}
+                    shared vs per-person (or auto fields) — Compose will ask for
+                    values the same way as card placeholders.
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    how each token is filled from recipient or sender details.
+                    Shared and per-person subject placeholders are unavailable
+                    for your account.
+                  </>
+                )}
               </p>
               <div className="merge-guide-table-wrap">
                 <table className="merge-guide-table placeholder-config-table">
@@ -713,7 +968,7 @@ export function ComposePage() {
                             disabled={busy}
                             aria-label={`Source for ${ph.key}`}
                           >
-                            {PLACEHOLDER_SOURCES.map((s) => (
+                            {composePlaceholderSources.map((s) => (
                               <option key={s.value} value={s.value}>
                                 {s.label}
                               </option>
@@ -721,7 +976,7 @@ export function ComposePage() {
                           </select>
                           <span className="muted small merge-alias">
                             {
-                              PLACEHOLDER_SOURCES.find(
+                              composePlaceholderSources.find(
                                 (s) => s.value === ph.source,
                               )?.hint
                             }
@@ -777,24 +1032,118 @@ export function ComposePage() {
                 </label>
               </>
             )}
+            {usesSenderName ? (
+              <label className="compose-honorific-row">
+                <input
+                  type="checkbox"
+                  checked={senderTitleEnabled}
+                  disabled={busy}
+                  onChange={(e) => setSenderTitleEnabled(e.target.checked)}
+                />
+                <span>Add title to sender name</span>
+                {senderTitleEnabled ? (
+                  <select
+                    value={senderTitle}
+                    disabled={busy}
+                    onChange={(e) => setSenderTitle(e.target.value)}
+                    aria-label="Sender title"
+                  >
+                    {nameHonorifics.map((h) => (
+                      <option key={h.value} value={h.value}>
+                        {h.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </label>
+            ) : null}
           </fieldset>
 
           <div className="compose-recipients">
             <label htmlFor="recipient-search">Recipients</label>
+            {usesRecipientName ? (
+              <p className="muted small">
+                Tick a recipient to add Mr. / Mrs. / Miss (and similar) before
+                their name in placeholders.
+              </p>
+            ) : null}
             <div className="recipient-chips">
-              {selected.map((p) => (
-                <button
-                  key={p.email}
-                  type="button"
-                  className="recipient-chip"
-                  onClick={() => removePerson(p.email)}
-                  title="Remove"
-                >
-                  <span>{p.displayName}</span>
-                  <em>{p.email}</em>
-                  <span aria-hidden="true">×</span>
-                </button>
-              ))}
+              {selected.map((p) => {
+                const ek = personKey(p);
+                const titled = usesRecipientName && recipientTitleEnabled[ek];
+                return (
+                  <div key={p.email} className="recipient-chip-row">
+                    {usesRecipientName ? (
+                      <label className="recipient-title-tick">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(recipientTitleEnabled[ek])}
+                          disabled={busy}
+                          onChange={(e) => {
+                            const on = e.target.checked;
+                            setRecipientTitleEnabled((prev) => ({
+                              ...prev,
+                              [ek]: on,
+                            }));
+                            if (on) {
+                              setRecipientTitles((prev) => ({
+                                ...prev,
+                                [ek]:
+                                  prev[ek] ||
+                                  nameHonorifics[0]?.value ||
+                                  "Mr.",
+                              }));
+                            }
+                          }}
+                          aria-label={`Add title for ${p.displayName}`}
+                        />
+                      </label>
+                    ) : null}
+                    <div className="recipient-chip-body">
+                      <span className="recipient-chip-name">
+                        {titled
+                          ? titledRecipientName(p)
+                          : p.displayName}
+                      </span>
+                      <em>{p.email}</em>
+                      {titled ? (
+                        <select
+                          className="recipient-title-select"
+                          value={
+                            recipientTitles[ek] ||
+                            nameHonorifics[0]?.value ||
+                            "Mr."
+                          }
+                          disabled={busy}
+                          onChange={(e) =>
+                            setRecipientTitles((prev) => ({
+                              ...prev,
+                              [ek]: e.target.value,
+                            }))
+                          }
+                          aria-label={`Title for ${p.displayName}`}
+                        >
+                          {nameHonorifics.map((h) => (
+                            <option key={h.value} value={h.value}>
+                              {h.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="recipient-chip-remove"
+                      onClick={() => removePerson(p.email)}
+                      title="Remove"
+                      disabled={busy}
+                      aria-label={`Remove ${p.displayName}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             <input
               id="recipient-search"
@@ -896,7 +1245,24 @@ export function ComposePage() {
                   </table>
                 </div>
 
+                {!advancedCompose &&
+                (hasAdvancedPlaceholders || hasReplaceableImages) ? (
+                  <p className="notice compose-feature-notice">
+                    This card includes{" "}
+                    {hasAdvancedPlaceholders && hasReplaceableImages
+                      ? "shared or per-person placeholders and replaceable images"
+                      : hasAdvancedPlaceholders
+                        ? "shared or per-person placeholders"
+                        : "replaceable images"}
+                    . Those features are unavailable for your account — only
+                    designers and admins can fill them or change images when
+                    composing. Your send uses automatic fields and the template
+                    images as designed.
+                  </p>
+                ) : null}
+
                 {sharedKeys.length > 0 ? (
+                  advancedCompose ? (
                   <div className="merge-input-block">
                     <h4 className="merge-input-title">Shared fields</h4>
                     <p className="muted small">
@@ -917,9 +1283,20 @@ export function ComposePage() {
                         </label>
                       ))}
                   </div>
+                  ) : (
+                    <div className="merge-input-block">
+                      <h4 className="merge-input-title">Shared fields</h4>
+                      <p className="muted small compose-unavailable">
+                        Shared placeholders are unavailable for your account.
+                        Ask a designer or admin to compose this card if custom
+                        shared values are needed.
+                      </p>
+                    </div>
+                  )
                 ) : null}
 
                 {perPersonKeys.length > 0 ? (
+                  advancedCompose ? (
                   <div className="merge-input-block">
                     <h4 className="merge-input-title">Per-person fields</h4>
                     {!selected.length ? (
@@ -964,6 +1341,16 @@ export function ComposePage() {
                       ))
                     )}
                   </div>
+                  ) : (
+                    <div className="merge-input-block">
+                      <h4 className="merge-input-title">Per-person fields</h4>
+                      <p className="muted small compose-unavailable">
+                        Per-person placeholders are unavailable for your account.
+                        Ask a designer or admin to compose this card if each
+                        recipient needs different values.
+                      </p>
+                    </div>
+                  )
                 ) : null}
               </>
             )}
@@ -972,17 +1359,19 @@ export function ComposePage() {
           {(sharedSlots.length > 0 || perPersonSlots.length > 0) ? (
             <div className="merge-fields-panel image-slots-compose">
               <h3 className="card-section-title">Images</h3>
-              <p className="muted small">
-                Uploads are cropped to the designed size. Leave blank to keep
-                the template image. For <strong>per-person</strong> slots, upload
-                a file for each recipient or that person keeps the template
-                image.
-              </p>
+              {advancedCompose ? (
+                <>
+                  <p className="muted small">
+                    Uploads are cropped to the designed size. Leave blank to keep
+                    the template image. For <strong>per-person</strong> slots,
+                    upload a file for each recipient or that person keeps the
+                    template image.
+                  </p>
 
-              {sharedSlots.length > 0 ? (
-                <div className="merge-input-block">
-                  <h4 className="merge-input-title">Shared images</h4>
-                  {sharedSlots.map((slot) => {
+                  {sharedSlots.length > 0 ? (
+                    <div className="merge-input-block">
+                      <h4 className="merge-input-title">Shared images</h4>
+                      {sharedSlots.map((slot) => {
                     const url = sharedImageUrls[slot.id];
                     const busyKey = `shared:${slot.id}`;
                     return (
@@ -1137,6 +1526,14 @@ export function ComposePage() {
                   )}
                 </div>
               ) : null}
+                </>
+              ) : (
+                <p className="muted small compose-unavailable">
+                  Image changes are unavailable for your account. The template
+                  images will be used as designed. Ask a designer or admin if
+                  you need custom pictures for this send.
+                </p>
+              )}
             </div>
           ) : null}
 

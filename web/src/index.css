@@ -87,7 +87,7 @@ button:disabled {
  * menu/chip hovers made labels unreadable.
  */
 button:hover:not(:disabled):where(
-  :not(.ghost):not(.linkish):not(.template-card-hit):not(.marketplace-card-preview):not(.marketplace-card-star):not(.marketplace-fav-toggle):not(.recipient-chip):not(.draft-card-head):not(.toast-banner-close):not(.template-card-delete):not(.sent-row-head):not(.file-pick-btn):not(.nav-dropdown-trigger)
+  :not(.ghost):not(.linkish):not(.template-card-hit):not(.marketplace-card-preview):not(.marketplace-card-star):not(.marketplace-fav-toggle):not(.recipient-chip):not(.recipient-chip-remove):not(.compose-subject-tag):not(.draft-card-head):not(.toast-banner-close):not(.template-card-delete):not(.sent-row-head):not(.file-pick-btn):not(.nav-dropdown-trigger)
 ) {
   background: var(--accent-deep);
   box-shadow: 0 10px 24px rgba(15, 107, 92, 0.28);
@@ -654,6 +654,44 @@ button.ghost:hover:not(:disabled) {
 
 .admin-subnav-hub {
   margin-right: 0.25rem;
+}
+
+.admin-honorific-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-honorific-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-honorific-list input {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.admin-honorific-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.admin-honorific-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-honorific-add input {
+  flex: 1 1 12rem;
+  min-width: 8rem;
 }
 
 .admin-expand-row {
@@ -1674,6 +1712,12 @@ button.linkish:disabled {
   font: inherit;
 }
 
+.form-stack input[readonly] {
+  background: color-mix(in srgb, var(--ink) 3.5%, #fff);
+  color: var(--ink);
+  cursor: default;
+}
+
 .form-stack textarea {
   resize: vertical;
   font-family: ui-monospace, Consolas, monospace;
@@ -2368,6 +2412,55 @@ button.danger-text {
   margin: -0.35rem 0 0;
 }
 
+.compose-subject-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.compose-subject-tag {
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px dashed var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-shadow: none;
+  transform: none;
+}
+
+.compose-subject-tag.is-active {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, #fff);
+  color: var(--ink);
+}
+
+.compose-subject-tag:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--ink);
+  box-shadow: none;
+  transform: none;
+}
+
+.compose-honorific-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.compose-honorific-row select {
+  width: auto;
+  min-width: 5.5rem;
+}
+
 .compose-subject-preview {
   margin: -0.15rem 0 0.25rem;
 }
@@ -2403,8 +2496,85 @@ button.danger-text {
 .recipient-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.45rem;
   min-height: 0.25rem;
+}
+
+.recipient-chip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.55rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  max-width: 100%;
+}
+
+.recipient-title-tick {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+.recipient-title-tick input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.recipient-chip-body {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.recipient-chip-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.recipient-chip-body em {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.recipient-title-select {
+  width: auto;
+  min-width: 4.75rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.recipient-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  box-shadow: none;
+  transform: none;
+}
+
+.recipient-chip-remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 8%, #fff);
+  color: var(--ink);
+  box-shadow: none;
+  transform: none;
 }
 
 .recipient-chip {
@@ -2487,6 +2657,18 @@ button.danger-text {
 
 .recipient-hits button:hover:not(:disabled) span {
   color: var(--muted);
+}
+
+.compose-unavailable {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  border: 1px solid var(--line);
+}
+
+.compose-feature-notice {
+  margin-top: 0.75rem;
 }
 
 .compose-sender {

@@ -16,6 +16,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { AdminPeoplePage } from "./pages/AdminPeoplePage";
 import { AdminSendSummaryPage } from "./pages/AdminSendSummaryPage";
 import { AdminAuditPage } from "./pages/AdminAuditPage";
+import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { EmailsHomePage } from "./pages/EmailsHomePage";
 import { COMPOSE_ENABLED } from "./features";
 import { canManageDesigns, isAdmin } from "./lib/roles";
@@ -121,6 +122,14 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminPeoplePage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <AdminRoute>
+                  <AdminSettingsPage />
                 </AdminRoute>
               }
             />

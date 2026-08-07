@@ -30,6 +30,20 @@ import {
   type ImageSlotDef,
 } from "./imageSlots";
 
+function resolveDefaultSubjectForSave(
+  options?: {
+    defaultSubject?: string;
+    previousDesignJson?: Record<string, unknown>;
+  },
+): string | undefined {
+  if (typeof options?.defaultSubject === "string") {
+    return options.defaultSubject.trim().slice(0, 300);
+  }
+  const prev = options?.previousDesignJson?.defaultSubject;
+  if (typeof prev === "string") return prev.trim().slice(0, 300);
+  return undefined;
+}
+
 /** Parse a Canva ZIP in the browser and list placeholders + image slots (no upload). */
 export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
   placeholders: PlaceholderDef[];
@@ -69,10 +83,13 @@ export async function importCanvaZipToTemplate(
     ignoredPlaceholders?: string[];
     /** When true, crop solid white letterboxing above/below the design. */
     trimWhiteMargins?: boolean;
+    /** Owner-configured subject Compose should start with. */
+    defaultSubject?: string;
   },
 ) {
   const { html, assets } = await parseCanvaZip(zipFile);
   const uploads: Array<{ fileName: string; path: string; url: string }> = [];
+  const defaultSubject = resolveDefaultSubjectForSave(options);
 
   for (const asset of assets) {
     const file = new File([asset.blob], asset.fileName, {
@@ -180,6 +197,7 @@ export async function importCanvaZipToTemplate(
       placeholders,
       imageSlots,
       ignoredPlaceholders: ignored,
+      ...(defaultSubject !== undefined ? { defaultSubject } : {}),
       ...(trimMeta
         ? {
             trimWhiteMargins: trimMeta.enabled,
@@ -253,12 +271,14 @@ export async function importDesignImageToTemplate(
   options?: {
     previousImageSlots?: ImageSlotDef[];
     previousDesignJson?: Record<string, unknown>;
+    defaultSubject?: string;
   },
 ) {
   const { blob, fileName, width } = await fileToDesignImageBlob(file);
   const uploadFile = new File([blob], fileName, {
     type: blob.type || "image/png",
   });
+  const defaultSubject = resolveDefaultSubjectForSave(options);
 
   try {
     await api.purgeCompiledAssets(token, templateId);
@@ -303,6 +323,7 @@ export async function importDesignImageToTemplate(
       width,
       importedAt: new Date().toISOString(),
       imageSlots,
+      ...(defaultSubject !== undefined ? { defaultSubject } : {}),
     },
     compiledHtml,
     previewUrl: compiled.url,

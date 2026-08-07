@@ -62,3 +62,8 @@ export type OutboundDraft = Prisma.OutboundDraftModel
  * 
  */
 export type AuditEvent = Prisma.AuditEventModel
+/**
+ * Model AppSetting
+ * Key/value app settings (e.g. Compose name prefixes).
+ */
+export type AppSetting = Prisma.AppSettingModel

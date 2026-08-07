@@ -16,6 +16,8 @@ import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import {
+  FALLBACK_DEFAULT_SUBJECT,
+  parseDefaultSubjectFromDesignJson,
   parseIgnoredPlaceholdersFromDesignJson,
   parsePlaceholdersFromDesignJson,
   syncPlaceholdersWithHtml,
@@ -140,6 +142,7 @@ export function TemplateDetailPage() {
   const navigate = useNavigate();
   const [template, setTemplate] = useState<TemplateSummary | null>(null);
   const [name, setName] = useState("");
+  const [defaultSubject, setDefaultSubject] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [html, setHtml] = useState("");
@@ -172,6 +175,11 @@ export function TemplateDetailPage() {
     setVisibility(t.visibility);
     setCategoryId(t.category?.id ?? null);
     setHtml(t.versions[0]?.compiledHtml ?? "");
+    setDefaultSubject(
+      parseDefaultSubjectFromDesignJson(
+        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
+      ),
+    );
     setPlaceholders(
       parsePlaceholdersFromDesignJson(
         (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
@@ -317,6 +325,15 @@ export function TemplateDetailPage() {
         status: visibility === "SHARED" ? "PUBLISHED" : "DRAFT",
         categoryId,
       });
+      const cleanedSubject = defaultSubject.trim().slice(0, 300);
+      await api.saveTemplateVersion(token, id, {
+        designJson: {
+          ...latestDesignJson,
+          defaultSubject: cleanedSubject,
+        },
+        compiledHtml: html,
+        previewUrl: previewImageUrl,
+      });
       await reload();
       setNotice("Saved settings.");
     } catch (err) {
@@ -433,6 +450,7 @@ export function TemplateDetailPage() {
           previousDesignJson: latestDesignJson,
           ignoredPlaceholders,
           trimWhiteMargins,
+          defaultSubject,
         });
       await reload();
       const notes: string[] = [];
@@ -485,6 +503,7 @@ export function TemplateDetailPage() {
           placeholders: cleaned,
           ignoredPlaceholders,
           imageSlots: cleanedSlots,
+          defaultSubject: defaultSubject.trim().slice(0, 300),
         },
         compiledHtml: html,
         previewUrl: previewImageUrl,
@@ -525,6 +544,7 @@ export function TemplateDetailPage() {
           placeholders: cleaned,
           ignoredPlaceholders,
           imageSlots: cleanedSlots,
+          defaultSubject: defaultSubject.trim().slice(0, 300),
         },
         compiledHtml: html,
         previewUrl: previewImageUrl,
@@ -615,6 +635,7 @@ export function TemplateDetailPage() {
         {
           previousImageSlots: imageSlots,
           previousDesignJson: latestDesignJson,
+          defaultSubject,
         },
       );
       await reload();
@@ -713,6 +734,22 @@ export function TemplateDetailPage() {
             maxLength={160}
           />
         </label>
+
+        <label>
+          Default subject
+          <input
+            value={defaultSubject}
+            onChange={(e) => setDefaultSubject(e.target.value)}
+            disabled={!canEdit}
+            maxLength={300}
+            placeholder={FALLBACK_DEFAULT_SUBJECT}
+          />
+        </label>
+        <p className="muted small">
+          Compose starts with this subject for every send. Use placeholders like{" "}
+          <code>{"{{recipientName}}"}</code>. Leave blank to use{" "}
+          <code>{FALLBACK_DEFAULT_SUBJECT}</code>.
+        </p>
 
         <label>
           Visibility

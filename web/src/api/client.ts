@@ -547,6 +547,31 @@ export const api = {
 
   adminDeleteUser: (token: string, id: string) =>
     request<void>(`/admin/users/${id}`, { method: "DELETE", token }),
+
+  nameHonorifics: (token: string) =>
+    request<{ honorifics: Array<{ value: string; label: string }> }>(
+      "/settings/name-honorifics",
+      { token },
+    ),
+
+  adminNameHonorifics: (token: string) =>
+    request<{ honorifics: Array<{ value: string; label: string }> }>(
+      "/admin/settings/name-honorifics",
+      { token },
+    ),
+
+  adminUpdateNameHonorifics: (
+    token: string,
+    honorifics: Array<{ value: string; label: string }>,
+  ) =>
+    request<{ honorifics: Array<{ value: string; label: string }> }>(
+      "/admin/settings/name-honorifics",
+      {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ honorifics }),
+      },
+    ),
 };
 
 export function assetUrl(storageKey: string) {

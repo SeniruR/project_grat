@@ -4,6 +4,19 @@ import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
 import { parseAppRole } from "../lib/roles.js";
 import type { Prisma } from "../../generated/prisma/client.js";
+import {
+  DEFAULT_NAME_HONORIFICS,
+  NAME_HONORIFICS_SETTING_KEY,
+  normalizeNameHonorifics,
+} from "../lib/nameHonorifics.js";
+
+async function loadNameHonorifics() {
+  const row = await prisma.appSetting.findUnique({
+    where: { key: NAME_HONORIFICS_SETTING_KEY },
+  });
+  if (!row) return [...DEFAULT_NAME_HONORIFICS];
+  return normalizeNameHonorifics(row.value);
+}
 
 export const adminRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -315,6 +328,61 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       });
 
       return reply.code(204).send();
+    },
+  );
+
+  app.get(
+    "/admin/settings/name-honorifics",
+    { preHandler: [app.requireAdmin] },
+    async () => ({ honorifics: await loadNameHonorifics() }),
+  );
+
+  app.put(
+    "/admin/settings/name-honorifics",
+    { preHandler: [app.requireAdmin] },
+    async (request, reply) => {
+      const actor = request.appUser!;
+      const body = z
+        .object({
+          honorifics: z
+            .array(
+              z.object({
+                value: z.string().min(1).max(40),
+                label: z.string().min(1).max(40).optional(),
+              }),
+            )
+            .max(40),
+        })
+        .safeParse(request.body);
+      if (!body.success) {
+        return reply.code(400).send({ error: "Invalid prefix list" });
+      }
+
+      const honorifics = normalizeNameHonorifics(
+        body.data.honorifics.map((h) => ({
+          value: h.value,
+          label: h.label ?? h.value,
+        })),
+      );
+
+      await prisma.appSetting.upsert({
+        where: { key: NAME_HONORIFICS_SETTING_KEY },
+        create: {
+          key: NAME_HONORIFICS_SETTING_KEY,
+          value: honorifics,
+        },
+        update: { value: honorifics },
+      });
+
+      await writeAudit({
+        actorId: actor.id,
+        action: "settings.name_honorifics_update",
+        entityType: "app_setting",
+        entityId: NAME_HONORIFICS_SETTING_KEY,
+        payload: { count: honorifics.length, honorifics },
+      });
+
+      return { honorifics };
     },
   );
 };

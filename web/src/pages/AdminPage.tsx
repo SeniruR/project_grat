@@ -95,6 +95,14 @@ export function AdminPage() {
           <h2>People</h2>
           <p>Assign Admin, Designer, or User roles and remove unused accounts.</p>
         </Link>
+        <Link to="/admin/settings" className="catalog-tile catalog-tile--live">
+          <span className="catalog-type">SETTINGS</span>
+          <h2>Compose settings</h2>
+          <p>
+            Choose which name titles (Mr., Mrs., Sir, …) appear in Compose
+            dropdowns.
+          </p>
+        </Link>
         <Link to="/admin/audit" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">AUDIT</span>
           <h2>Audit log</h2>

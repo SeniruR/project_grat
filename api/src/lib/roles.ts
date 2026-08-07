@@ -15,6 +15,11 @@ export function canManageDesigns(user: RoleUser) {
   return isDesigner(user);
 }
 
+/** Shared/per-person placeholders and image overrides during Compose. */
+export function canUseAdvancedCompose(user: RoleUser) {
+  return isDesigner(user);
+}
+
 export function canViewTemplate(
   template: { ownerId: string; visibility: string; status: string },
   user: RoleUser,

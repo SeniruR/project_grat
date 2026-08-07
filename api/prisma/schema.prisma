@@ -199,3 +199,12 @@ model AuditEvent {
   @@index([actorId])
   @@map("audit_events")
 }
+
+/// Key/value app settings (e.g. Compose name prefixes).
+model AppSetting {
+  key       String   @id
+  value     Json     @default("{}")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
