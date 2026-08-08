@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { buildEmailDocument } from "../lib/copyEmail";
 import {
   inferEmailWidth,
   measureEmailContentHeight,
 } from "../lib/rasterizeEmailHtml";
+import { rewriteMediaUrlsInHtml } from "../lib/mediaUrl";
 import type { SentItem } from "../api/client";
 
 type Props = {
@@ -13,8 +15,8 @@ type Props = {
 };
 
 /**
- * Popup preview for a sent email: width-fits the modal, scrolls vertically
- * for the full message height (fixes the tiny centered card in a gray box).
+ * Popup preview for a sent email. Portaled to document.body so page
+ * animations/transforms cannot trap position:fixed off-screen.
  */
 export function SentPreviewModal({ item, onClose }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -28,10 +30,9 @@ export function SentPreviewModal({ item, onClose }: Props) {
   );
 
   const srcDoc = useMemo(() => {
-    const html = (item.bodyHtml ?? "").trim();
+    const html = rewriteMediaUrlsInHtml((item.bodyHtml ?? "").trim());
     if (!html) return "";
     const doc = buildEmailDocument(html);
-    // Force auto height so measurement matches content, not a tall empty canvas.
     return doc.replace(
       /<\/head>/i,
       `<style>
@@ -53,8 +54,13 @@ export function SentPreviewModal({ item, onClose }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [onClose]);
 
   useEffect(() => {
@@ -106,7 +112,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="app-modal-backdrop"
       role="presentation"
@@ -124,7 +130,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
             <p className="eyebrow">Sent preview</p>
             <h2 id="sent-preview-title">{item.subject}</h2>
             <p className="muted small">
-              To {item.recipientName || "—"} &lt;{item.recipientEmail}&gt; ·{" "}
+              To {item.recipientName || "-"} &lt;{item.recipientEmail}&gt; ·{" "}
               {item.job.template.name} ·{" "}
               {new Date(item.createdAt).toLocaleString()} ·{" "}
               <Link to={`/drafts/${item.job.id}`}>Open job</Link>
@@ -174,6 +180,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
           for full height
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

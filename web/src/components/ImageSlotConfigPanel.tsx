@@ -15,6 +15,7 @@ type Props = {
   onRescan?: () => void;
   title?: string;
   description?: string;
+  className?: string;
 };
 
 /**
@@ -31,6 +32,7 @@ export function ImageSlotConfigPanel({
   onRescan,
   title = "Image slots",
   description,
+  className,
 }: Props) {
   function updateRow(
     index: number,
@@ -41,12 +43,17 @@ export function ImageSlotConfigPanel({
 
   const blurb =
     description ??
-    `Images detected in the email HTML. Mark slots as shared or per-person so Compose can swap pictures without moving layout. Fixed slots keep the template image.`;
+    `Images from your design. Mark which can be swapped when sending.`;
 
-  const Wrapper = showActions ? "section" : "div";
-  const wrapperClass = showActions
-    ? "panel placeholder-config image-slot-config"
-    : "placeholder-config image-slot-config is-embedded";
+  const Wrapper = "section";
+  const wrapperClass = [
+    "panel",
+    "placeholder-config",
+    "image-slot-config",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Wrapper className={wrapperClass}>

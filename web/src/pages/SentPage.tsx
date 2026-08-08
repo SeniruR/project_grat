@@ -10,7 +10,6 @@ export function SentPage() {
   const { token, user } = useAuth();
   const [items, setItems] = useState<SentItem[]>([]);
   const [q, setQ] = useState("");
-  const [mailMode, setMailMode] = useState("mock");
   const [error, setError] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<SentItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +21,6 @@ export function SentPage() {
     try {
       const res = await api.sentHistory(token, search);
       setItems(res.items);
-      setMailMode(res.mailMode);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load sent mail");
     } finally {
@@ -41,22 +39,22 @@ export function SentPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Sent History" },
+          { label: "Sent" },
         ]}
       />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Emails</p>
-          <h1>Sent History</h1>
+          <p className="eyebrow">Cards</p>
+          <h1>Sent</h1>
           <p className="lede">
             What you sent, to whom, and when
-            {isAdmin(user) ? " (admins see everyone’s sends)" : ""}. Mail mode{" "}
-            <code>{mailMode}</code>. Click a row to open a full preview.
+            {isAdmin(user) ? " (admins see everyone’s sends)" : ""}. Click a
+            row to open a full preview.
           </p>
         </div>
       </header>
 
-      <div className="marketplace-toolbar">
+      <div className="marketplace-toolbar sent-toolbar">
         <label className="marketplace-search">
           <span className="visually-hidden">Search</span>
           <input
@@ -68,7 +66,7 @@ export function SentPage() {
             placeholder="Search subject, recipient, or card…"
           />
         </label>
-        <button type="button" onClick={() => void reload(q)}>
+        <button type="button" className="sent-search-btn" onClick={() => void reload(q)}>
           Search
         </button>
         <Link className="ghost small" to="/drafts">
@@ -81,7 +79,7 @@ export function SentPage() {
 
       {!loading && items.length === 0 ? (
         <p className="muted">
-          No sends yet. Pick a card from the marketplace and compose.
+          No sends yet. Pick a card from Browse cards and send it.
         </p>
       ) : (
         <ul className="sent-list">

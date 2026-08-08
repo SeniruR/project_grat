@@ -103,7 +103,7 @@ export function AdminPeoplePage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin Panel", to: "/admin" },
+          { label: "Admin", to: "/admin" },
           { label: "People" },
         ]}
       />
@@ -113,8 +113,8 @@ export function AdminPeoplePage() {
           <p className="eyebrow">Admin</p>
           <h1>People</h1>
           <p className="lede">
-            Assign Admin, Designer, or User roles. Designers manage templates;
-            users browse Templates and send.
+            Assign Admin, Designer, or User roles. Designers manage cards;
+            users browse and send.
           </p>
         </div>
       </header>
@@ -133,7 +133,7 @@ export function AdminPeoplePage() {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
-                  <th>Templates</th>
+                  <th>Cards</th>
                   <th>Jobs</th>
                   <th></th>
                 </tr>
@@ -173,7 +173,7 @@ export function AdminPeoplePage() {
                           Delete
                         </button>
                       ) : (
-                        <span className="muted small">—</span>
+                        <span className="muted small">-</span>
                       )}
                     </td>
                   </tr>

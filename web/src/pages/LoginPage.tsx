@@ -45,71 +45,80 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
-      <div className="login-panel">
-        <p className="eyebrow">Intranet</p>
-        <h1>Gratitude</h1>
-        <p className="lede">
-          Dev sign-in stand-in for Azure AD. Pick a role to try Admin, Designer,
-          or User experiences.
-        </p>
+      <div className="login-stage">
+        <section className="login-hero" aria-label="Gratitude">
+          <p className="login-kicker">Internal recognition</p>
+          <h1 className="login-brand">Gratitude</h1>
+          <p className="login-tagline">
+            Send thank-you cards to colleagues across the organization.
+          </p>
+        </section>
 
-        <form className="login-form" onSubmit={onSubmit}>
-          <label>
-            Display name
-            <input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-              autoComplete="name"
-            />
-          </label>
-          <label>
-            Work email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </label>
-          <fieldset className="choice-set">
-            <legend>Role</legend>
-            <label className="check">
-              <input
-                type="radio"
-                name="role"
-                checked={role === "USER"}
-                onChange={() => setRole("USER")}
-              />
-              User — marketplace + send only
-            </label>
-            <label className="check">
-              <input
-                type="radio"
-                name="role"
-                checked={role === "DESIGNER"}
-                onChange={() => setRole("DESIGNER")}
-              />
-              Designer — designs + send
-            </label>
-            <label className="check">
-              <input
-                type="radio"
-                name="role"
-                checked={role === "ADMIN"}
-                onChange={() => setRole("ADMIN")}
-              />
-              Admin — everything + user management
-            </label>
-          </fieldset>
-          {error ? <p className="error">{error}</p> : null}
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Signing in…" : "Enter intranet"}
-          </button>
-        </form>
+        <section className="login-panel">
+          <h2>Sign in</h2>
+          <p className="lede">
+            Use your work details. Pick a role to preview how each experience
+            looks.
+          </p>
 
-        <p className="mode-line">{modes}</p>
+          <form className="login-form" onSubmit={onSubmit}>
+            <label>
+              Display name
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+                autoComplete="name"
+              />
+            </label>
+            <label>
+              Work email
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </label>
+            <fieldset className="choice-set">
+              <legend>Role</legend>
+              <label className="check">
+                <input
+                  type="radio"
+                  name="role"
+                  checked={role === "USER"}
+                  onChange={() => setRole("USER")}
+                />
+                User - browse and send
+              </label>
+              <label className="check">
+                <input
+                  type="radio"
+                  name="role"
+                  checked={role === "DESIGNER"}
+                  onChange={() => setRole("DESIGNER")}
+                />
+                Designer - create cards and send
+              </label>
+              <label className="check">
+                <input
+                  type="radio"
+                  name="role"
+                  checked={role === "ADMIN"}
+                  onChange={() => setRole("ADMIN")}
+                />
+                Admin - full access
+              </label>
+            </fieldset>
+            {error ? <p className="error">{error}</p> : null}
+            <button type="submit" disabled={submitting}>
+              {submitting ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+
+          <p className="mode-line">{modes}</p>
+        </section>
       </div>
     </div>
   );

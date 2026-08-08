@@ -88,7 +88,7 @@ export type TemplateCategory = {
   createdAt?: string;
   updatedAt?: string;
   createdBy?: { id: string; displayName: string; email: string } | null;
-  _count?: { templates: number };
+  _count?: { templates: number; shared?: number };
 };
 
 export type TemplateSummary = {

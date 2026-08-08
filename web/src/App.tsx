@@ -1,4 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  RouterProvider,
+  createBrowserRouter,
+  createRoutesFromElements,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { AppShell } from "./AppShell";
 import { LoginPage } from "./pages/LoginPage";
@@ -34,117 +40,121 @@ function AdminRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<AppShell />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/emails" element={<EmailsHomePage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/marketplace/:id" element={<MarketplaceDetailPage />} />
+        <Route
+          path="/cards"
+          element={
+            <DesignerRoute>
+              <CardsPage />
+            </DesignerRoute>
+          }
+        />
+        <Route
+          path="/cards/new"
+          element={
+            <DesignerRoute>
+              <NewTemplatePage />
+            </DesignerRoute>
+          }
+        />
+        <Route
+          path="/cards/:id/compose"
+          element={
+            COMPOSE_ENABLED ? (
+              <ComposePage />
+            ) : (
+              <Navigate to="/marketplace" replace />
+            )
+          }
+        />
+        <Route
+          path="/cards/:id"
+          element={
+            <DesignerRoute>
+              <TemplateDetailPage />
+            </DesignerRoute>
+          }
+        />
+        <Route
+          path="/sent"
+          element={
+            COMPOSE_ENABLED ? <SentPage /> : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/drafts"
+          element={
+            COMPOSE_ENABLED ? <DraftsPage /> : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/drafts/:jobId"
+          element={
+            COMPOSE_ENABLED ? (
+              <DraftJobPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/summary"
+          element={
+            <AdminRoute>
+              <AdminSendSummaryPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/people"
+          element={
+            <AdminRoute>
+              <AdminPeoplePage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminRoute>
+              <AdminSettingsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/audit"
+          element={
+            <AdminRoute>
+              <AdminAuditPage />
+            </AdminRoute>
+          }
+        />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </>,
+  ),
+);
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route element={<AppShell />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/emails" element={<EmailsHomePage />} />
-            <Route path="/marketplace" element={<MarketplacePage />} />
-            <Route path="/marketplace/:id" element={<MarketplaceDetailPage />} />
-            <Route
-              path="/cards"
-              element={
-                <DesignerRoute>
-                  <CardsPage />
-                </DesignerRoute>
-              }
-            />
-            <Route
-              path="/cards/new"
-              element={
-                <DesignerRoute>
-                  <NewTemplatePage />
-                </DesignerRoute>
-              }
-            />
-            <Route
-              path="/cards/:id/compose"
-              element={
-                COMPOSE_ENABLED ? (
-                  <ComposePage />
-                ) : (
-                  <Navigate to="/marketplace" replace />
-                )
-              }
-            />
-            <Route
-              path="/cards/:id"
-              element={
-                <DesignerRoute>
-                  <TemplateDetailPage />
-                </DesignerRoute>
-              }
-            />
-            <Route
-              path="/sent"
-              element={
-                COMPOSE_ENABLED ? <SentPage /> : <Navigate to="/" replace />
-              }
-            />
-            <Route
-              path="/drafts"
-              element={
-                COMPOSE_ENABLED ? <DraftsPage /> : <Navigate to="/" replace />
-              }
-            />
-            <Route
-              path="/drafts/:jobId"
-              element={
-                COMPOSE_ENABLED ? (
-                  <DraftJobPage />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/summary"
-              element={
-                <AdminRoute>
-                  <AdminSendSummaryPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/people"
-              element={
-                <AdminRoute>
-                  <AdminPeoplePage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/settings"
-              element={
-                <AdminRoute>
-                  <AdminSettingsPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/audit"
-              element={
-                <AdminRoute>
-                  <AdminAuditPage />
-                </AdminRoute>
-              }
-            />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </AuthProvider>
   );
 }

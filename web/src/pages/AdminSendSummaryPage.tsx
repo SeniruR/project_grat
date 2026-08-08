@@ -43,7 +43,7 @@ export function AdminSendSummaryPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin Panel", to: "/admin" },
+          { label: "Admin", to: "/admin" },
           { label: "Send summary" },
         ]}
       />
@@ -53,8 +53,8 @@ export function AdminSendSummaryPage() {
           <p className="eyebrow">Admin</p>
           <h1>Send summary</h1>
           <p className="lede">
-            Per-user outbound activity. Click a row to see every job and email —
-            same coverage as Sent History for that user.
+            Per-user outbound activity. Click a row to see every job and email -
+            same coverage as Sent for that user.
           </p>
         </div>
       </header>
@@ -139,7 +139,7 @@ function SummaryRow({
         <td>
           {row.lastSentAt
             ? new Date(row.lastSentAt).toLocaleString()
-            : "—"}
+            : "-"}
         </td>
       </tr>
       {open ? (

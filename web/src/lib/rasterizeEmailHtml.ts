@@ -28,7 +28,7 @@ export function inferEmailWidth(html: string, fallback = 600) {
 /**
  * True content height of an email document in an iframe.
  *
- * Never expands the iframe to a huge temp height — Canva / email CSS often
+ * Never expands the iframe to a huge temp height - Canva / email CSS often
  * uses height:100%, which then reports ~10000px and leaves empty canvas.
  * Measure painted element bounds with html/body forced to height:auto.
  */
@@ -173,7 +173,7 @@ async function inlineDocumentImages(doc: Document) {
       if (!src || src.startsWith("data:")) return;
       try {
         const fetchUrl = resolveMediaUrl(src) ?? src;
-        // Public /uploads — omit credentials so CORS stays simple cross-origin.
+        // Public /uploads - omit credentials so CORS stays simple cross-origin.
         const res = await fetch(fetchUrl, { credentials: "omit", mode: "cors" });
         if (!res.ok) return;
         const blob = await res.blob();

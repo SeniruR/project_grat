@@ -8,4 +8,4 @@ export const COMPOSE_ENABLED =
   (import.meta.env.DEV && import.meta.env.VITE_COMPOSE_ENABLED !== "false");
 
 export const COMPOSE_UNAVAILABLE_REASON =
-  "Compose starts when Entra ID sign-in and server mail placement are completed.";
+  "Sending will be available when sign-in and mail delivery are fully set up.";

@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
-/** Admin hub — stats + links to Summary, People, Audit. */
+/** Admin hub - stats + links to Summary, People, Audit. */
 export function AdminPage() {
   const { token, user } = useAuth();
   const [stats, setStats] = useState<{
@@ -41,16 +41,15 @@ export function AdminPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin Panel" },
+          { label: "Admin" },
         ]}
       />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Emails</p>
-          <h1>Admin Panel</h1>
+          <p className="eyebrow">Cards</p>
+          <h1>Admin</h1>
           <p className="lede">
-            Review send activity, manage people and roles, and inspect the audit
-            log.
+            People, send activity, and the activity log.
           </p>
         </div>
       </header>
@@ -64,12 +63,12 @@ export function AdminPage() {
             <span>Users</span>
           </div>
           <div>
-            <strong>{stats.designers ?? "—"}</strong>
+            <strong>{stats.designers ?? "-"}</strong>
             <span>Designers</span>
           </div>
           <div>
             <strong>{stats.templates}</strong>
-            <span>Templates</span>
+            <span>Cards</span>
           </div>
           <div>
             <strong>{stats.drafts}</strong>
@@ -88,7 +87,7 @@ export function AdminPage() {
         <Link to="/admin/summary" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">SUMMARY</span>
           <h2>Send summary</h2>
-          <p>See what each user has sent — jobs, message counts, and recent cards.</p>
+          <p>See what each user has sent - jobs, message counts, and recent cards.</p>
         </Link>
         <Link to="/admin/people" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">PEOPLE</span>
@@ -97,16 +96,16 @@ export function AdminPage() {
         </Link>
         <Link to="/admin/settings" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">SETTINGS</span>
-          <h2>Compose settings</h2>
+          <h2>Send settings</h2>
           <p>
             Choose which name titles (Mr., Mrs., Sir, …) become recipient groups
-            in Compose.
+            when sending.
           </p>
         </Link>
         <Link to="/admin/audit" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">AUDIT</span>
           <h2>Audit log</h2>
-          <p>Browse detailed events — expand a row to inspect the payload.</p>
+          <p>Browse detailed events - expand a row to inspect the payload.</p>
         </Link>
       </div>
     </div>

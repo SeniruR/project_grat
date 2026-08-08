@@ -43,7 +43,7 @@ function rowIsBlank(
     const r = data[i] ?? 0;
     const g = data[i + 1] ?? 0;
     const b = data[i + 2] ?? 0;
-    // Near-white only — cream/beige card backgrounds are kept.
+    // Near-white only - cream/beige card backgrounds are kept.
     if (r >= threshold && g >= threshold && b >= threshold) blank++;
   }
   return blank / width >= minRatio;

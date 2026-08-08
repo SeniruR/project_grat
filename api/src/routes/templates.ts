@@ -556,7 +556,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({
           error:
             kind === "compiled"
-              ? "Compiled image is too large — simplify the design"
+              ? "Compiled image is too large - simplify the design"
               : "Image must be 5MB or smaller",
         });
       }

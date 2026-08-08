@@ -29,13 +29,13 @@ export function DraftsPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Sent History", to: "/sent" },
+          { label: "Sent", to: "/sent" },
           { label: "Draft jobs" },
         ]}
       />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Emails</p>
+          <p className="eyebrow">Cards</p>
           <h1>Draft jobs</h1>
           <p className="lede">
             Mock Outlook drafts created from cards · mail mode{" "}

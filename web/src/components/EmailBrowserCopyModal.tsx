@@ -13,11 +13,11 @@ export type OutlookPasteMode = "html" | "png" | "auto";
 
 type Props = {
   html: string;
-  /** Compiled PNG from Save & compile — used for PNG Outlook paste */
+  /** Compiled PNG from Save & compile - used for PNG Outlook paste */
   pngUrl?: string | null;
-  /** Designer canvas width — sizes the preview to match */
+  /** Designer canvas width - sizes the preview to match */
   designWidth?: number;
-  /** Designer canvas height — sizes the preview to match */
+  /** Designer canvas height - sizes the preview to match */
   designHeight?: number;
   /**
    * How Copy for Outlook should paste:
@@ -143,8 +143,8 @@ export function EmailBrowserCopyModal({
         await copyEmailHtmlForPaste(html);
         setNotice(
           fragileHtml
-            ? "Copied HTML. If Outlook shifts the header or fonts, that is Outlook’s Word engine ignoring modern CSS — try a simpler Canva layout or an image card for a fixed look."
-            : "Copied HTML for Outlook — paste with Ctrl+V. Text should be selectable.",
+            ? "Copied HTML. If Outlook shifts the header or fonts, that is Outlook’s Word engine ignoring modern CSS - try a simpler Canva layout or an image card for a fixed look."
+            : "Copied HTML for Outlook - paste with Ctrl+V. Text should be selectable.",
         );
         return;
       }
@@ -156,7 +156,7 @@ export function EmailBrowserCopyModal({
           );
         }
         await copyEmailHtmlForPaste(html);
-        setNotice("Copied HTML — paste with Ctrl+V.");
+        setNotice("Copied HTML - paste with Ctrl+V.");
         return;
       }
       await copyOutlookPngForPaste({
@@ -165,7 +165,7 @@ export function EmailBrowserCopyModal({
         height: h,
       });
       setNotice(
-        "Copied card image for Outlook — paste with Ctrl+V. Layout and colors match your PNG preview.",
+        "Copied card image for Outlook - paste with Ctrl+V. Layout and colors match your PNG preview.",
       );
     } catch (err) {
       setError(
@@ -186,7 +186,7 @@ export function EmailBrowserCopyModal({
     try {
       await copyEmailHtmlForPaste(html);
       setNotice(
-        "Copied HTML (selectable text). Outlook may still move header pieces — use PNG copy for a fixed look.",
+        "Copied HTML (selectable text). Outlook may still move header pieces - use PNG copy for a fixed look.",
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Copy failed.");
@@ -206,7 +206,7 @@ export function EmailBrowserCopyModal({
         <>
           {" "}
           Outlook Desktop (Word) often <strong>moves or restyles</strong> pieces
-          that rely on flex, absolute position, or web fonts — that is Outlook,
+          that rely on flex, absolute position, or web fonts - that is Outlook,
           not a bad copy. Browser preview can look fine while paste does not.
           For a pixel-perfect match, use an <strong>image upload</strong> card
           instead (text won’t be selectable).

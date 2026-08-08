@@ -25,12 +25,9 @@ export function canViewTemplate(
   user: RoleUser,
 ) {
   if (isAdmin(user) || template.ownerId === user.id) return true;
-  // Marketplace: shared + published cards for everyone (including designers)
-  if (template.visibility === "SHARED" && template.status === "PUBLISHED") {
-    return true;
-  }
-  // Designers can also peek at shared drafts from others (org collaboration)
-  if (isDesigner(user) && template.visibility === "SHARED") return true;
+  // Marketplace / Browse cards — shared cards are visible to everyone signed in.
+  // (status PUBLISHED is kept in sync when sharing; older SHARED+DRAFT rows still count.)
+  if (template.visibility === "SHARED") return true;
   return false;
 }
 
@@ -42,14 +39,14 @@ export function canEditTemplate(
   return canManageDesigns(user) && template.ownerId === user.id;
 }
 
-/** Normal users may only compose from marketplace (published shared) cards. */
+/** Normal users may compose any card they can open from Browse cards (shared). */
 export function canComposeTemplate(
   template: { ownerId: string; visibility: string; status: string },
   user: RoleUser,
 ) {
   if (!canViewTemplate(template, user)) return false;
   if (isDesigner(user)) return true;
-  return template.visibility === "SHARED" && template.status === "PUBLISHED";
+  return template.visibility === "SHARED";
 }
 
 export function parseAppRole(value: unknown): AppRole | null {

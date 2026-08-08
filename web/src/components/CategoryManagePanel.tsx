@@ -4,16 +4,23 @@ import { api, type TemplateCategory } from "../api/client";
 type Props = {
   token: string;
   currentUserId: string;
+  /** When set, render as a dialog body (caller supplies the modal shell). */
+  onClose?: () => void;
 };
+
+type StatusKind = "success" | "deleted" | "rejected";
 
 /**
  * Manage categories you created: rename or delete (delete only when unused).
  * Other designers’ categories are listed read-only.
  */
-export function CategoryManagePanel({ token, currentUserId }: Props) {
+export function CategoryManagePanel({
+  token,
+  currentUserId,
+  onClose,
+}: Props) {
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusKind | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
@@ -27,9 +34,7 @@ export function CategoryManagePanel({ token, currentUserId }: Props) {
   }
 
   useEffect(() => {
-    reload().catch((err) =>
-      setError(err instanceof Error ? err.message : "Failed to load categories"),
-    );
+    reload().catch(() => setStatus("rejected"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -40,14 +45,13 @@ export function CategoryManagePanel({ token, currentUserId }: Props) {
     const name = (drafts[cat.id] ?? "").trim();
     if (!name || name === cat.name) return;
     setBusyId(cat.id);
-    setError(null);
-    setNotice(null);
+    setStatus(null);
     try {
       await api.renameCategory(token, cat.id, name);
       await reload();
-      setNotice(`Renamed to “${name}”.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Rename failed");
+      setStatus("success");
+    } catch {
+      setStatus("rejected");
     } finally {
       setBusyId(null);
     }
@@ -56,14 +60,13 @@ export function CategoryManagePanel({ token, currentUserId }: Props) {
   async function remove(cat: TemplateCategory) {
     if ((cat._count?.templates ?? 0) > 0) return;
     setBusyId(cat.id);
-    setError(null);
-    setNotice(null);
+    setStatus(null);
     try {
       await api.deleteCategory(token, cat.id);
       await reload();
-      setNotice(`Deleted “${cat.name}”.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      setStatus("deleted");
+    } catch {
+      setStatus("rejected");
     } finally {
       setBusyId(null);
     }
@@ -73,39 +76,64 @@ export function CategoryManagePanel({ token, currentUserId }: Props) {
     const name = newName.trim();
     if (!name) return;
     setBusyId("new");
-    setError(null);
-    setNotice(null);
+    setStatus(null);
     try {
-      const { category, created } = await api.createCategory(token, name);
+      await api.createCategory(token, name);
       setNewName("");
       await reload();
-      setNotice(
-        created
-          ? `Created “${category.name}”.`
-          : `“${category.name}” already existed.`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setStatus("success");
+    } catch {
+      setStatus("rejected");
     } finally {
       setBusyId(null);
     }
   }
 
+  const statusLabel =
+    status === "success"
+      ? "Success"
+      : status === "deleted"
+        ? "Deleted"
+        : status === "rejected"
+          ? "Rejected"
+          : null;
+
   return (
-    <section className="panel category-manage form-stack">
+    <section
+      className={`category-manage form-stack ${onClose ? "is-modal" : "panel"}`}
+    >
       <header className="category-manage-header">
         <div>
-          <p className="eyebrow">Organization</p>
-          <h2>Categories</h2>
+          {onClose ? null : <p className="eyebrow">Organization</p>}
+          <h2 id="category-manage-title">Categories</h2>
           <p className="lede muted small">
-            Everyone can assign any category. Only you can rename or delete ones
-            you created (and only when no templates use them).
+            Assign any category to a card. Edit a name to save a rename. Delete
+            only works when no cards use the category.
           </p>
         </div>
+        {onClose ? (
+          <button type="button" className="ghost" onClick={onClose}>
+            Close
+          </button>
+        ) : null}
       </header>
 
-      {error ? <p className="error">{error}</p> : null}
-      {notice ? <p className="notice">{notice}</p> : null}
+      {status && statusLabel ? (
+        <div
+          className={`category-status is-${status === "rejected" ? "neutral" : "success"}`}
+          role={status === "rejected" ? "alert" : "status"}
+        >
+          <span>{statusLabel}</span>
+          <button
+            type="button"
+            className="category-status-dismiss"
+            aria-label="Dismiss"
+            onClick={() => setStatus(null)}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
 
       <div className="category-manage-create">
         <label className="category-manage-create-field">
@@ -140,49 +168,53 @@ export function CategoryManagePanel({ token, currentUserId }: Props) {
         ) : (
           <ul className="category-manage-list">
             {mine.map((cat) => {
-              const inUse = (cat._count?.templates ?? 0) > 0;
+              const usedCount = cat._count?.templates ?? 0;
+              const inUse = usedCount > 0;
               const dirty = (drafts[cat.id] ?? "").trim() !== cat.name;
               return (
                 <li key={cat.id} className="category-manage-row">
-                  <input
-                    value={drafts[cat.id] ?? cat.name}
-                    onChange={(e) =>
-                      setDrafts((prev) => ({
-                        ...prev,
-                        [cat.id]: e.target.value,
-                      }))
-                    }
-                    disabled={busyId === cat.id}
-                    maxLength={80}
-                    aria-label={`Rename ${cat.name}`}
-                  />
+                  <div className="category-manage-edit">
+                    <input
+                      value={drafts[cat.id] ?? cat.name}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [cat.id]: e.target.value,
+                        }))
+                      }
+                      disabled={busyId === cat.id}
+                      maxLength={80}
+                      aria-label={`Rename ${cat.name}`}
+                    />
+                    {dirty ? (
+                      <button
+                        type="button"
+                        className="ghost small"
+                        disabled={busyId === cat.id || !drafts[cat.id]?.trim()}
+                        onClick={() => void saveRename(cat)}
+                      >
+                        {busyId === cat.id ? "Saving…" : "Save"}
+                      </button>
+                    ) : null}
+                  </div>
                   <span className="category-manage-count">
-                    {cat._count?.templates ?? 0} template
-                    {(cat._count?.templates ?? 0) === 1 ? "" : "s"}
+                    {usedCount} card{usedCount === 1 ? "" : "s"}
                   </span>
-                  <div className="category-manage-actions">
-                    <button
-                      type="button"
-                      className="ghost small"
-                      disabled={busyId === cat.id || !dirty}
-                      onClick={() => void saveRename(cat)}
-                    >
-                      Save
-                    </button>
+                  {inUse ? (
+                    <span className="muted small category-manage-blocked">
+                      Can’t delete - used by {usedCount} card
+                      {usedCount === 1 ? "" : "s"}
+                    </span>
+                  ) : (
                     <button
                       type="button"
                       className="linkish danger-text"
-                      disabled={busyId === cat.id || inUse}
-                      title={
-                        inUse
-                          ? "Reassign or delete templates first"
-                          : "Delete category"
-                      }
+                      disabled={busyId === cat.id}
                       onClick={() => void remove(cat)}
                     >
                       Delete
                     </button>
-                  </div>
+                  )}
                 </li>
               );
             })}
@@ -200,7 +232,7 @@ export function CategoryManagePanel({ token, currentUserId }: Props) {
               <li key={cat.id} className="category-manage-row is-readonly">
                 <span className="category-manage-name">{cat.name}</span>
                 <span className="category-manage-count">
-                  {cat._count?.templates ?? 0} template
+                  {cat._count?.templates ?? 0} card
                   {(cat._count?.templates ?? 0) === 1 ? "" : "s"}
                   {cat.createdBy?.displayName
                     ? ` · ${cat.createdBy.displayName}`

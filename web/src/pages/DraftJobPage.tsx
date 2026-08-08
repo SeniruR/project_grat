@@ -55,18 +55,18 @@ export function DraftJobPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Sent History", to: "/sent" },
+          { label: "Sent", to: "/sent" },
           { label: job.template.name },
         ]}
       />
       {COMPOSE_ENABLED ? (
         <p className="back">
-          <Link to={`/cards/${job.template.id}/compose`}>Compose again</Link>
+          <Link to={`/cards/${job.template.id}/compose`}>Send again</Link>
         </p>
       ) : null}
       <header className="page-header">
         <div>
-          <p className="eyebrow">Emails</p>
+          <p className="eyebrow">Cards</p>
           <h1>
             {mailMode === "smtp"
               ? `${okCount} message${okCount === 1 ? "" : "s"} sent`
@@ -84,18 +84,18 @@ export function DraftJobPage() {
 
       {mailMode === "mock" ? (
         <p className="notice">
-          Mock mode — drafts are stored here only. Set{" "}
+          Mock mode - drafts are stored here only. Set{" "}
           <code>MAIL_MODE=smtp</code> (Gmail) or <code>MAIL_MODE=graph</code> in{" "}
           <code>api/.env</code> to send for real.
         </p>
       ) : mailMode === "smtp" ? (
         <p className="notice">
-          SMTP mode — messages were sent with images embedded in the email (not
+          SMTP mode - messages were sent with images embedded in the email (not
           linked from localhost). Check the recipient inbox.
         </p>
       ) : (
         <p className="notice">
-          Graph mode — drafts were created in Outlook (mailbox from the signed-in
+          Graph mode - drafts were created in Outlook (mailbox from the signed-in
           user email, or <code>GRAPH_MAILBOX_UPN</code>).
         </p>
       )}
@@ -127,11 +127,6 @@ export function DraftJobPage() {
                     <strong>Subject:</strong> {d.subject}
                   </p>
                   {d.error ? <p className="error">{d.error}</p> : null}
-                  {d.graphMessageId ? (
-                    <p className="muted small">
-                      Provider id: <code>{d.graphMessageId}</code>
-                    </p>
-                  ) : null}
                   {d.bodyHtml ? (
                     <>
                       {/\bcid:/i.test(d.bodyHtml) ? (

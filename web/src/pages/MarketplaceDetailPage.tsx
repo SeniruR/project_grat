@@ -65,7 +65,7 @@ export function MarketplaceDetailPage() {
     return (
       <div className="page">
         <p className="error">{error}</p>
-        <Link to="/marketplace">Back to Templates</Link>
+        <Link to="/marketplace">Back to Browse cards</Link>
       </div>
     );
   }
@@ -84,19 +84,18 @@ export function MarketplaceDetailPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Templates", to: "/marketplace" },
+          { label: "Browse cards", to: "/marketplace" },
           { label: card.name },
         ]}
       />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">Templates</p>
+          <p className="eyebrow">Browse cards</p>
           <h1>{card.name}</h1>
           <p className="lede">
             {card.category?.name ?? "Uncategorized"}
-            {" - "}
-            Designed by {card.owner.displayName}. Preview below, then personalize
-            and send.
+            {" · "}
+            by {card.owner.displayName}
           </p>
         </div>
         <div className="header-actions">
@@ -106,6 +105,8 @@ export function MarketplaceDetailPage() {
             disabled={busy}
             onClick={() => void toggleFavorite()}
             aria-pressed={Boolean(card.isFavorite)}
+            aria-label={card.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={card.isFavorite ? "Favorited" : "Favorite"}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
               <path
@@ -116,17 +117,16 @@ export function MarketplaceDetailPage() {
                 d="M12 3.6 14.7 9l5.9.5-4.5 3.9 1.4 5.7L12 16.8 6.5 19.1l1.4-5.7L3.4 9.5 9.3 9 12 3.6Z"
               />
             </svg>
-            <span>{card.isFavorite ? "Favorited" : "Favorite"}</span>
           </button>
           {COMPOSE_ENABLED ? (
             <button
               type="button"
               onClick={() => navigate(`/cards/${card.id}/compose`)}
             >
-              Use this card
+              Send this card
             </button>
           ) : (
-            <span className="muted small">Compose unavailable</span>
+            <span className="muted small">Sending is not available yet</span>
           )}
         </div>
       </header>

@@ -18,14 +18,7 @@ type Props = {
   pasteMode?: "html" | "png" | "auto";
 };
 
-const ZOOM_PRESETS = [
-  { label: "Fit", value: "fit" as const },
-  { label: "50%", value: 0.5 },
-  { label: "75%", value: 0.75 },
-  { label: "100%", value: 1 },
-];
-
-/** HTML email preview (Outlook Web-style) with zoom + copy actions. */
+/** HTML email preview - always width-fit, with optional copy actions. */
 export function OutlookDualPreview({
   html,
   pngUrl,
@@ -37,14 +30,12 @@ export function OutlookDualPreview({
 }: Props) {
   const safe = useMemo(() => html.trim(), [html]);
   const measureRef = useRef<HTMLDivElement | null>(null);
-  const [mode, setMode] = useState<"fit" | number>(1);
   const [fitZoom, setFitZoom] = useState(1);
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [browserCopyOpen, setBrowserCopyOpen] = useState(false);
 
   // Measure a stable width probe that is NOT affected by email zoom, so Fit
   // cannot ResizeObserver-loop (that was the preview "vibration").
-  // Fit may scale ABOVE 100% so a 600px design fills a wide single pane.
   useEffect(() => {
     const el = measureRef.current;
     if (!el) return;
@@ -74,14 +65,12 @@ export function OutlookDualPreview({
 
   if (!safe) return null;
 
-  const zoom = mode === "fit" ? fitZoom : mode;
-
   function openToCopy() {
     setCopyNotice(null);
     try {
       openEmailInNewTab(safe);
       setCopyNotice(
-        "Opened in a new tab — click that page, press Ctrl+A then Ctrl+C, then paste into Outlook (Ctrl+V).",
+        "Opened in a new tab - click that page, press Ctrl+A then Ctrl+C, then paste into Outlook (Ctrl+V).",
       );
     } catch (err) {
       setCopyNotice(err instanceof Error ? err.message : "Could not open tab");
@@ -96,18 +85,9 @@ export function OutlookDualPreview({
   return (
     <Wrapper className={wrapperClass}>
       <div className="outlook-preview-toolbar">
-        {embedded ? null : (
-          <div>
-            <h2>Preview</h2>
-            <p className="muted small tip">
-              Locked to canvas width ({designWidth}px). Default zoom is{" "}
-              <strong>100%</strong> (true size). <strong>Fit</strong> only
-              visually scales — it does not resize the card layout.
-            </p>
-          </div>
-        )}
-        <div className="outlook-preview-actions">
-          {showCopyActions ? (
+        {embedded ? null : <h2>Preview</h2>}
+        {showCopyActions ? (
+          <div className="outlook-preview-actions">
             <div className="outlook-copy" role="group" aria-label="Copy email">
               <button type="button" onClick={() => setBrowserCopyOpen(true)}>
                 Copy for Outlook
@@ -120,24 +100,8 @@ export function OutlookDualPreview({
                 Open in new tab
               </button>
             </div>
-          ) : null}
-          <div className="outlook-zoom" role="group" aria-label="Preview zoom">
-            <span className="outlook-zoom-label">Zoom</span>
-            {ZOOM_PRESETS.map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                className={`ghost small ${mode === p.value ? "active" : ""}`}
-                onClick={() => setMode(p.value)}
-              >
-                {p.label}
-              </button>
-            ))}
-            <span className="muted small outlook-zoom-pct">
-              {Math.round(zoom * 100)}%
-            </span>
           </div>
-        </div>
+        ) : null}
       </div>
       {copyNotice ? <p className="notice">{copyNotice}</p> : null}
       <div className="outlook-dual-scroll">
@@ -149,7 +113,7 @@ export function OutlookDualPreview({
                 className="email-preview-scale"
                 style={
                   {
-                    "--preview-zoom": String(zoom),
+                    "--preview-zoom": String(fitZoom),
                     "--preview-design-width": `${designWidth}px`,
                   } as CSSProperties
                 }

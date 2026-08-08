@@ -123,7 +123,7 @@ export function AdminSettingsPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin Panel", to: "/admin" },
+          { label: "Admin", to: "/admin" },
           { label: "Settings" },
         ]}
       />
@@ -131,11 +131,11 @@ export function AdminSettingsPage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Admin</p>
-          <h1>Compose settings</h1>
+          <h1>Send settings</h1>
           <p className="lede">
-            Choose which name titles composers may add as optional recipient
-            groups (Mr., Mrs., Sir, …). On Compose they start without prefixes
-            and only add the ones they need.
+            Choose which name titles appear as recipient groups when sending
+            (Mr., Mrs., Sir, …). People start without a title until you pick
+            one.
           </p>
         </div>
       </header>

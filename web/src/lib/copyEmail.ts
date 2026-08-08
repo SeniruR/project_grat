@@ -133,11 +133,11 @@ async function writeClipboard(parts: Record<string, Blob>) {
 
 /**
  * Copy an Outlook-safe version of the card using the PNG snapshot.
- * Absolute canvas HTML is for in-app preview only — Word/Outlook strips
+ * Absolute canvas HTML is for in-app preview only - Word/Outlook strips
  * position:absolute, so paste must be image+table.
  *
  * Important: write clean HTML only. Never put Windows CF_HTML headers
- * (Version:0.9 StartHTML:…) into text/html — the browser adds that
+ * (Version:0.9 StartHTML:…) into text/html - the browser adds that
  * format itself; including it makes Outlook paste the headers as text.
  */
 export async function copyOutlookPngForPaste(input: {
@@ -163,7 +163,7 @@ export async function copyOutlookPngForPaste(input: {
   const htmlBlob = new Blob([fragment], { type: "text/html" });
   const plain = new Blob(["\u00a0"], { type: "text/plain" });
 
-  // HTML only first — most reliable for Outlook (no CF_HTML prefix, no
+  // HTML only first - most reliable for Outlook (no CF_HTML prefix, no
   // competing image/png that can confuse Word's paste).
   try {
     await writeClipboard({
@@ -221,7 +221,7 @@ export function extractPasteableHeadStyles(html: string) {
   return styles.join("\n");
 }
 
-/** Body fragment + head styles — what we put on the HTML clipboard for Outlook. */
+/** Body fragment + head styles - what we put on the HTML clipboard for Outlook. */
 export function buildOutlookPasteFragment(html: string) {
   const doc = buildEmailDocument(html.trim());
   const styles = extractPasteableHeadStyles(doc);
@@ -245,7 +245,7 @@ export function looksLikeFragileEmailHtml(html: string) {
 /**
  * Copy HTML for Outlook / Gmail paste.
  * Includes <style> from <head> (Canva puts fonts/layout there). Outlook Desktop
- * may still rearrange flex/absolute layouts — that is a client limit, not Grat.
+ * may still rearrange flex/absolute layouts - that is a client limit, not Grat.
  */
 export async function copyEmailHtmlForPaste(html: string): Promise<void> {
   const trimmed = preserveHexColors(html.trim());
@@ -315,7 +315,7 @@ export function openEmailInNewTab(html: string) {
   const win = window.open(url, "_blank", "noopener,noreferrer");
   if (!win) {
     URL.revokeObjectURL(url);
-    throw new Error("Popup blocked — allow popups for this site, then try again.");
+    throw new Error("Popup blocked - allow popups for this site, then try again.");
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

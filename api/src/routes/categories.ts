@@ -12,6 +12,39 @@ function normalizeCategoryName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }
 
+const categoryInclude = {
+  createdBy: {
+    select: { id: true, displayName: true, email: true },
+  },
+  _count: { select: { templates: true } },
+} as const;
+
+/** Attach shared (Browse cards) count alongside total template count. */
+async function withSharedCounts<
+  T extends { id: string; _count: { templates: number } },
+>(categories: T[]) {
+  if (categories.length === 0) return categories;
+  const sharedRows = await prisma.template.groupBy({
+    by: ["categoryId"],
+    where: {
+      categoryId: { in: categories.map((c) => c.id) },
+      visibility: "SHARED",
+      catalogType: "CARD",
+    },
+    _count: { _all: true },
+  });
+  const sharedMap = new Map(
+    sharedRows.map((r) => [r.categoryId as string, r._count._all]),
+  );
+  return categories.map((c) => ({
+    ...c,
+    _count: {
+      templates: c._count.templates,
+      shared: sharedMap.get(c.id) ?? 0,
+    },
+  }));
+}
+
 export const categoryRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/categories",
@@ -27,14 +60,9 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
           ? { name: { contains: q, mode: "insensitive" } }
           : undefined,
         orderBy: { name: "asc" },
-        include: {
-          createdBy: {
-            select: { id: true, displayName: true, email: true },
-          },
-          _count: { select: { templates: true } },
-        },
+        include: categoryInclude,
       });
-      return { categories };
+      return { categories: await withSharedCounts(categories) };
     },
   );
 
@@ -52,18 +80,12 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
         where: { name: { equals: name, mode: "insensitive" } },
       });
       if (existing) {
-        return {
-          category: await prisma.templateCategory.findUniqueOrThrow({
-            where: { id: existing.id },
-            include: {
-              createdBy: {
-                select: { id: true, displayName: true, email: true },
-              },
-              _count: { select: { templates: true } },
-            },
-          }),
-          created: false,
-        };
+        const category = await prisma.templateCategory.findUniqueOrThrow({
+          where: { id: existing.id },
+          include: categoryInclude,
+        });
+        const [withCounts] = await withSharedCounts([category]);
+        return { category: withCounts, created: false };
       }
 
       const category = await prisma.templateCategory.create({
@@ -71,12 +93,7 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
           name,
           createdById: user.id,
         },
-        include: {
-          createdBy: {
-            select: { id: true, displayName: true, email: true },
-          },
-          _count: { select: { templates: true } },
-        },
+        include: categoryInclude,
       });
 
       await writeAudit({
@@ -87,7 +104,8 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
         payload: { name },
       });
 
-      return reply.code(201).send({ category, created: true });
+      const [withCounts] = await withSharedCounts([category]);
+      return reply.code(201).send({ category: withCounts, created: true });
     },
   );
 
@@ -130,12 +148,7 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
       const category = await prisma.templateCategory.update({
         where: { id },
         data: { name },
-        include: {
-          createdBy: {
-            select: { id: true, displayName: true, email: true },
-          },
-          _count: { select: { templates: true } },
-        },
+        include: categoryInclude,
       });
 
       await writeAudit({
@@ -146,7 +159,8 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
         payload: { from: existing.name, to: name },
       });
 
-      return { category };
+      const [withCounts] = await withSharedCounts([category]);
+      return { category: withCounts };
     },
   );
 

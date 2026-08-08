@@ -338,7 +338,7 @@ export function sampleValueForPlaceholder(
 ): string {
   const map = buildMergeFieldMapFromPlaceholders([ph], ctx);
   const v = map[ph.key]?.trim() ?? "";
-  return v || "—";
+  return v || "-";
 }
 
 export function sharedPlaceholderKeys(placeholders: PlaceholderDef[]): string[] {

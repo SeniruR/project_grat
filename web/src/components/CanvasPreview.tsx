@@ -16,7 +16,7 @@ import { EmailBrowserCopyModal } from "./EmailBrowserCopyModal";
 type Props = {
   /** Designer canvas width (px) */
   width: number;
-  /** Designer canvas height (px) — used for fixed PNG preview */
+  /** Designer canvas height (px) - used for fixed PNG preview */
   height: number;
   /** 1:1 PNG snapshot from Save & compile */
   pngUrl?: string | null;
@@ -24,7 +24,7 @@ type Props = {
   html?: string;
   /** Cache-bust token when version changes */
   versionKey?: string | number;
-  /** Outlook paste strategy — html for Canva, png for image cards */
+  /** Outlook paste strategy - html for Canva, png for image cards */
   pasteMode?: "html" | "png" | "auto";
   /** Canva: offer HTML paste alongside PNG snapshot */
   offerHtmlPaste?: boolean;
@@ -83,7 +83,7 @@ export function CanvasPreview({
   }, [canBoth, png, bodyHtml, pasteMode, htmlOnly]);
 
   useEffect(() => {
-    // Start from stored design height — never pad to 1200 (that left empty
+    // Start from stored design height - never pad to 1200 (that left empty
     // canvas under landscape Canva cards until iframe measure corrected it,
     // and height:100% markup often prevented that correction).
     setMeasuredH(fixedH);
@@ -104,7 +104,7 @@ export function CanvasPreview({
 
         let next: number;
         if (fluidHtml && mode === "html") {
-          // Fit width only — tall emails scroll vertically
+          // Fit width only - tall emails scroll vertically
           next = Math.min(1, availW / w);
         } else {
           const availH = Math.max(
@@ -197,7 +197,7 @@ ${head}
         doc.documentElement.style.overflow = "hidden";
         doc.body.style.overflow = "hidden";
       } catch {
-        /* opaque origin — keep estimate */
+        /* opaque origin - keep estimate */
       }
     };
 
@@ -224,16 +224,16 @@ ${head}
 
   if (!png && !bodyHtml) return null;
 
-  const showHtmlOnly = htmlOnly || (fluidHtml && mode === "html" && !canBoth);
-
   function renderStage(kind: "png" | "html", body: ReactNode) {
     return (
       <figure className="canvas-preview-stage">
-        <figcaption className="canvas-preview-caption">
-          {kind === "png" ? "PNG" : "HTML"} · {w}×{h} ·{" "}
-          {Math.round(fitScale * 100)}%
-          {kind === "html" && fluidHtml ? " · width-fit" : ""}
-        </figcaption>
+        {!htmlOnly ? (
+          <figcaption className="canvas-preview-caption">
+            {kind === "png" ? "PNG" : "HTML"} · {w}×{h} ·{" "}
+            {Math.round(fitScale * 100)}%
+            {kind === "html" && fluidHtml ? " · width-fit" : ""}
+          </figcaption>
+        ) : null}
         <div
           className="canvas-preview-fit"
           style={{ width: w * fitScale, height: h * fitScale }}
@@ -258,79 +258,97 @@ ${head}
   }
 
   return (
-    <section className="panel canvas-preview">
-      <header className="canvas-preview-head">
-        <div>
+    <section className={`panel canvas-preview ${htmlOnly ? "is-simple" : ""}`}>
+      {htmlOnly ? (
+        <header className="canvas-preview-head canvas-preview-head--simple">
           <h2>Preview</h2>
-          <p className="muted small tip">
-            {showHtmlOnly || (fluidHtml && mode === "html")
-              ? "HTML preview fits panel width; height matches the design (no padded canvas)."
-              : `PNG and HTML use the same canvas size (${w}×${fixedH}px) and fit scale. After a canvas resize, Save & compile so both rebuild together.`}
-          </p>
-        </div>
+          {bodyHtml || png ? (
+            <button type="button" onClick={() => setCopyOpen(true)}>
+              Copy for Outlook
+            </button>
+          ) : null}
+        </header>
+      ) : (
+        <>
+          <header className="canvas-preview-head">
+            <div>
+              <h2>Preview</h2>
+              <p className="muted small tip">
+                PNG and HTML use the same canvas size ({w}×{fixedH}px). After a
+                canvas resize, Save & compile so both rebuild together.
+              </p>
+            </div>
 
-        <div className="canvas-preview-meta" aria-label="Canvas dimensions">
-          <label className="canvas-preview-dim">
-            <span>Width</span>
-            <span className="canvas-preview-dim-row">
-              <input type="number" value={w} readOnly aria-readonly="true" />
-              <span className="canvas-preview-unit">px</span>
-            </span>
-          </label>
-          <span className="canvas-preview-times" aria-hidden>
-            ×
-          </span>
-          <label className="canvas-preview-dim">
-            <span>Height</span>
-            <span className="canvas-preview-dim-row">
-              <input type="number" value={h} readOnly aria-readonly="true" />
-              <span className="canvas-preview-unit">px</span>
-            </span>
-          </label>
-        </div>
-      </header>
+            <div className="canvas-preview-meta" aria-label="Canvas dimensions">
+              <label className="canvas-preview-dim">
+                <span>Width</span>
+                <span className="canvas-preview-dim-row">
+                  <input
+                    type="number"
+                    value={w}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                  <span className="canvas-preview-unit">px</span>
+                </span>
+              </label>
+              <span className="canvas-preview-times" aria-hidden>
+                ×
+              </span>
+              <label className="canvas-preview-dim">
+                <span>Height</span>
+                <span className="canvas-preview-dim-row">
+                  <input
+                    type="number"
+                    value={h}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                  <span className="canvas-preview-unit">px</span>
+                </span>
+              </label>
+            </div>
+          </header>
 
-      <div className="canvas-preview-toolbar">
-        {!htmlOnly ? (
-          <div className="outlook-zoom" role="group" aria-label="Preview mode">
-            <span className="outlook-zoom-label">Show</span>
-            <button
-              type="button"
-              className={`ghost small ${mode === "both" ? "active" : ""}`}
-              disabled={!canBoth}
-              onClick={() => setMode("both")}
-            >
-              Both
-            </button>
-            <button
-              type="button"
-              className={`ghost small ${mode === "png" ? "active" : ""}`}
-              disabled={!png}
-              onClick={() => setMode("png")}
-            >
-              PNG
-            </button>
-            <button
-              type="button"
-              className={`ghost small ${mode === "html" ? "active" : ""}`}
-              disabled={!bodyHtml}
-              onClick={() => setMode("html")}
-            >
-              HTML
-            </button>
+          <div className="canvas-preview-toolbar">
+            <div className="outlook-zoom" role="group" aria-label="Preview mode">
+              <span className="outlook-zoom-label">Show</span>
+              <button
+                type="button"
+                className={`ghost small ${mode === "both" ? "active" : ""}`}
+                disabled={!canBoth}
+                onClick={() => setMode("both")}
+              >
+                Both
+              </button>
+              <button
+                type="button"
+                className={`ghost small ${mode === "png" ? "active" : ""}`}
+                disabled={!png}
+                onClick={() => setMode("png")}
+              >
+                PNG
+              </button>
+              <button
+                type="button"
+                className={`ghost small ${mode === "html" ? "active" : ""}`}
+                disabled={!bodyHtml}
+                onClick={() => setMode("html")}
+              >
+                HTML
+              </button>
+            </div>
+            <span className="muted small">
+              Width fit {Math.round(fitScale * 100)}%
+            </span>
+            {bodyHtml || png ? (
+              <button type="button" onClick={() => setCopyOpen(true)}>
+                Copy for Outlook
+              </button>
+            ) : null}
           </div>
-        ) : (
-          <span className="muted small">HTML email</span>
-        )}
-        <span className="muted small">
-          Width fit {Math.round(fitScale * 100)}%
-        </span>
-        {bodyHtml || png ? (
-          <button type="button" onClick={() => setCopyOpen(true)}>
-            Copy for Outlook
-          </button>
-        ) : null}
-      </div>
+        </>
+      )}
 
       <div
         ref={hostRef}

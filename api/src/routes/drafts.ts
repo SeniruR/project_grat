@@ -354,8 +354,14 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
-      if (!template || !canCompose(template, user)) {
-        return reply.code(404).send({ error: "Template not found" });
+      if (!template) {
+        return reply.code(404).send({ error: "Card not found" });
+      }
+      if (!canCompose(template, user)) {
+        return reply.code(403).send({
+          error:
+            "You can only send shared cards from Browse cards. Ask a designer to share this card.",
+        });
       }
 
       const version = templateVersionId

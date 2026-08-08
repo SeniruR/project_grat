@@ -7,7 +7,6 @@ import {
   importDesignImageToTemplate,
   scanCanvaZipPlaceholders,
 } from "../lib/importDesign";
-import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
@@ -27,7 +26,7 @@ const STARTERS: Array<{
   {
     id: "canva_zip",
     title: "Import from Canva",
-    blurb: "HTML ZIP — selectable text",
+    blurb: "HTML ZIP - selectable text",
     detail:
       "Best path for Outlook text like LinkedIn. In Canva: Email design → Share → Download → HTML and images (ZIP).",
   },
@@ -136,7 +135,7 @@ export function NewTemplatePage() {
         return;
       }
       if (scanning) {
-        setError("Still scanning the ZIP — wait a moment.");
+        setError("Still scanning the ZIP - wait a moment.");
         return;
       }
     }
@@ -212,17 +211,16 @@ export function NewTemplatePage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "My Designs", to: "/cards" },
-          { label: "New template" },
+          { label: "My cards", to: "/cards" },
+          { label: "New card" },
         ]}
       />
       <header className="page-header">
-        <p className="eyebrow">My Designs</p>
-        <h1>New template</h1>
+        <p className="eyebrow">My cards</p>
+        <h1>New card</h1>
         <p className="lede">
-          Design in Canva, choose the ZIP here to scan placeholders and images,
-          define them, then <strong>Save</strong> — you’ll return to your
-          templates list (Compose is separate, when you send).
+          Upload a Canva design or image, set fill-in fields if needed, then
+          save. You can send it afterward from the card page.
         </p>
       </header>
 
@@ -239,8 +237,8 @@ export function NewTemplatePage() {
           />
         </label>
 
-        <label>
-          Default subject
+        <label className="field-with-hint">
+          Subject
           <input
             value={defaultSubject}
             onChange={(e) => setDefaultSubject(e.target.value)}
@@ -248,12 +246,11 @@ export function NewTemplatePage() {
             placeholder={FALLBACK_DEFAULT_SUBJECT}
             disabled={saving}
           />
+          <span className="field-hint muted small">
+            Email subject when this card is sent. You can include{" "}
+            <code>{"{{recipientName}}"}</code>.
+          </span>
         </label>
-        <p className="muted small">
-          Compose starts with this subject. Use placeholders like{" "}
-          <code>{"{{recipientName}}"}</code>. Normal users can add or remove
-          tags but cannot rewrite the text.
-        </p>
 
         <fieldset className="choice-set">
           <legend>How do you want to start?</legend>
@@ -293,23 +290,20 @@ export function NewTemplatePage() {
 
         {starter === "canva_zip" ? (
           <div className="import-panel">
-            <h3 className="card-section-title">Canva export steps</h3>
+            <h3 className="card-section-title">How to import from Canva</h3>
             <ol className="steps-list">
               <li>
-                In Canva, create an <strong>Email</strong> design (not a poster).
+                Design an <strong>email</strong> card in Canva.
               </li>
-              <li>Prefer text boxes and layout blocks — not one flattened image.</li>
               <li>
-                Type any placeholder as normal text, e.g.{" "}
-                <code>{"{{heroName}}"}</code> or <code>{"{{eventTitle}}"}</code>.
+                Add fill-in tags in text if needed, e.g.{" "}
+                <code>{"{{recipientName}}"}</code> or{" "}
+                <code>{"{{eventTitle}}"}</code>.
               </li>
               <li>
                 <strong>Share → Download → HTML and images</strong> (ZIP).
               </li>
-              <li>
-                Choose the ZIP below — placeholders and images are scanned
-                immediately (no separate import step).
-              </li>
+              <li>Choose that ZIP below - tags and images are scanned right away.</li>
             </ol>
             <label
               className={`file-pick ${saving || scanning ? "is-disabled" : ""}`}
@@ -341,13 +335,12 @@ export function NewTemplatePage() {
                 Trim white margins above and below the design
                 <span className="muted small import-trim-hint">
                   {" "}
-                  — removes Canva letterboxing if the export has empty white
+                  - removes Canva letterboxing if the export has empty white
                   bands. Leave unchecked to keep the ZIP as exported.
                 </span>
               </span>
             </label>
             {scanNotice ? <p className="notice">{scanNotice}</p> : null}
-            <MergeFieldsGuide />
             {zipFile && !scanning ? (
               <>
                 <PlaceholderConfigPanel
@@ -405,7 +398,7 @@ export function NewTemplatePage() {
           <div className="import-panel">
             <p className="muted">
               Upload a PNG, JPEG, GIF, WebP, or PDF. Outlook paste will use an
-              image in a simple table — looks correct; text is not selectable.
+              image in a simple table - looks correct; text is not selectable.
             </p>
             <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
               <input
@@ -435,7 +428,7 @@ export function NewTemplatePage() {
               onChange={() => setVisibility("PRIVATE")}
               disabled={saving}
             />
-            Private — only you (and admins)
+            Only me - just you (and admins)
           </label>
           <label className="check">
             <input
@@ -445,7 +438,7 @@ export function NewTemplatePage() {
               onChange={() => setVisibility("SHARED")}
               disabled={saving}
             />
-            Published — appears in the marketplace
+            Shared - appears under Browse cards
           </label>
         </fieldset>
 

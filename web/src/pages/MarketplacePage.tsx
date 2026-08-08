@@ -37,7 +37,7 @@ export function MarketplacePage() {
       });
       setCards(res.templates);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load marketplace");
+      setError(err instanceof Error ? err.message : "Failed to load cards");
     } finally {
       setLoading(false);
     }
@@ -72,21 +72,38 @@ export function MarketplacePage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Templates" },
+          { label: "Browse cards" },
         ]}
       />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Emails</p>
-          <h1>Templates</h1>
+          <p className="eyebrow">Cards</p>
+          <h1>Browse cards</h1>
           <p className="lede">
-            Browse published templates, preview them, favorite for later, then
-            personalize and send.
+            Pick a card to preview, save as a favorite, then personalize and
+            send.
           </p>
         </div>
       </header>
 
       <div className="marketplace-toolbar">
+        {token ? (
+          <div className="marketplace-category-filter">
+            <CategoryCombobox
+              token={token}
+              value={categoryId}
+              onChange={(id) => {
+                setCategoryId(id);
+                void reload(q, favoritesOnly, id);
+              }}
+              allowClear
+              allowCreate={false}
+              countMode="shared"
+              label=""
+              placeholder="Category…"
+            />
+          </div>
+        ) : null}
         <label className="marketplace-search">
           <span className="visually-hidden">Search</span>
           <input
@@ -104,26 +121,12 @@ export function MarketplacePage() {
         >
           Search
         </button>
-        {token ? (
-          <div className="marketplace-category-filter">
-            <CategoryCombobox
-              token={token}
-              value={categoryId}
-              onChange={(id) => {
-                setCategoryId(id);
-                void reload(q, favoritesOnly, id);
-              }}
-              allowClear
-              allowCreate={false}
-              label=""
-              placeholder="Category…"
-            />
-          </div>
-        ) : null}
         <button
           type="button"
           className={`marketplace-fav-toggle ${favoritesOnly ? "is-on" : ""}`}
           aria-pressed={favoritesOnly}
+          aria-label={favoritesOnly ? "Show all cards" : "Show favorites only"}
+          title={favoritesOnly ? "Showing favorites" : "Favorites"}
           onClick={() => {
             const next = !favoritesOnly;
             setFavoritesOnly(next);
@@ -131,20 +134,19 @@ export function MarketplacePage() {
           }}
         >
           <StarIcon filled={favoritesOnly} />
-          <span>Favorites</span>
         </button>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Loading marketplace…</p> : null}
+      {loading ? <p className="muted">Loading cards…</p> : null}
 
       {!loading && cards.length === 0 ? (
         <p className="muted">
           {favoritesOnly
-            ? "No favorites yet — tap the star on a card."
+            ? "No favorites yet - tap the star on a card."
             : categoryId
               ? "No published cards in this category."
-              : "No published cards yet. Set a template’s visibility to Published in Design studio to list it here."}
+              : "No shared cards yet. Set a card to Shared in My cards to list it here."}
         </p>
       ) : (
         <div className="marketplace-grid">

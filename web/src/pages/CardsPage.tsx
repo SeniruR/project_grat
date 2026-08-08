@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -23,6 +24,7 @@ export function CardsPage() {
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>("all");
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [manageCategories, setManageCategories] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TemplateSummary | null>(
     null,
   );
@@ -88,46 +90,35 @@ export function CardsPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "My Designs" },
+          { label: "My cards" },
         ]}
       />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">Emails</p>
-          <h1>My Designs</h1>
+          <p className="eyebrow">Cards</p>
+          <h1>My cards</h1>
           <p className="lede">
-            Your templates only. Set visibility to Published to list a card in
-            Templates.
+            Your cards only. Share a card so everyone can find it under Browse
+            cards.
           </p>
         </div>
-        <Link className="btn-link" to="/cards/new">
-          New template
-        </Link>
+        <div className="header-actions">
+          {token && user ? (
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => setManageCategories(true)}
+            >
+              Categories
+            </button>
+          ) : null}
+          <Link className="btn-link" to="/cards/new">
+            New card
+          </Link>
+        </div>
       </header>
 
       <div className="studio-toolbar">
-        <label className="studio-search">
-          <span className="visually-hidden">Search</span>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search my templates…"
-          />
-        </label>
-        <label className="studio-select">
-          <span className="visually-hidden">Visibility</span>
-          <select
-            value={visibilityFilter}
-            onChange={(e) =>
-              setVisibilityFilter(e.target.value as VisibilityFilter)
-            }
-            aria-label="Filter by visibility"
-          >
-            <option value="all">All</option>
-            <option value="private">Private</option>
-            <option value="published">Published</option>
-          </select>
-        </label>
         {token ? (
           <div className="studio-category-filter">
             <CategoryCombobox
@@ -141,18 +132,40 @@ export function CardsPage() {
             />
           </div>
         ) : null}
+        <label className="studio-search">
+          <span className="visually-hidden">Search</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search my cards…"
+          />
+        </label>
+        <label className="studio-select">
+          <span className="visually-hidden">Visibility</span>
+          <select
+            value={visibilityFilter}
+            onChange={(e) =>
+              setVisibilityFilter(e.target.value as VisibilityFilter)
+            }
+            aria-label="Filter by visibility"
+          >
+            <option value="all">All</option>
+            <option value="private">Only me</option>
+            <option value="published">Shared</option>
+          </select>
+        </label>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Loading templates…</p> : null}
+      {loading ? <p className="muted">Loading cards…</p> : null}
 
       <section className="panel">
-        <h2>My templates</h2>
+        <h2>My cards</h2>
         {!loading && filtered.length === 0 ? (
           <p className="muted">
             {templates.length === 0
-              ? "No templates yet — create one."
-              : "No templates match this search or filter."}
+              ? "No cards yet - create one."
+              : "No cards match this search or filter."}
           </p>
         ) : (
           <div className="template-card-grid">
@@ -169,9 +182,30 @@ export function CardsPage() {
         )}
       </section>
 
-      {token && user ? (
-        <CategoryManagePanel token={token} currentUserId={user.id} />
-      ) : null}
+      {manageCategories && token && user
+        ? createPortal(
+            <div
+              className="app-modal-backdrop"
+              role="presentation"
+              onClick={() => setManageCategories(false)}
+            >
+              <div
+                className="app-modal category-manage-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="category-manage-title"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <CategoryManagePanel
+                  token={token}
+                  currentUserId={user.id}
+                  onClose={() => setManageCategories(false)}
+                />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {deleteTarget ? (
         <div
@@ -186,7 +220,7 @@ export function CardsPage() {
             aria-labelledby="del-tpl-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="del-tpl-title">Delete template?</h2>
+            <h2 id="del-tpl-title">Delete card?</h2>
             <p>
               Delete <strong>{deleteTarget.name}</strong> permanently? Sent
               history is kept; this cannot be undone.
@@ -275,12 +309,12 @@ function TemplateCard({
               className={`visibility-pill ${isPrivate ? "is-private" : "is-shared"}`}
               title={
                 isPrivate
-                  ? "Private — only you"
-                  : "Published — listed in the marketplace"
+                  ? "Only you can see this card"
+                  : "Shared - listed under Browse cards"
               }
             >
               {isPrivate ? <LockIcon /> : <ShareIcon />}
-              <span>{isPrivate ? "Private" : "Published"}</span>
+              <span>{isPrivate ? "Only me" : "Shared"}</span>
             </span>
           </div>
           <p className="template-card-meta">
@@ -303,7 +337,7 @@ function TemplateCard({
           <button
             type="button"
             className="linkish danger-text template-card-delete-link"
-            title="Delete template"
+            title="Delete card"
             aria-label={`Delete ${template.name}`}
             onClick={(e) => {
               e.preventDefault();
@@ -321,7 +355,7 @@ function TemplateCard({
 
 function formatEdited(iso: string) {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   const now = Date.now();
   const diff = now - d.getTime();
   const mins = Math.round(diff / 60_000);

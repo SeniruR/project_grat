@@ -50,7 +50,7 @@ export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
   placeholders: PlaceholderDef[];
   imageSlots: ImageSlotDef[];
   htmlPath: string;
-  /** blob: URLs created for thumbs — revoke when discarding the scan. */
+  /** blob: URLs created for thumbs - revoke when discarding the scan. */
   previewObjectUrls: string[];
 }> {
   const { html, htmlPath, assets } = await parseCanvaZip(zipFile);

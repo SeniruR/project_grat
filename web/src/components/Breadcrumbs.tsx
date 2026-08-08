@@ -9,7 +9,7 @@ type Props = {
   items: Crumb[];
 };
 
-/** Trail like Home > Emails > Templates > … */
+/** Trail like Home > Cards > Browse cards > … */
 export function Breadcrumbs({ items }: Props) {
   if (items.length === 0) return null;
   return (
@@ -42,5 +42,8 @@ export function Breadcrumbs({ items }: Props) {
   );
 }
 
-/** Shared Emails section crumb — hub is the Emails homepage. */
-export const emailsCrumb: Crumb = { label: "Emails", to: "/emails" };
+/** Shared Cards section crumb - hub is the Cards homepage. */
+export const cardsCrumb: Crumb = { label: "Cards", to: "/emails" };
+
+/** @deprecated Use cardsCrumb */
+export const emailsCrumb = cardsCrumb;

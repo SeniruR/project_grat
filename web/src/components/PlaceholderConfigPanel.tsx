@@ -20,6 +20,7 @@ type Props = {
   onRescan?: () => void;
   title?: string;
   description?: string;
+  className?: string;
 };
 
 /**
@@ -39,6 +40,7 @@ export function PlaceholderConfigPanel({
   onRescan,
   title = "Placeholders",
   description,
+  className,
 }: Props) {
   function updateRow(
     index: number,
@@ -74,12 +76,12 @@ export function PlaceholderConfigPanel({
 
   const blurb =
     description ??
-    `Type any {{token}} in Canva, then define each token here. Compose uses these definitions for that send only — the HTML template is not overwritten when filling values. Remove a row if it was detected by mistake.`;
+    `Tags found in your Canva design ({{likeThis}}). Set a label and how each is filled when sending.`;
 
-  const Wrapper = showActions ? "section" : "div";
-  const wrapperClass = showActions
-    ? "panel placeholder-config"
-    : "placeholder-config is-embedded";
+  const Wrapper = "section";
+  const wrapperClass = ["panel", "placeholder-config", className]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Wrapper className={wrapperClass}>
@@ -162,7 +164,7 @@ export function PlaceholderConfigPanel({
                         disabled={saving}
                         onClick={() => removeRow(index)}
                         aria-label={`Remove {{${ph.key}}}`}
-                        title="Remove — won’t be asked for on Compose"
+                        title="Remove - won’t be asked for on Compose"
                       >
                         Remove
                       </button>

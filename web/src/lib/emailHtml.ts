@@ -16,7 +16,7 @@ export function isFullHtmlDocument(html: string) {
   return /^\s*<!DOCTYPE\s+html/i.test(html) || /^\s*<html[\s>]/i.test(html);
 }
 
-/** Body inner HTML only — safe to wrap with header/footer or inject into a shell. */
+/** Body inner HTML only - safe to wrap with header/footer or inject into a shell. */
 export function extractEmailBodyHtml(html: string) {
   const t = html.trim();
   if (!t) return "";
@@ -27,7 +27,7 @@ export function extractEmailBodyHtml(html: string) {
 
 /**
  * Inner HTML of <head> (styles, font links, @font-face).
- * Needed for Canva imports — fonts live in head, not on every text node.
+ * Needed for Canva imports - fonts live in head, not on every text node.
  */
 export function extractEmailHeadInner(html: string) {
   const t = html.trim();

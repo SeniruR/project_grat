@@ -67,7 +67,7 @@ export function AdminAuditPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin Panel", to: "/admin" },
+          { label: "Admin", to: "/admin" },
           { label: "Audit log" },
         ]}
       />
@@ -210,7 +210,7 @@ function AuditRow({
               <div className="muted small">{event.actor.email}</div>
             </>
           ) : (
-            "—"
+            "-"
           )}
         </td>
         <td>

@@ -103,7 +103,7 @@ export function clampSlotBorderRadius(
 ): number {
   if (!Number.isFinite(radius) || radius <= 0) return 0;
   const minSide = Math.max(1, Math.min(designedWidth, designedHeight));
-  // ~4% of the short side, hard-capped — avoids pill/capsule corners.
+  // ~4% of the short side, hard-capped - avoids pill/capsule corners.
   const cap = Math.min(12, Math.max(4, Math.round(minSide * 0.04)));
   return Math.min(Math.round(radius), cap);
 }
@@ -190,7 +190,7 @@ export function detectImgTags(html: string): DetectedImg[] {
     if (/^(data:|cid:)/i.test(src)) continue;
     const { width, height } = parseSize(attrs);
     if (width <= 0 || height <= 0) continue;
-    // Only trust border-radius on the <img> itself — parent/card radii are
+    // Only trust border-radius on the <img> itself - parent/card radii are
     // often much larger and were making replacements look over-rounded.
     const borderRadius = clampSlotBorderRadius(
       parseBorderRadiusPx(attr(attrs, "style")),
@@ -500,7 +500,7 @@ export async function resizeImageFileToSlot(
       }
     }
 
-    // Cover-crop / radius clip at retina resolution — never 1× CSS size.
+    // Cover-crop / radius clip at retina resolution - never 1× CSS size.
     const coverScale = Math.max(w / bitmap.width, h / bitmap.height);
     const availableRatio = coverScale > 0 ? 1 / coverScale : 1;
     const ratio =

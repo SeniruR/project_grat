@@ -53,7 +53,7 @@ export const AUDIT_CATEGORIES: Array<{
   { id: "", label: "All categories" },
   { id: "auth", label: "Auth" },
   { id: "people", label: "People" },
-  { id: "templates", label: "Templates" },
+  { id: "templates", label: "Cards" },
   { id: "categories", label: "Categories" },
   { id: "sends", label: "Sends" },
   { id: "other", label: "Other" },
@@ -163,7 +163,7 @@ export function auditSummary(event: AdminAuditEvent): string {
         : `${who} created a send job`;
     }
     default:
-      return `${who} — ${label}`;
+      return `${who} - ${label}`;
   }
 }
 
@@ -214,7 +214,7 @@ export function auditDetailRows(
 
 export function formatRelativeTime(iso: string): string {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   const diff = Date.now() - d.getTime();
   const mins = Math.round(diff / 60_000);
   if (mins < 1) return "just now";

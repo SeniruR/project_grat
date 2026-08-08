@@ -12,6 +12,12 @@ type Props = {
   allowCreate?: boolean;
   placeholder?: string;
   label?: string;
+  /**
+   * Which count to show in the dropdown.
+   * - all: every card in the category (My cards / manage)
+   * - shared: Browse cards only (matches marketplace list)
+   */
+  countMode?: "all" | "shared";
 };
 
 /**
@@ -27,6 +33,7 @@ export function CategoryCombobox({
   allowCreate = true,
   placeholder = "Search or add a category…",
   label = "Category",
+  countMode = "all",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -169,12 +176,18 @@ export function CategoryCombobox({
                 }}
               >
                 <strong>{c.name}</strong>
-                {typeof c._count?.templates === "number" ? (
-                  <span className="muted small">
-                    {c._count.templates} template
-                    {c._count.templates === 1 ? "" : "s"}
-                  </span>
-                ) : null}
+                {(() => {
+                  const n =
+                    countMode === "shared"
+                      ? c._count?.shared
+                      : c._count?.templates;
+                  if (typeof n !== "number") return null;
+                  return (
+                    <span className="muted small">
+                      {n} card{n === 1 ? "" : "s"}
+                    </span>
+                  );
+                })()}
               </button>
             </li>
           ))}

@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, assetUrl, type TemplateSummary } from "../api/client";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Link,
+  useBlocker,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { resolveHtmlImageSrcsClient } from "../lib/htmlAssets";
 import { CanvasPreview } from "../components/CanvasPreview";
@@ -8,9 +13,7 @@ import { COMPOSE_ENABLED, COMPOSE_UNAVAILABLE_REASON } from "../features";
 import {
   importCanvaZipToTemplate,
   importDesignImageToTemplate,
-  regenerateCanvaSnapshot,
 } from "../lib/importDesign";
-import { MergeFieldsGuide } from "../components/MergeFieldsGuide";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
@@ -32,109 +35,33 @@ import { resolveMediaUrl, rewriteMediaUrlsInHtml } from "../lib/mediaUrl";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
-/** Compose slot uploads used to land in Images as source; hide/purge those. */
+type EditSnapshot = {
+  name: string;
+  defaultSubject: string;
+  visibility: "PRIVATE" | "SHARED";
+  categoryId: string | null;
+  html: string;
+  placeholders: PlaceholderDef[];
+  ignoredPlaceholders: string[];
+  imageSlots: ImageSlotDef[];
+};
+
+function snapshotKey(s: EditSnapshot) {
+  return JSON.stringify({
+    name: s.name,
+    defaultSubject: s.defaultSubject,
+    visibility: s.visibility,
+    categoryId: s.categoryId,
+    html: s.html,
+    placeholders: s.placeholders,
+    ignoredPlaceholders: s.ignoredPlaceholders,
+    imageSlots: s.imageSlots,
+  });
+}
+
+/** Compose slot uploads used to land as source assets; hide/purge those. */
 function isComposeOverrideFileName(fileName: string) {
   return /-override-\d+x\d+\./i.test(fileName);
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function normalizeKey(key: string) {
-  return key.replace(/\\/g, "/");
-}
-
-function stripAssetFromHtml(html: string, fileName: string, storageKey: string) {
-  const key = normalizeKey(storageKey);
-  return html
-    .replace(
-      new RegExp(
-        `<img\\b[^>]*src=["'][^"']*${escapeRegExp(fileName)}[^"']*["'][^>]*>`,
-        "gi",
-      ),
-      "",
-    )
-    .replace(
-      new RegExp(
-        `<img\\b[^>]*src=["'][^"']*${escapeRegExp(key)}[^"']*["'][^>]*>`,
-        "gi",
-      ),
-      "",
-    )
-    .replace(/\n{3,}/g, "\n\n");
-}
-
-function countDesignUses(
-  designJson: Record<string, unknown> | null | undefined,
-  storageKey: string,
-  fileName: string,
-) {
-  if (!designJson) return 0;
-  const key = normalizeKey(storageKey);
-  const canvas = designJson.canvas as
-    | { objects?: Array<Record<string, unknown>> }
-    | undefined;
-  const objects = canvas?.objects ?? [];
-  let count = 0;
-  for (const obj of objects) {
-    const tagged =
-      typeof obj.gratAssetKey === "string" ? normalizeKey(obj.gratAssetKey) : "";
-    const src = typeof obj.src === "string" ? obj.src : "";
-    if (
-      tagged === key ||
-      src.includes(key) ||
-      src.includes(encodeURI(key)) ||
-      src.includes(fileName)
-    ) {
-      count += 1;
-    }
-  }
-  if (count === 0) {
-    const blob = JSON.stringify(designJson);
-    if (blob.includes(key) || blob.includes(fileName)) return 1;
-  }
-  return count;
-}
-
-function stripAssetFromDesign(
-  designJson: Record<string, unknown>,
-  storageKey: string,
-  fileName: string,
-) {
-  const key = normalizeKey(storageKey);
-  const next = structuredClone(designJson) as Record<string, unknown>;
-  const canvas = next.canvas as
-    | { objects?: Array<Record<string, unknown>> }
-    | undefined;
-  if (canvas?.objects) {
-    canvas.objects = canvas.objects.filter((obj) => {
-      const tagged =
-        typeof obj.gratAssetKey === "string"
-          ? normalizeKey(obj.gratAssetKey)
-          : "";
-      const src = typeof obj.src === "string" ? obj.src : "";
-      const hit =
-        tagged === key ||
-        src.includes(key) ||
-        src.includes(encodeURI(key)) ||
-        src.includes(fileName);
-      return !hit;
-    });
-  }
-  if (typeof next.sourceHtml === "string") {
-    next.sourceHtml = stripAssetFromHtml(next.sourceHtml, fileName, storageKey);
-  }
-  return next;
-}
-
-function htmlUsesAsset(html: string, fileName: string, storageKey: string) {
-  const key = normalizeKey(storageKey);
-  return (
-    html.includes(fileName) ||
-    html.includes(key) ||
-    html.includes(encodeURI(key))
-  );
 }
 
 export function TemplateDetailPage() {
@@ -155,14 +82,9 @@ export function TemplateDetailPage() {
   const [imageSlots, setImageSlots] = useState<ImageSlotDef[]>([]);
   const [trimWhiteMargins, setTrimWhiteMargins] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [assetDeletePrompt, setAssetDeletePrompt] = useState<{
-    id: string;
-    fileName: string;
-    storageKey: string;
-    designUses: number;
-    inHtml: boolean;
-    clearsPreview: boolean;
-  } | null>(null);
+  const [savedSnap, setSavedSnap] = useState<EditSnapshot | null>(null);
+  const skipLeaveGuard = useRef(false);
+  const unsavedBannerRef = useRef<HTMLDivElement | null>(null);
 
   const canEdit =
     !!template &&
@@ -171,31 +93,38 @@ export function TemplateDetailPage() {
   async function reload() {
     if (!token || !id) return;
     const { template: t } = await api.template(token, id);
+    const designJson = (t.versions[0]?.designJson ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const nextName = t.name;
+    const nextVisibility = t.visibility;
+    const nextCategoryId = t.category?.id ?? null;
+    const nextHtml = t.versions[0]?.compiledHtml ?? "";
+    const nextSubject = parseDefaultSubjectFromDesignJson(designJson);
+    const nextPlaceholders = parsePlaceholdersFromDesignJson(designJson);
+    const nextIgnored = parseIgnoredPlaceholdersFromDesignJson(designJson);
+    const nextSlots = parseImageSlotsFromDesignJson(designJson);
+
     setTemplate(t);
-    setName(t.name);
-    setVisibility(t.visibility);
-    setCategoryId(t.category?.id ?? null);
-    setHtml(t.versions[0]?.compiledHtml ?? "");
-    setDefaultSubject(
-      parseDefaultSubjectFromDesignJson(
-        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
-      ),
-    );
-    setPlaceholders(
-      parsePlaceholdersFromDesignJson(
-        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
-      ),
-    );
-    setIgnoredPlaceholders(
-      parseIgnoredPlaceholdersFromDesignJson(
-        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
-      ),
-    );
-    setImageSlots(
-      parseImageSlotsFromDesignJson(
-        (t.versions[0]?.designJson ?? {}) as Record<string, unknown>,
-      ),
-    );
+    setName(nextName);
+    setVisibility(nextVisibility);
+    setCategoryId(nextCategoryId);
+    setHtml(nextHtml);
+    setDefaultSubject(nextSubject);
+    setPlaceholders(nextPlaceholders);
+    setIgnoredPlaceholders(nextIgnored);
+    setImageSlots(nextSlots);
+    setSavedSnap({
+      name: nextName,
+      defaultSubject: nextSubject,
+      visibility: nextVisibility,
+      categoryId: nextCategoryId,
+      html: nextHtml,
+      placeholders: nextPlaceholders,
+      ignoredPlaceholders: nextIgnored,
+      imageSlots: nextSlots,
+    });
   }
 
   useEffect(() => {
@@ -273,7 +202,7 @@ export function TemplateDetailPage() {
     return 800;
   }, [latestDesignJson]);
 
-  /** Compiled PNG snapshot — pixel-perfect Outlook paste for Canva imports */
+  /** Compiled PNG snapshot - pixel-perfect Outlook paste for Canva imports */
   const previewImageUrl =
     resolveMediaUrl(template?.versions[0]?.previewUrl) || null;
 
@@ -308,14 +237,126 @@ export function TemplateDetailPage() {
     );
   }, [html, assets]);
 
-  async function saveAll() {
+  const currentSnap = useMemo(
+    (): EditSnapshot => ({
+      name,
+      defaultSubject,
+      visibility,
+      categoryId,
+      html,
+      placeholders,
+      ignoredPlaceholders,
+      imageSlots,
+    }),
+    [
+      name,
+      defaultSubject,
+      visibility,
+      categoryId,
+      html,
+      placeholders,
+      ignoredPlaceholders,
+      imageSlots,
+    ],
+  );
+
+  const dirtyFields = useMemo(() => {
+    if (!savedSnap) {
+      return {
+        name: false,
+        defaultSubject: false,
+        visibility: false,
+        categoryId: false,
+        placeholders: false,
+        imageSlots: false,
+        html: false,
+      };
+    }
+    return {
+      name: name !== savedSnap.name,
+      defaultSubject: defaultSubject !== savedSnap.defaultSubject,
+      visibility: visibility !== savedSnap.visibility,
+      categoryId: categoryId !== savedSnap.categoryId,
+      placeholders:
+        JSON.stringify(placeholders) !==
+          JSON.stringify(savedSnap.placeholders) ||
+        JSON.stringify(ignoredPlaceholders) !==
+          JSON.stringify(savedSnap.ignoredPlaceholders),
+      imageSlots:
+        JSON.stringify(imageSlots) !== JSON.stringify(savedSnap.imageSlots),
+      html: html !== savedSnap.html,
+    };
+  }, [
+    savedSnap,
+    name,
+    defaultSubject,
+    visibility,
+    categoryId,
+    placeholders,
+    ignoredPlaceholders,
+    imageSlots,
+    html,
+  ]);
+
+  const isDirty = Boolean(
+    canEdit &&
+      savedSnap &&
+      snapshotKey(currentSnap) !== snapshotKey(savedSnap),
+  );
+
+  /** Highlight changed fields whenever the card has unsaved edits. */
+  const markUnsaved = isDirty;
+
+  function promptUnsaved() {
+    setError(null);
+    setNotice(null);
+    requestAnimationFrame(() => {
+      unsavedBannerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty &&
+      !skipLeaveGuard.current &&
+      currentLocation.pathname !== nextLocation.pathname,
+  );
+
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    promptUnsaved();
+    function onStayByEdit(e: Event) {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".unsaved-banner-actions")) return;
+      blocker.reset?.();
+    }
+    document.addEventListener("pointerdown", onStayByEdit);
+    return () => document.removeEventListener("pointerdown", onStayByEdit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
+  async function saveAll(): Promise<boolean> {
     if (!token || !id) {
       setError("Not signed in.");
-      return;
+      return false;
     }
     if (!canEdit) {
       setError("You do not have permission to edit this template.");
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -330,109 +371,34 @@ export function TemplateDetailPage() {
         categoryId,
       });
       const cleanedSubject = defaultSubject.trim().slice(0, 300);
+      const cleanedPlaceholders = placeholders.map((p) => ({
+        key: p.key,
+        label: p.label.trim() || p.key,
+        source: p.source,
+      }));
+      const cleanedSlots = imageSlots.map((s) => ({
+        ...s,
+        label: s.label.trim() || s.id,
+      }));
       await api.saveTemplateVersion(token, id, {
         designJson: {
           ...latestDesignJson,
           defaultSubject: cleanedSubject,
+          placeholders: cleanedPlaceholders,
+          ignoredPlaceholders,
+          imageSlots: cleanedSlots,
         },
         compiledHtml: html,
         previewUrl: previewImageUrl,
       });
       await reload();
-      setNotice("Saved settings.");
+      setNotice("Saved.");
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
+      return false;
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function onDeleteAsset(
-    assetId: string,
-    fileName: string,
-    storageKey: string,
-  ) {
-    if (!token || !id || !canEdit || !template) {
-      setError("Cannot delete — not signed in or no permission.");
-      return;
-    }
-
-    const designJson = (template.versions[0]?.designJson ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const designUses = countDesignUses(designJson, storageKey, fileName);
-    const inHtml = htmlUsesAsset(html, fileName, storageKey);
-    const hasCompiledPreview = Boolean(
-      (template.versions[0]?.compiledHtml ?? "").trim(),
-    );
-
-    setAssetDeletePrompt({
-      id: assetId,
-      fileName,
-      storageKey,
-      designUses,
-      inHtml,
-      clearsPreview: designUses > 0 && hasCompiledPreview,
-    });
-  }
-
-  async function confirmDeleteAsset() {
-    if (!assetDeletePrompt || !token || !id || !canEdit || !template) return;
-    const { id: assetId, fileName, storageKey, designUses, inHtml } =
-      assetDeletePrompt;
-    const designJson = (template.versions[0]?.designJson ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const mode =
-      typeof designJson.mode === "string" ? designJson.mode : "blank";
-    const invalidateCompiled = designUses > 0;
-
-    setAssetDeletePrompt(null);
-    setError(null);
-    setNotice(null);
-
-    try {
-      await api.deleteTemplateAsset(token, id, assetId, {
-        invalidateCompiled,
-      });
-
-      const nextDesign = stripAssetFromDesign(designJson, storageKey, fileName);
-      const nextHtml = stripAssetFromHtml(html, fileName, storageKey);
-
-      if (designUses > 0) {
-        await api.purgeCompiledAssets(token, id);
-        await api.saveTemplateVersion(token, id, {
-          designJson: {
-            ...nextDesign,
-            mode: nextDesign.mode ?? mode,
-          },
-          compiledHtml: "",
-          previewUrl: null,
-        });
-        setHtml("");
-      } else if (inHtml) {
-        await api.saveTemplateVersion(token, id, {
-          designJson: {
-            mode: nextHtml.trim() ? "html_import" : "blank",
-            sourceHtml: nextHtml,
-          },
-          compiledHtml: nextHtml,
-        });
-        setHtml(nextHtml);
-      }
-
-      await reload();
-      setNotice(
-        designUses > 0
-          ? `Removed “${fileName}” from the card (${designUses} placement${designUses === 1 ? "" : "s"}) and cleared the email preview. Re-import the design to rebuild it.`
-          : inHtml
-            ? `Removed “${fileName}” from uploads and HTML.`
-            : `Deleted image “${fileName}”.`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete image failed");
     }
   }
 
@@ -479,7 +445,7 @@ export function TemplateDetailPage() {
       setNotice(
         importedPreview
           ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${trimNote}${phNote}`
-          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} — re-import to retry.${trimNote}${phNote}`,
+          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} - re-import to retry.${trimNote}${phNote}`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Canva import failed");
@@ -488,101 +454,31 @@ export function TemplateDetailPage() {
     }
   }
 
-  async function savePlaceholders() {
-    if (!token || !id || !canEdit || !template) return;
-    setSaving(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const cleaned = placeholders.map((p) => ({
-        key: p.key,
-        label: p.label.trim() || p.key,
-        source: p.source,
-      }));
-      const cleanedSlots = imageSlots.map((s) => ({
-        ...s,
-        label: s.label.trim() || s.id,
-      }));
-      await api.saveTemplateVersion(token, id, {
-        designJson: {
-          ...latestDesignJson,
-          placeholders: cleaned,
-          ignoredPlaceholders,
-          imageSlots: cleanedSlots,
-          defaultSubject: defaultSubject.trim().slice(0, 300),
-        },
-        compiledHtml: html,
-        previewUrl: previewImageUrl,
-      });
-      await reload();
-      setNotice(
-        cleaned.length
-          ? `Saved ${cleaned.length} placeholder definition${cleaned.length === 1 ? "" : "s"}.`
-          : "Saved placeholder definitions (none active).",
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not save placeholders",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveImageSlots() {
-    if (!token || !id || !canEdit || !template) return;
-    setSaving(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const cleaned = placeholders.map((p) => ({
-        key: p.key,
-        label: p.label.trim() || p.key,
-        source: p.source,
-      }));
-      const cleanedSlots = imageSlots.map((s) => ({
-        ...s,
-        label: s.label.trim() || s.id,
-      }));
-      await api.saveTemplateVersion(token, id, {
-        designJson: {
-          ...latestDesignJson,
-          placeholders: cleaned,
-          ignoredPlaceholders,
-          imageSlots: cleanedSlots,
-          defaultSubject: defaultSubject.trim().slice(0, 300),
-        },
-        compiledHtml: html,
-        previewUrl: previewImageUrl,
-      });
-      await reload();
-      setNotice(
-        cleanedSlots.length
-          ? `Saved ${cleanedSlots.length} image slot setting${cleanedSlots.length === 1 ? "" : "s"}.`
-          : "Saved image slot settings (none detected).",
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not save image slots",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function rescanPlaceholders() {
-    const next = syncPlaceholdersWithHtml(
+  function rescanAll() {
+    const nextPlaceholders = syncPlaceholdersWithHtml(
       html,
       placeholders,
       ignoredPlaceholders,
     );
-    setPlaceholders(next);
+    const { slots, html: nextHtml } = syncImageSlotsWithHtml(html, imageSlots);
+    setPlaceholders(nextPlaceholders);
+    setImageSlots(slots);
+    setHtml(nextHtml);
+    const parts: string[] = [];
+    if (nextPlaceholders.length) {
+      parts.push(
+        `${nextPlaceholders.length} placeholder${nextPlaceholders.length === 1 ? "" : "s"}`,
+      );
+    }
+    if (slots.length) {
+      parts.push(`${slots.length} image${slots.length === 1 ? "" : "s"}`);
+    }
     setNotice(
-      next.length
-        ? `Found ${next.length} placeholder${next.length === 1 ? "" : "s"} in HTML. Review labels and “Filled how”, then Save.`
+      parts.length
+        ? `Rescanned HTML - found ${parts.join(" and ")}. Review below, then Save.`
         : ignoredPlaceholders.length
-          ? "No active placeholders — all detected tokens are in Removed, or none found in HTML."
-          : "No {{placeholders}} found in the current HTML.",
+          ? "Rescanned HTML - no active placeholders or images (some tags may be in Removed)."
+          : "Rescanned HTML - no placeholders or content images found.",
     );
   }
 
@@ -593,38 +489,7 @@ export function TemplateDetailPage() {
     setIgnoredPlaceholders(nextIgnored);
     const next = syncPlaceholdersWithHtml(html, placeholders, nextIgnored);
     setPlaceholders(next);
-    setNotice(
-      `Restored {{${key}}}. Review it above, then Save placeholder definitions.`,
-    );
-  }
-
-  function rescanImageSlots() {
-    const { slots, html: nextHtml } = syncImageSlotsWithHtml(html, imageSlots);
-    setImageSlots(slots);
-    setHtml(nextHtml);
-    setNotice(
-      slots.length
-        ? `Found ${slots.length} image${slots.length === 1 ? "" : "s"} in HTML. Review labels and replace mode, then Save.`
-        : "No content images found in the current HTML.",
-    );
-  }
-
-  async function onRegenerateCanvaSnapshot() {
-    if (!token || !id || !canEdit || !html.trim()) return;
-    setError(null);
-    setNotice(null);
-    setSaving(true);
-    try {
-      await regenerateCanvaSnapshot(token, id, html, latestDesignJson);
-      await reload();
-      setNotice("Regenerated PNG snapshot from Canva HTML for Outlook paste.");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not build PNG snapshot",
-      );
-    } finally {
-      setSaving(false);
-    }
+    setNotice(`Restored {{${key}}}. Review it above, then Save.`);
   }
 
   async function onReimportDesignImage(file: File | null) {
@@ -665,11 +530,36 @@ export function TemplateDetailPage() {
     setPendingDeleteId(null);
     try {
       await api.deleteTemplate(token, id);
+      skipLeaveGuard.current = true;
       navigate("/cards");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
   }
+
+  function discardChanges() {
+    if (!savedSnap) return;
+    setName(savedSnap.name);
+    setDefaultSubject(savedSnap.defaultSubject);
+    setVisibility(savedSnap.visibility);
+    setCategoryId(savedSnap.categoryId);
+    setHtml(savedSnap.html);
+    setPlaceholders(savedSnap.placeholders);
+    setIgnoredPlaceholders(savedSnap.ignoredPlaceholders);
+    setImageSlots(savedSnap.imageSlots);
+    setError(null);
+    setNotice(null);
+    setPendingDeleteId(null);
+  }
+
+  const canRescan =
+    canEdit &&
+    Boolean(html.trim()) &&
+    (latestMode === "canva_html" ||
+      latestMode === "html_import" ||
+      latestMode === "blank" ||
+      latestMode === "designer" ||
+      latestMode === "image_import");
 
   if (!template && !error) {
     return (
@@ -695,13 +585,13 @@ export function TemplateDetailPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "My Designs", to: "/cards" },
+          { label: "My cards", to: "/cards" },
           { label: template.name },
         ]}
       />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">My Designs</p>
+          <p className="eyebrow">My cards</p>
           <h1>{template.name}</h1>
           <p className="lede">
             owned by {template.owner.displayName} · v{latest?.version ?? 1}
@@ -709,29 +599,132 @@ export function TemplateDetailPage() {
             {modeLabel}
           </p>
         </div>
-        <div className="surface-actions">
+        <div className="surface-actions template-detail-actions">
+          {canEdit ? (
+            <div className="template-detail-tools">
+              {canRescan ? (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={saving}
+                  onClick={() => rescanAll()}
+                  title="Find placeholders and images in the imported HTML"
+                >
+                  Rescan HTML
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="ghost danger-text"
+                disabled={saving}
+                onClick={() => void onDeleteTemplate()}
+              >
+                {pendingDeleteId === "template"
+                  ? "Click again to delete"
+                  : "Delete card"}
+              </button>
+            </div>
+          ) : null}
           {COMPOSE_ENABLED ? (
-            <Link to={`/cards/${template.id}/compose`} className="btn-link">
-              Compose
-            </Link>
+            isDirty ? (
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => promptUnsaved()}
+              >
+                Send
+              </button>
+            ) : (
+              <Link to={`/cards/${template.id}/compose`} className="btn-link">
+                Send
+              </Link>
+            )
           ) : (
             <span
               className="btn-link btn-link-disabled"
               title={COMPOSE_UNAVAILABLE_REASON}
               aria-disabled="true"
             >
-              Compose
+              Send
             </span>
           )}
         </div>
       </header>
+
+      {isDirty ? (
+        <div
+          className={`unsaved-banner is-sticky${
+            blocker.state === "blocked" ? " is-glowing" : ""
+          }`}
+          role="status"
+          ref={unsavedBannerRef}
+        >
+          <button
+            type="button"
+            className="unsaved-banner-copy"
+            onClick={() => {
+              if (blocker.state === "blocked") blocker.reset?.();
+            }}
+          >
+            <strong>Changes not saved yet.</strong>
+            <span className="muted small">
+              {blocker.state === "blocked"
+                ? "Save or discard to leave - or keep editing to stay."
+                : "Save from here when you’re done editing."}
+            </span>
+          </button>
+          <div className="unsaved-banner-actions">
+            <button
+              type="button"
+              className="ghost danger-text unsaved-banner-btn"
+              disabled={saving}
+              onClick={() => {
+                if (blocker.state === "blocked") {
+                  discardChanges();
+                  skipLeaveGuard.current = true;
+                  blocker.proceed?.();
+                  return;
+                }
+                discardChanges();
+              }}
+            >
+              Discard changes
+            </button>
+            <button
+              type="button"
+              className="unsaved-banner-btn"
+              disabled={saving}
+              onClick={() => {
+                void (async () => {
+                  const ok = await saveAll();
+                  if (!ok) return;
+                  if (blocker.state === "blocked") {
+                    skipLeaveGuard.current = true;
+                    blocker.proceed?.();
+                  }
+                })();
+              }}
+            >
+              {saving
+                ? "Saving…"
+                : blocker.state === "blocked"
+                  ? "Save and leave"
+                  : "Save"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <p className="error">{error}</p> : null}
       {notice ? <p className="notice">{notice}</p> : null}
 
       <div className="panel form-stack">
         <h2 className="card-section-title">Card settings</h2>
-        <label>
+        <label
+          className={
+            markUnsaved && dirtyFields.name ? "field-unsaved" : undefined
+          }
+        >
           Name
           <input
             value={name}
@@ -741,8 +734,12 @@ export function TemplateDetailPage() {
           />
         </label>
 
-        <label>
-          Default subject
+        <label
+          className={`field-with-hint${
+            markUnsaved && dirtyFields.defaultSubject ? " field-unsaved" : ""
+          }`}
+        >
+          Subject
           <input
             value={defaultSubject}
             onChange={(e) => setDefaultSubject(e.target.value)}
@@ -750,74 +747,85 @@ export function TemplateDetailPage() {
             maxLength={300}
             placeholder={FALLBACK_DEFAULT_SUBJECT}
           />
+          <span className="field-hint muted small">
+            Email subject when this card is sent. You can include{" "}
+            <code>{"{{recipientName}}"}</code>. Leave blank to use{" "}
+            <code>{FALLBACK_DEFAULT_SUBJECT}</code>.
+          </span>
         </label>
-        <p className="muted small">
-          Compose starts with this subject for every send. Use placeholders like{" "}
-          <code>{"{{recipientName}}"}</code>. Leave blank to use{" "}
-          <code>{FALLBACK_DEFAULT_SUBJECT}</code>.
-        </p>
 
-        <label>
-          Visibility
-          <select
-            value={visibility}
-            onChange={(e) =>
-              setVisibility(e.target.value as "PRIVATE" | "SHARED")
-            }
-            disabled={!canEdit}
+        <div className="settings-pair">
+          <div
+            className={`field-with-hint${
+              markUnsaved && dirtyFields.visibility ? " field-unsaved" : ""
+            }`}
           >
-            <option value="PRIVATE">Private</option>
-            <option value="SHARED">Published</option>
-          </select>
-        </label>
-        {token ? (
-          <div className="category-settings">
-            <CategoryCombobox
-              token={token}
-              value={categoryId}
-              onChange={(id) => setCategoryId(id)}
-              disabled={!canEdit || saving}
-              allowClear={false}
-              allowCreate
-            />
-            <p className="muted small">
-              Pick any designer’s category for this template. Rename or delete
-              categories you created in Design studio → Categories.
-            </p>
+            <span className="field-label">Visibility</span>
+            <select
+              value={visibility}
+              onChange={(e) =>
+                setVisibility(e.target.value as "PRIVATE" | "SHARED")
+              }
+              disabled={!canEdit}
+            >
+              <option value="PRIVATE">Only me</option>
+              <option value="SHARED">Shared</option>
+            </select>
+            <span className="field-hint muted small">
+              <strong>Shared</strong> lists this card under Browse cards.{" "}
+              <strong>Only me</strong> keeps it in your design studio only.
+            </span>
           </div>
-        ) : null}
-        <p className="muted small">
-          <strong>Published</strong> lists this card in the marketplace.{" "}
-          <strong>Private</strong> keeps it in your design studio only.
-        </p>
+          {token ? (
+            <div
+              className={`field-with-hint${
+                markUnsaved && dirtyFields.categoryId ? " field-unsaved" : ""
+              }`}
+            >
+              <span className="field-label">Category</span>
+              <CategoryCombobox
+                token={token}
+                value={categoryId}
+                onChange={(id) => setCategoryId(id)}
+                disabled={!canEdit || saving}
+                allowClear={false}
+                allowCreate
+                label=""
+              />
+              <p className="field-hint muted small">
+                Groups this card in Browse and My cards. Rename or delete ones
+                you created via Categories.
+              </p>
+            </div>
+          ) : null}
+        </div>
 
-        <div className="surface-panel">
+        <div
+          className={`surface-panel${
+            markUnsaved && dirtyFields.html ? " field-unsaved" : ""
+          }`}
+        >
           {latestMode === "canva_html" ? (
             <>
               <p className="muted">
-                Imported from <strong>Canva HTML ZIP</strong>.{" "}
-                <strong>Copy for Outlook</strong> uses a{" "}
-                <strong>PNG snapshot</strong> so paste matches Canva (text not
-                selectable). Use <strong>Compose</strong> to send the real HTML
-                via the server — closer to Canva in most inboxes. Optional:{" "}
-                <strong>Copy HTML</strong> in the preview modal for manual paste
-                (selectable text, layout may shift in Outlook).
+                Design in <strong>Canva</strong> (email size), add tags in text,
+                then import the ZIP here.
               </p>
               <ol className="steps-list muted small">
                 <li>
-                  In Canva: Email design → Share → Download →{" "}
-                  <strong>HTML and images</strong> (ZIP).
+                  In Canva, design an <strong>email</strong> card.
                 </li>
                 <li>
-                  Optional: put your own placeholders in Canva text (e.g.{" "}
-                  <code>{"{{heroName}}"}</code>). After import, define
-                  placeholders and image slots below — Compose fills values and
-                  optional image swaps per send without changing the saved
-                  template.
+                  For fill-in text, type tags like{" "}
+                  <code>{"{{recipientName}}"}</code> or{" "}
+                  <code>{"{{eventTitle}}"}</code> in Canva text boxes.
                 </li>
-                <li>Re-import below to replace this design.</li>
+                <li>
+                  Download: Share → Download →{" "}
+                  <strong>HTML and images</strong> (ZIP).
+                </li>
+                <li>Import that ZIP below. Define tags under Placeholders.</li>
               </ol>
-              <MergeFieldsGuide compact />
               {canEdit ? (
                 <div className="surface-actions import-actions">
                   <label className="check import-trim-option">
@@ -849,19 +857,9 @@ export function TemplateDetailPage() {
                       {saving ? "Importing…" : "Replace Canva ZIP"}
                     </span>
                   </label>
-                  {!previewImageUrl ? (
-                    <button
-                      type="button"
-                      className="ghost"
-                      disabled={saving}
-                      onClick={() => void onRegenerateCanvaSnapshot()}
-                    >
-                      {saving ? "Building…" : "Build PNG snapshot"}
-                    </button>
-                  ) : null}
                 </div>
               ) : (
-                <p className="muted">View only — you don’t own this template.</p>
+                <p className="muted">View only - you don’t own this template.</p>
               )}
             </>
           ) : latestMode === "image_import" ? (
@@ -889,16 +887,32 @@ export function TemplateDetailPage() {
                   </label>
                 </div>
               ) : (
-                <p className="muted">View only — you don’t own this template.</p>
+                <p className="muted">View only - you don’t own this template.</p>
               )}
             </>
           ) : (
             <>
               <p className="muted">
                 {latestMode === "designer"
-                  ? "This card was made in the retired freeform designer. Preview still works if HTML is saved. For selectable text, replace with a Canva HTML ZIP or create a new Canva card."
-                  : "No Canva import yet. Upload a Canva HTML ZIP for selectable text, or an image/PDF for a picture-only card."}
+                  ? "This card was made in the retired freeform designer. Preview still works if HTML is saved. Replace with a Canva ZIP or create a new Canva card."
+                  : "Design in Canva, add tags, then import the ZIP - or upload an image/PDF for a picture-only card."}
               </p>
+              {latestMode !== "designer" ? (
+                <ol className="steps-list muted small">
+                  <li>
+                    In Canva, design an <strong>email</strong> card.
+                  </li>
+                  <li>
+                    Add tags in text if needed, e.g.{" "}
+                    <code>{"{{recipientName}}"}</code>.
+                  </li>
+                  <li>
+                    Download: Share → Download →{" "}
+                    <strong>HTML and images</strong> (ZIP).
+                  </li>
+                  <li>Import the ZIP below (or upload an image/PDF instead).</li>
+                </ol>
+              ) : null}
               {canEdit ? (
                 <div className="surface-actions import-actions">
                   <label className="check import-trim-option">
@@ -946,35 +960,15 @@ export function TemplateDetailPage() {
                   </label>
                 </div>
               ) : (
-                <p className="muted">View only — you don’t own this template.</p>
+                <p className="muted">View only - you don’t own this template.</p>
               )}
             </>
           )}
         </div>
 
-        {canEdit ? (
-          <div className="actions">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void saveAll()}
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={saving}
-              onClick={() => void onDeleteTemplate()}
-            >
-              {pendingDeleteId === "template"
-                ? "Click again to confirm delete"
-                : "Delete template"}
-            </button>
-          </div>
-        ) : (
-          <p className="muted">View only — you don’t own this shared template.</p>
-        )}
+        {!canEdit ? (
+          <p className="muted">View only - you don’t own this shared template.</p>
+        ) : null}
       </div>
 
       {(html.trim() || placeholders.length > 0) &&
@@ -990,8 +984,12 @@ export function TemplateDetailPage() {
           ignoredKeys={ignoredPlaceholders}
           onIgnoredChange={setIgnoredPlaceholders}
           onRestoreIgnored={restoreIgnoredPlaceholder}
-          onSave={() => void savePlaceholders()}
-          onRescan={rescanPlaceholders}
+          showActions={false}
+          className={
+            markUnsaved && dirtyFields.placeholders
+              ? "unsaved-section"
+              : undefined
+          }
         />
       ) : null}
 
@@ -1006,8 +1004,12 @@ export function TemplateDetailPage() {
           canEdit={canEdit}
           saving={saving}
           onChange={setImageSlots}
-          onSave={() => void saveImageSlots()}
-          onRescan={rescanImageSlots}
+          showActions={false}
+          className={
+            markUnsaved && dirtyFields.imageSlots
+              ? "unsaved-section"
+              : undefined
+          }
         />
       ) : null}
 
@@ -1022,108 +1024,6 @@ export function TemplateDetailPage() {
           offerHtmlPaste={offerCanvaHtmlPaste}
           htmlOnly={htmlOnlyPreview}
         />
-      ) : null}
-
-      <section className="panel">
-        <h2>Images</h2>
-        <p className="muted">
-          Design images from your Canva ZIP (or image upload). Compose
-          replacements for a send are stored separately and do not appear here.
-          Prefer Replace Canva ZIP / Replace image for layout changes.
-        </p>
-        <ul className="asset-list">
-          {assets.map((a) => (
-            <li key={a.id}>
-              <div className="asset-main">
-                <a
-                  href={assetUrl(a.storageKey)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {a.fileName}
-                </a>
-                <span className="meta">{(a.byteSize / 1024).toFixed(1)} KB</span>
-              </div>
-              {canEdit ? (
-                <div className="asset-actions">
-                  <button
-                    type="button"
-                    className="ghost danger-text"
-                    onClick={() =>
-                      void onDeleteAsset(a.id, a.fileName, a.storageKey)
-                    }
-                  >
-                    {pendingDeleteId === a.id
-                      ? "Click again to confirm"
-                      : "Delete"}
-                  </button>
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        {assets.length === 0 ? (
-          <p className="muted">No images on this card yet.</p>
-        ) : null}
-      </section>
-
-      {assetDeletePrompt ? (
-        <div
-          className="app-modal-backdrop"
-          role="presentation"
-          onClick={() => setAssetDeletePrompt(null)}
-        >
-          <div
-            className="app-modal"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="detail-asset-del-title"
-            aria-describedby="detail-asset-del-desc"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="detail-asset-del-title">Remove uploaded image?</h2>
-            <p id="detail-asset-del-desc">
-              {assetDeletePrompt.designUses > 0 || assetDeletePrompt.inHtml ? (
-                <>
-                  <strong>{assetDeletePrompt.fileName}</strong> is used on this
-                  card
-                  {assetDeletePrompt.designUses > 0
-                    ? ` (${assetDeletePrompt.designUses} placement${assetDeletePrompt.designUses === 1 ? "" : "s"})`
-                    : ""}
-                  {assetDeletePrompt.inHtml ? " and in the HTML body" : ""}.
-                  Removing it will delete those inclusions
-                  {assetDeletePrompt.designUses > 0
-                    ? " and clear the compiled email preview"
-                    : ""}
-                  .
-                </>
-              ) : (
-                <>
-                  Remove <strong>{assetDeletePrompt.fileName}</strong> from
-                  uploads? It does not appear to be used on the card right now.
-                </>
-              )}
-            </p>
-            <div className="app-modal-actions">
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setAssetDeletePrompt(null)}
-              >
-                Keep file
-              </button>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => void confirmDeleteAsset()}
-              >
-                {assetDeletePrompt.designUses > 0 || assetDeletePrompt.inHtml
-                  ? "Remove and update card"
-                  : "Remove file"}
-              </button>
-            </div>
-          </div>
-        </div>
       ) : null}
     </div>
   );
