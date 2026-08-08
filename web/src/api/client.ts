@@ -230,7 +230,7 @@ export const api = {
   devLogin: (body: {
     email: string;
     displayName: string;
-    role?: "USER" | "ADMIN";
+    role?: "USER" | "DESIGNER" | "ADMIN";
   }) =>
     request<{ token: string; user: ApiUser }>("/auth/dev-login", {
       method: "POST",

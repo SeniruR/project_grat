@@ -175,7 +175,7 @@ function SummaryRow({
                     </div>
                     {(job.messages?.length ?? 0) > 0 ? (
                       <ul className="admin-message-list">
-                        {job.messages.map((m) => (
+                        {job.messages?.map((m) => (
                           <li key={m.id}>
                             <strong>{m.subject}</strong>
                             <div className="muted small">

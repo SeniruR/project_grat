@@ -412,7 +412,6 @@ export function ComposePage() {
   }
 
   const typedRecipient = parseTypedEmail(query);
-  const showTypedAdd = Boolean(typedRecipient);
 
   function removePerson(email: string) {
     const key = email.trim().toLowerCase();
