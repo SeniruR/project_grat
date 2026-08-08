@@ -133,8 +133,9 @@ export function AdminSettingsPage() {
           <p className="eyebrow">Admin</p>
           <h1>Compose settings</h1>
           <p className="lede">
-            Choose which name titles appear in Compose when someone ticks a
-            recipient (or sender) to add Mr. / Mrs. / Sir, and so on.
+            Choose which name titles composers may add as optional recipient
+            groups (Mr., Mrs., Sir, …). On Compose they start without prefixes
+            and only add the ones they need.
           </p>
         </div>
       </header>
@@ -145,8 +146,9 @@ export function AdminSettingsPage() {
       <section className="panel form-stack">
         <h2 className="card-section-title">Name prefixes</h2>
         <p className="muted small">
-          These options show in the Compose title dropdown. Order here is the
-          order in the dropdown.
+          Each prefix becomes a recipient group on Compose with its own search.
+          Add several people under Mr., others under Mrs., and so on. Order here
+          is the order of those groups.
         </p>
 
         {loading ? (

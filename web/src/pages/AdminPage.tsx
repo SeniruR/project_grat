@@ -99,8 +99,8 @@ export function AdminPage() {
           <span className="catalog-type">SETTINGS</span>
           <h2>Compose settings</h2>
           <p>
-            Choose which name titles (Mr., Mrs., Sir, …) appear in Compose
-            dropdowns.
+            Choose which name titles (Mr., Mrs., Sir, …) become recipient groups
+            in Compose.
           </p>
         </Link>
         <Link to="/admin/audit" className="catalog-tile catalog-tile--live">

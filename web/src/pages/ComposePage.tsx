@@ -106,13 +106,15 @@ export function ComposePage() {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<DirectoryPerson[]>([]);
   const [selected, setSelected] = useState<DirectoryPerson[]>([]);
-  /** Tick → show Mr/Mrs/Miss for that recipient (when name placeholders are used). */
-  const [recipientTitleEnabled, setRecipientTitleEnabled] = useState<
-    Record<string, boolean>
-  >({});
+  /** email → title (Mr./Mrs./…). Empty string = no title. */
   const [recipientTitles, setRecipientTitles] = useState<
     Record<string, string>
   >({});
+  /** Prefix groups the composer opted into (not all admin prefixes). */
+  const [activePrefixGroups, setActivePrefixGroups] = useState<string[]>([]);
+  const [prefixToAdd, setPrefixToAdd] = useState("");
+  /** Which prefix group the current search belongs to ("" = no title). */
+  const [searchScope, setSearchScope] = useState("");
   const [senderTitleEnabled, setSenderTitleEnabled] = useState(false);
   const [senderTitle, setSenderTitle] = useState("Mr.");
   const [nameHonorifics, setNameHonorifics] = useState<NameHonorific[]>([
@@ -314,9 +316,7 @@ export function ComposePage() {
     () => {
       const previewKey = previewPerson ? personKey(previewPerson) : "";
       const titledRecipient = withHonorific(
-        previewKey && recipientTitleEnabled[previewKey]
-          ? recipientTitles[previewKey] || nameHonorifics[0]?.value || "Mr."
-          : "",
+        previewKey ? recipientTitles[previewKey] || "" : "",
         previewPerson?.displayName ?? "Alex",
       );
       const titledSender = withHonorific(
@@ -341,11 +341,9 @@ export function ComposePage() {
       sharedFields,
       perRecipientFields,
       user,
-      recipientTitleEnabled,
       recipientTitles,
       senderTitleEnabled,
       senderTitle,
-      nameHonorifics,
     ],
   );
 
@@ -392,29 +390,29 @@ export function ComposePage() {
     slotsForOverrides,
   ]);
 
-  function addPerson(person: DirectoryPerson) {
+  function addPerson(person: DirectoryPerson, title = "") {
+    const ek = personKey(person);
     setSelected((prev) => {
-      if (prev.some((p) => personKey(p) === personKey(person))) return prev;
+      if (prev.some((p) => personKey(p) === ek)) return prev;
       return [...prev, person];
     });
+    setRecipientTitles((prev) => ({ ...prev, [ek]: title }));
     setQuery("");
     setHits([]);
   }
 
-  function tryAddTypedEmail() {
+  function tryAddTypedEmail(title = searchScope) {
     const person = parseTypedEmail(query);
     if (!person) {
       reportError("Enter a valid email address (e.g. you@example.com).");
       return;
     }
     setError(null);
-    addPerson(person);
+    addPerson(person, title);
   }
 
   const typedRecipient = parseTypedEmail(query);
-  const showTypedAdd =
-    typedRecipient &&
-    !selected.some((s) => personKey(s) === personKey(typedRecipient));
+  const showTypedAdd = Boolean(typedRecipient);
 
   function removePerson(email: string) {
     const key = email.trim().toLowerCase();
@@ -429,11 +427,6 @@ export function ComposePage() {
       delete next[key];
       return next;
     });
-    setRecipientTitleEnabled((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
     setRecipientTitles((prev) => {
       const next = { ...prev };
       delete next[key];
@@ -441,20 +434,161 @@ export function ComposePage() {
     });
   }
 
+  function peopleForTitle(title: string): DirectoryPerson[] {
+    return selected.filter(
+      (p) => (recipientTitles[personKey(p)] || "") === title,
+    );
+  }
+
+  function addPrefixGroup(value: string) {
+    const title = value.trim();
+    if (!title) return;
+    if (!nameHonorifics.some((h) => h.value === title)) return;
+    setActivePrefixGroups((prev) =>
+      prev.includes(title) ? prev : [...prev, title],
+    );
+    setPrefixToAdd("");
+    setSearchScope(title);
+    setQuery("");
+    setHits([]);
+  }
+
+  function removePrefixGroup(title: string) {
+    setActivePrefixGroups((prev) => prev.filter((t) => t !== title));
+    setRecipientTitles((prev) => {
+      const next = { ...prev };
+      for (const [email, t] of Object.entries(next)) {
+        if (t === title) next[email] = "";
+      }
+      return next;
+    });
+    if (searchScope === title) {
+      setSearchScope("");
+      setQuery("");
+      setHits([]);
+    }
+  }
+
   function titledRecipientName(person: DirectoryPerson): string {
     const ek = personKey(person);
-    return withHonorific(
-      recipientTitleEnabled[ek]
-        ? recipientTitles[ek] || nameHonorifics[0]?.value || "Mr."
-        : "",
-      person.displayName,
-    );
+    return withHonorific(recipientTitles[ek] || "", person.displayName);
   }
 
   function titledSenderName(): string {
     return withHonorific(
       senderTitleEnabled ? senderTitle : "",
       senderName.trim() || user?.displayName || "",
+    );
+  }
+
+  function renderRecipientSearch(title: string, inputId: string) {
+    const active = searchScope === title;
+    const typed = active ? typedRecipient : null;
+    const canTypedAdd = Boolean(typed);
+    const activeHits = active ? hits : [];
+    return (
+      <>
+        <input
+          id={inputId}
+          type="email"
+          value={active ? query : ""}
+          onChange={(e) => {
+            setSearchScope(title);
+            setQuery(e.target.value);
+          }}
+          onFocus={() => {
+            if (searchScope !== title) {
+              setSearchScope(title);
+              setQuery("");
+              setHits([]);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (canTypedAdd) tryAddTypedEmail(title);
+            }
+          }}
+          placeholder="Type email and press Enter, or search directory"
+          disabled={busy}
+          autoComplete="off"
+        />
+        {active && searching ? (
+          <p className="muted small">Searching…</p>
+        ) : null}
+        {active && canTypedAdd && typed ? (
+          <ul className="recipient-hits">
+            <li>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => tryAddTypedEmail(title)}
+              >
+                <strong>
+                  {selected.some((s) => personKey(s) === personKey(typed))
+                    ? `Move ${typed.email} here`
+                    : `Add ${typed.email}`}
+                </strong>
+                <span>Press Enter</span>
+              </button>
+            </li>
+          </ul>
+        ) : null}
+        {active && activeHits.length > 0 ? (
+          <ul className="recipient-hits">
+            {activeHits.map((p) => {
+              const ek = personKey(p);
+              const alreadyHere =
+                selected.some((s) => personKey(s) === ek) &&
+                (recipientTitles[ek] || "") === title;
+              const elsewhere = selected.some((s) => personKey(s) === ek);
+              return (
+                <li key={p.aadOid || p.email}>
+                  <button
+                    type="button"
+                    disabled={alreadyHere || busy}
+                    onClick={() => addPerson(p, title)}
+                  >
+                    <strong>
+                      {elsewhere && !alreadyHere
+                        ? `Move ${p.displayName}`
+                        : p.displayName}
+                    </strong>
+                    <span>{p.email}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </>
+    );
+  }
+
+  function renderPersonChips(people: DirectoryPerson[]) {
+    return (
+      <div className="recipient-chips">
+        {people.map((p) => (
+          <div key={p.email} className="recipient-chip-row">
+            <div className="recipient-chip-body">
+              <span className="recipient-chip-name">
+                {titledRecipientName(p)}
+              </span>
+              <em>{p.email}</em>
+            </div>
+            <button
+              type="button"
+              className="recipient-chip-remove"
+              onClick={() => removePerson(p.email)}
+              title="Remove"
+              disabled={busy}
+              aria-label={`Remove ${p.displayName}`}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
     );
   }
 
@@ -1060,141 +1194,105 @@ export function ComposePage() {
           </fieldset>
 
           <div className="compose-recipients">
-            <label htmlFor="recipient-search">Recipients</label>
-            {usesRecipientName ? (
-              <p className="muted small">
-                Tick a recipient to add Mr. / Mrs. / Miss (and similar) before
-                their name in placeholders.
-              </p>
-            ) : null}
-            <div className="recipient-chips">
-              {selected.map((p) => {
-                const ek = personKey(p);
-                const titled = usesRecipientName && recipientTitleEnabled[ek];
-                return (
-                  <div key={p.email} className="recipient-chip-row">
-                    {usesRecipientName ? (
-                      <label className="recipient-title-tick">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(recipientTitleEnabled[ek])}
-                          disabled={busy}
-                          onChange={(e) => {
-                            const on = e.target.checked;
-                            setRecipientTitleEnabled((prev) => ({
-                              ...prev,
-                              [ek]: on,
-                            }));
-                            if (on) {
-                              setRecipientTitles((prev) => ({
-                                ...prev,
-                                [ek]:
-                                  prev[ek] ||
-                                  nameHonorifics[0]?.value ||
-                                  "Mr.",
-                              }));
-                            }
-                          }}
-                          aria-label={`Add title for ${p.displayName}`}
-                        />
-                      </label>
-                    ) : null}
-                    <div className="recipient-chip-body">
-                      <span className="recipient-chip-name">
-                        {titled
-                          ? titledRecipientName(p)
-                          : p.displayName}
-                      </span>
-                      <em>{p.email}</em>
-                      {titled ? (
-                        <select
-                          className="recipient-title-select"
-                          value={
-                            recipientTitles[ek] ||
-                            nameHonorifics[0]?.value ||
-                            "Mr."
-                          }
-                          disabled={busy}
-                          onChange={(e) =>
-                            setRecipientTitles((prev) => ({
-                              ...prev,
-                              [ek]: e.target.value,
-                            }))
-                          }
-                          aria-label={`Title for ${p.displayName}`}
-                        >
-                          {nameHonorifics.map((h) => (
-                            <option key={h.value} value={h.value}>
-                              {h.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                    </div>
-                    <button
-                      type="button"
-                      className="recipient-chip-remove"
-                      onClick={() => removePerson(p.email)}
-                      title="Remove"
-                      disabled={busy}
-                      aria-label={`Remove ${p.displayName}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
+            <label>Recipients</label>
+            <p className="muted small">
+              {usesRecipientName
+                ? "Add people below without a title, or use Add prefix when you need Mr. / Mrs. / … — people added under a prefix get that title automatically."
+                : "Type an email and press Enter, or search the directory."}
+            </p>
+
+            <div className="recipient-prefix-groups">
+              <section className="recipient-prefix-group">
+                <h4 className="recipient-prefix-title">Without prefix</h4>
+                {peopleForTitle("").length > 0
+                  ? renderPersonChips(peopleForTitle(""))
+                  : null}
+                {renderRecipientSearch("", "recipient-search")}
+              </section>
+
+              {usesRecipientName
+                ? activePrefixGroups.map((title) => {
+                    const label =
+                      nameHonorifics.find((h) => h.value === title)?.label ??
+                      title;
+                    const people = peopleForTitle(title);
+                    return (
+                      <section
+                        key={title}
+                        className="recipient-prefix-group"
+                      >
+                        <div className="recipient-prefix-head">
+                          <h4 className="recipient-prefix-title">{label}</h4>
+                          <button
+                            type="button"
+                            className="ghost recipient-prefix-remove"
+                            disabled={busy}
+                            onClick={() => removePrefixGroup(title)}
+                          >
+                            Remove prefix
+                          </button>
+                        </div>
+                        <p className="muted small">
+                          People added here become{" "}
+                          <strong>
+                            {label} Name
+                          </strong>{" "}
+                          in the email.
+                        </p>
+                        {people.length > 0 ? renderPersonChips(people) : null}
+                        {renderRecipientSearch(
+                          title,
+                          `recipient-search-${title}`,
+                        )}
+                      </section>
+                    );
+                  })
+                : null}
             </div>
-            <input
-              id="recipient-search"
-              type="email"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (showTypedAdd) tryAddTypedEmail();
-                }
-              }}
-              placeholder="Type email and press Enter, or search directory"
-              disabled={busy}
-              autoComplete="off"
-            />
-            {searching ? <p className="muted small">Searching…</p> : null}
-            {showTypedAdd ? (
-              <ul className="recipient-hits">
-                <li>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => tryAddTypedEmail()}
-                  >
-                    <strong>Add {typedRecipient.email}</strong>
-                    <span>Press Enter</span>
-                  </button>
-                </li>
-              </ul>
-            ) : null}
-            {hits.length > 0 ? (
-              <ul className="recipient-hits">
-                {hits.map((p) => {
-                  const taken = selected.some(
-                    (s) => personKey(s) === personKey(p),
+
+            {usesRecipientName ? (
+              <div className="recipient-prefix-add">
+                {(() => {
+                  const available = nameHonorifics.filter(
+                    (h) => !activePrefixGroups.includes(h.value),
                   );
+                  if (available.length === 0) {
+                    return (
+                      <p className="muted small">
+                        All configured prefixes are already added.
+                      </p>
+                    );
+                  }
+                  const selectedValue =
+                    prefixToAdd &&
+                    available.some((h) => h.value === prefixToAdd)
+                      ? prefixToAdd
+                      : available[0].value;
                   return (
-                    <li key={p.aadOid || p.email}>
+                    <>
+                      <select
+                        value={selectedValue}
+                        disabled={busy}
+                        onChange={(e) => setPrefixToAdd(e.target.value)}
+                        aria-label="Prefix to add"
+                      >
+                        {available.map((h) => (
+                          <option key={h.value} value={h.value}>
+                            {h.label}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
-                        disabled={taken || busy}
-                        onClick={() => addPerson(p)}
+                        disabled={busy}
+                        onClick={() => addPrefixGroup(selectedValue)}
                       >
-                        <strong>{p.displayName}</strong>
-                        <span>{p.email}</span>
+                        Add prefix
                       </button>
-                    </li>
+                    </>
                   );
-                })}
-              </ul>
+                })()}
+              </div>
             ) : null}
           </div>
 
