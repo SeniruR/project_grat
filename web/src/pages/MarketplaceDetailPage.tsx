@@ -5,6 +5,10 @@ import { useAuth } from "../auth/AuthContext";
 import { CanvasPreview } from "../components/CanvasPreview";
 import { COMPOSE_ENABLED } from "../features";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import {
+  resolveMediaUrl,
+  rewriteMediaUrlsInHtml,
+} from "../lib/mediaUrl";
 
 export function MarketplaceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,8 +26,10 @@ export function MarketplaceDetailPage() {
       .marketplaceCard(token, id)
       .then((res) => {
         setCard(res.template);
-        setPreviewHtml(res.previewHtml);
-        setPreviewUrl(res.previewUrl);
+        setPreviewHtml(
+          res.previewHtml ? rewriteMediaUrlsInHtml(res.previewHtml) : null,
+        );
+        setPreviewUrl(resolveMediaUrl(res.previewUrl));
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load card"),

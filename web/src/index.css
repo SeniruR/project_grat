@@ -989,6 +989,7 @@ button.linkish:disabled {
   position: relative;
   height: 168px;
   overflow: hidden;
+  container-type: size;
   background:
     linear-gradient(45deg, #f0eeea 25%, transparent 25%),
     linear-gradient(-45deg, #f0eeea 25%, transparent 25%),
@@ -1246,10 +1247,8 @@ button.linkish:disabled {
   width: 600px;
   height: 800px;
   border: 0;
-  transform: scale(0.28);
-  transform-origin: top center;
-  margin-left: 50%;
-  translate: -50% 0;
+  transform: scale(calc(100cqw / 600));
+  transform-origin: top left;
   background: #fff;
 }
 

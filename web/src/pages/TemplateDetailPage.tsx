@@ -28,6 +28,7 @@ import {
   syncImageSlotsWithHtml,
   type ImageSlotDef,
 } from "../lib/imageSlots";
+import { resolveMediaUrl, rewriteMediaUrlsInHtml } from "../lib/mediaUrl";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -273,7 +274,8 @@ export function TemplateDetailPage() {
   }, [latestDesignJson]);
 
   /** Compiled PNG snapshot — pixel-perfect Outlook paste for Canva imports */
-  const previewImageUrl = template?.versions[0]?.previewUrl?.trim() || null;
+  const previewImageUrl =
+    resolveMediaUrl(template?.versions[0]?.previewUrl) || null;
 
   /** Canva: PNG paste matches design; HTML optional for selectable text. */
   const outlookPasteMode: "html" | "png" =
@@ -301,7 +303,9 @@ export function TemplateDetailPage() {
             : "Blank";
 
   const previewHtml = useMemo(() => {
-    return resolveHtmlImageSrcsClient(html, assets, API_URL);
+    return rewriteMediaUrlsInHtml(
+      resolveHtmlImageSrcsClient(html, assets, API_URL),
+    );
   }, [html, assets]);
 
   async function saveAll() {

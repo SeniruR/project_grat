@@ -3,6 +3,7 @@ import {
   extractEmailBodyHtml,
   extractEmailHeadInner,
 } from "./emailHtml";
+import { resolveMediaUrl } from "./mediaUrl";
 
 const RASTER_PIXEL_RATIO = 2;
 
@@ -171,7 +172,9 @@ async function inlineDocumentImages(doc: Document) {
       const src = img.currentSrc || img.src;
       if (!src || src.startsWith("data:")) return;
       try {
-        const res = await fetch(src, { credentials: "include" });
+        const fetchUrl = resolveMediaUrl(src) ?? src;
+        // Public /uploads — omit credentials so CORS stays simple cross-origin.
+        const res = await fetch(fetchUrl, { credentials: "omit", mode: "cors" });
         if (!res.ok) return;
         const blob = await res.blob();
         const dataUrl = await new Promise<string>((resolve, reject) => {

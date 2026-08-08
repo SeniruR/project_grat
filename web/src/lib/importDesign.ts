@@ -29,6 +29,7 @@ import {
   syncImageSlotsWithHtml,
   type ImageSlotDef,
 } from "./imageSlots";
+import { resolveMediaUrl, rewriteMediaUrlsInHtml } from "./mediaUrl";
 
 function resolveDefaultSubjectForSave(
   options?: {
@@ -106,7 +107,7 @@ export async function importCanvaZipToTemplate(
     uploads.push({
       fileName: asset.fileName,
       path: asset.path,
-      url: uploaded.url,
+      url: resolveMediaUrl(uploaded.url) ?? uploaded.url,
     });
   }
 
@@ -123,7 +124,9 @@ export async function importCanvaZipToTemplate(
   // Tag slots on pre-rewrite HTML so ids match the in-browser ZIP scan,
   // then rewrite asset URLs and refresh originalSrc while keeping ids/modes.
   const preSynced = syncImageSlotsWithHtml(html, previousSlots);
-  let compiledHtml = rewriteCanvaAssetUrls(preSynced.html, uploads);
+  let compiledHtml = rewriteMediaUrlsInHtml(
+    rewriteCanvaAssetUrls(preSynced.html, uploads),
+  );
   const synced = syncImageSlotsWithHtml(compiledHtml, preSynced.slots);
   compiledHtml = synced.html;
   const imageSlots = synced.slots;
@@ -179,7 +182,7 @@ export async function importCanvaZipToTemplate(
       snapshotFile,
       "compiled",
     );
-    previewUrl = compiled.url;
+    previewUrl = resolveMediaUrl(compiled.url) ?? compiled.url;
   } catch {
     /* HTML-only import still works */
   }
@@ -247,6 +250,7 @@ export async function regenerateCanvaSnapshot(
     file,
     "compiled",
   );
+  const previewUrl = resolveMediaUrl(asset.url) ?? asset.url;
   await api.saveTemplateVersion(token, templateId, {
     designJson: {
       ...designJson,
@@ -255,9 +259,9 @@ export async function regenerateCanvaSnapshot(
       height,
     },
     compiledHtml,
-    previewUrl: asset.url,
+    previewUrl,
   });
-  return { previewUrl: asset.url, width: emailWidth, height };
+  return { previewUrl, width: emailWidth, height };
 }
 
 /**
@@ -303,7 +307,7 @@ export async function importDesignImageToTemplate(
   }
 
   let compiledHtml = buildImageEmailHtml(
-    compiled.url,
+    resolveMediaUrl(compiled.url) ?? compiled.url,
     width,
     alt ?? "Gratitude card",
   );
@@ -314,6 +318,7 @@ export async function importDesignImageToTemplate(
   const synced = syncImageSlotsWithHtml(compiledHtml, previousSlots);
   compiledHtml = synced.html;
   const imageSlots = synced.slots;
+  const previewUrl = resolveMediaUrl(compiled.url) ?? compiled.url;
 
   await api.saveTemplateVersion(token, templateId, {
     designJson: {
@@ -326,8 +331,8 @@ export async function importDesignImageToTemplate(
       ...(defaultSubject !== undefined ? { defaultSubject } : {}),
     },
     compiledHtml,
-    previewUrl: compiled.url,
+    previewUrl,
   });
 
-  return { compiledHtml, previewUrl: compiled.url, width, imageSlots };
+  return { compiledHtml, previewUrl, width, imageSlots };
 }

@@ -6,6 +6,10 @@ import { wrapWithHeaderFooter } from "../lib/emailHtml";
 import { CategoryCombobox } from "../components/CategoryCombobox";
 import { CategoryManagePanel } from "../components/CategoryManagePanel";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import {
+  resolveMediaUrl,
+  rewriteMediaUrlsInHtml,
+} from "../lib/mediaUrl";
 
 type VisibilityFilter = "all" | "private" | "published";
 
@@ -230,13 +234,16 @@ function TemplateCard({
     if (!body) {
       return `<div style="padding:24px;font-family:Segoe UI,Arial,sans-serif;color:#6b7280;text-align:center;">No preview yet</div>`;
     }
-    return wrapWithHeaderFooter(
-      body,
-      template.headerHtml,
-      template.footerHtml,
+    return rewriteMediaUrlsInHtml(
+      wrapWithHeaderFooter(
+        body,
+        template.headerHtml,
+        template.footerHtml,
+      ),
     );
   }, [latest?.compiledHtml, template.headerHtml, template.footerHtml]);
 
+  const thumbSrc = resolveMediaUrl(latest?.previewUrl);
   const isPrivate = template.visibility === "PRIVATE";
   const totalUsers = template.usageTotalUsers ?? 0;
   const sinceEdit = template.usageSinceLastEdit ?? 0;
@@ -250,8 +257,8 @@ function TemplateCard({
         aria-label={`Open ${template.name}`}
       >
         <div className="template-card-preview" aria-hidden>
-          {latest?.previewUrl ? (
-            <img className="template-card-png" src={latest.previewUrl} alt="" />
+          {thumbSrc ? (
+            <img className="template-card-png" src={thumbSrc} alt="" />
           ) : (
             <iframe
               title=""

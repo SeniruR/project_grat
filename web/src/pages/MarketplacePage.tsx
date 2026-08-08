@@ -1,18 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, assetUrl, type MarketplaceCard } from "../api/client";
+import { api, type MarketplaceCard } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { resolveMediaUrl } from "../lib/mediaUrl";
 
 function previewSrc(card: MarketplaceCard) {
-  const url = card.versions[0]?.previewUrl?.trim();
-  if (!url) return null;
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
-  if (url.startsWith("/uploads/")) {
-    return `${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}${url}`;
-  }
-  return assetUrl(url.replace(/^\/+/, ""));
+  return resolveMediaUrl(card.versions[0]?.previewUrl);
 }
 
 export function MarketplacePage() {
