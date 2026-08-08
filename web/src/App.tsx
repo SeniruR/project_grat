@@ -47,6 +47,7 @@ const router = createBrowserRouter(
       <Route element={<AppShell />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/emails" element={<EmailsHomePage />} />
+        <Route path="/gifts" element={<Navigate to="/emails" replace />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/marketplace/:id" element={<MarketplaceDetailPage />} />
         <Route

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -184,43 +185,46 @@ export function AdminPeoplePage() {
         </section>
       ) : null}
 
-      {deleteTarget ? (
-        <div
-          className="app-modal-backdrop"
-          role="presentation"
-          onClick={() => !deleting && setDeleteTarget(null)}
-        >
-          <div
-            className="app-modal"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2>Delete user?</h2>
-            <p>
-              Remove <strong>{deleteTarget.displayName}</strong> (
-              {deleteTarget.email})? They have no templates or send jobs.
-            </p>
-            <div className="app-modal-actions">
-              <button
-                type="button"
-                className="ghost"
-                disabled={deleting}
-                onClick={() => setDeleteTarget(null)}
+      {deleteTarget
+        ? createPortal(
+            <div
+              className="app-modal-backdrop"
+              role="presentation"
+              onClick={() => !deleting && setDeleteTarget(null)}
+            >
+              <div
+                className="app-modal"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => e.stopPropagation()}
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => void confirmDelete()}
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <h2>Delete user?</h2>
+                <p>
+                  Remove <strong>{deleteTarget.displayName}</strong> (
+                  {deleteTarget.email})? They have no templates or send jobs.
+                </p>
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={deleting}
+                    onClick={() => setDeleteTarget(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => void confirmDelete()}
+                  >
+                    {deleting ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

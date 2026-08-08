@@ -1,7 +1,17 @@
 import { Navigate, Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
-import { COMPOSE_ENABLED } from "./features";
-import { canManageDesigns, isAdmin, roleLabel } from "./lib/roles";
+import { roleLabel } from "./lib/roles";
+
+function pathInCards(pathname: string) {
+  return (
+    pathname === "/emails" ||
+    pathname.startsWith("/marketplace") ||
+    pathname.startsWith("/cards") ||
+    pathname.startsWith("/sent") ||
+    pathname.startsWith("/drafts") ||
+    pathname.startsWith("/admin")
+  );
+}
 
 export function AppShell() {
   const { user, loading, logout } = useAuth();
@@ -18,12 +28,7 @@ export function AppShell() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  const onMyCards =
-    location.pathname.startsWith("/cards") &&
-    !/\/cards\/[^/]+\/compose/.test(location.pathname);
-  const onSent =
-    location.pathname.startsWith("/sent") ||
-    location.pathname.startsWith("/drafts");
+  const onCards = pathInCards(location.pathname);
 
   return (
     <div className="app-shell">
@@ -35,39 +40,11 @@ export function AppShell() {
 
         <div className="topnav-links">
           <NavLink
-            to="/marketplace"
-            className={({ isActive }) =>
-              `topnav-link ${isActive ? "is-active" : ""}`
-            }
+            to="/emails"
+            className={() => `topnav-link ${onCards ? "is-active" : ""}`}
           >
-            Browse
+            Cards
           </NavLink>
-          {canManageDesigns(user) ? (
-            <NavLink
-              to="/cards"
-              className={() => `topnav-link ${onMyCards ? "is-active" : ""}`}
-            >
-              My cards
-            </NavLink>
-          ) : null}
-          {COMPOSE_ENABLED ? (
-            <NavLink
-              to="/sent"
-              className={() => `topnav-link ${onSent ? "is-active" : ""}`}
-            >
-              Sent
-            </NavLink>
-          ) : null}
-          {isAdmin(user) ? (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `topnav-link ${isActive ? "is-active" : ""}`
-              }
-            >
-              Admin
-            </NavLink>
-          ) : null}
           <span className="nav-link-disabled" title="Coming soon">
             Gifts
             <em className="nav-soon">Soon</em>

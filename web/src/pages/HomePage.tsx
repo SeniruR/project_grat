@@ -12,8 +12,7 @@ export function HomePage() {
         <p className="eyebrow">Welcome · {roleLabel(user?.role ?? "USER")}</p>
         <h1 className="home-brand">Gratitude</h1>
         <p className="home-lede">
-          Hi {user?.displayName?.split(" ")[0] ?? "there"} - send appreciation
-          to colleagues in a few clicks.
+          Send appreciation to colleagues in a few clicks.
         </p>
       </section>
 
@@ -23,7 +22,7 @@ export function HomePage() {
           <h2>Cards</h2>
           <p>Browse, create, and send thank-you cards.</p>
         </Link>
-        <div className="home-path home-path--muted">
+        <div className="home-path home-path--muted" aria-disabled="true">
           <span className="home-path-label">Coming soon</span>
           <h2>Gifts</h2>
           <p>Physical gifts and recognition programs.</p>

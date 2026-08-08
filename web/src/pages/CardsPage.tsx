@@ -207,45 +207,48 @@ export function CardsPage() {
           )
         : null}
 
-      {deleteTarget ? (
-        <div
-          className="app-modal-backdrop"
-          role="presentation"
-          onClick={() => !deleting && setDeleteTarget(null)}
-        >
-          <div
-            className="app-modal"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="del-tpl-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="del-tpl-title">Delete card?</h2>
-            <p>
-              Delete <strong>{deleteTarget.name}</strong> permanently? Sent
-              history is kept; this cannot be undone.
-            </p>
-            <div className="app-modal-actions">
-              <button
-                type="button"
-                className="ghost"
-                disabled={deleting}
-                onClick={() => setDeleteTarget(null)}
+      {deleteTarget
+        ? createPortal(
+            <div
+              className="app-modal-backdrop"
+              role="presentation"
+              onClick={() => !deleting && setDeleteTarget(null)}
+            >
+              <div
+                className="app-modal"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="del-tpl-title"
+                onClick={(e) => e.stopPropagation()}
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="danger"
-                disabled={deleting}
-                onClick={() => void confirmDelete()}
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <h2 id="del-tpl-title">Delete card?</h2>
+                <p>
+                  Delete <strong>{deleteTarget.name}</strong> permanently? Sent
+                  history is kept; this cannot be undone.
+                </p>
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={deleting}
+                    onClick={() => setDeleteTarget(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={deleting}
+                    onClick={() => void confirmDelete()}
+                  >
+                    {deleting ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

@@ -18,7 +18,7 @@ export function EmailsHomePage() {
           <p className="eyebrow">{roleLabel(user?.role ?? "USER")}</p>
           <h1>Cards</h1>
           <p className="lede">
-            Pick a card, choose people, and send appreciation.
+            Tools for your role - browse, create, send, or administer cards.
           </p>
         </div>
       </header>
