@@ -448,6 +448,7 @@ export function TemplateDetailPage() {
         placeholders: nextPh,
         imageSlots: nextSlots,
         trimmedWhiteMargins,
+        snapshotError,
       } = await importCanvaZipToTemplate(token, id, file, {
           previousPlaceholders: placeholders,
           previousImageSlots: imageSlots,
@@ -474,10 +475,11 @@ export function TemplateDetailPage() {
         : trimWhiteMargins
           ? " (No solid white margins found to trim.)"
           : "";
+      const failDetail = snapshotError ? ` (${snapshotError})` : "";
       setNotice(
         importedPreview
           ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${trimNote}${phNote}`
-          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed — re-import to retry.${trimNote}${phNote}`,
+          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} — re-import to retry.${trimNote}${phNote}`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Canva import failed");

@@ -72,6 +72,9 @@ export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
  * Import a Canva Email HTML ZIP into an existing template:
  * upload images + fonts, rewrite src/url(...), save compiledHtml,
  * detect {{placeholders}}, and rasterize a PNG snapshot for Outlook paste.
+ *
+ * Snapshot is built from local ZIP blob: URLs first (no cross-origin fetch),
+ * so Render / CORS cannot block the PNG thumbnail.
  */
 export async function importCanvaZipToTemplate(
   token: string,
@@ -89,9 +92,93 @@ export async function importCanvaZipToTemplate(
   },
 ) {
   const { html, assets } = await parseCanvaZip(zipFile);
-  const uploads: Array<{ fileName: string; path: string; url: string }> = [];
   const defaultSubject = resolveDefaultSubjectForSave(options);
 
+  const previous =
+    options?.previousPlaceholders ??
+    parsePlaceholdersFromDesignJson(options?.previousDesignJson);
+  const previousSlots =
+    options?.previousImageSlots ??
+    parseImageSlotsFromDesignJson(options?.previousDesignJson);
+  const ignored =
+    options?.ignoredPlaceholders ??
+    parseIgnoredPlaceholdersFromDesignJson(options?.previousDesignJson);
+
+  // data: URLs work inside the rasterize iframe; blob: URLs often do not.
+  const localUploads: Array<{
+    fileName: string;
+    path: string;
+    url: string;
+  }> = [];
+  for (const a of assets) {
+    const url = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () =>
+        reject(reader.error ?? new Error("Could not read ZIP asset"));
+      reader.readAsDataURL(a.blob);
+    });
+    localUploads.push({
+      fileName: a.fileName,
+      path: a.path,
+      url,
+    });
+  }
+
+  const preSynced = syncImageSlotsWithHtml(html, previousSlots);
+  const emailWidth = inferEmailWidth(preSynced.html);
+
+  let previewUrl: string | null = null;
+  let emailHeight = 800;
+  let trimMeta: { enabled: boolean; top: number; bottom: number } | null =
+    null;
+  let htmlCrop: {
+    top: number;
+    bottom: number;
+    height: number;
+    width: number;
+  } | null = null;
+  let snapshotError: string | null = null;
+  let snapshotFile: File | null = null;
+
+  try {
+    const localHtml = rewriteCanvaAssetUrls(preSynced.html, localUploads);
+    const raster = await rasterizeEmailHtmlToFile(localHtml, emailWidth);
+    snapshotFile = raster.file;
+    emailHeight = raster.height;
+
+    if (options?.trimWhiteMargins) {
+      const crop = await detectWhiteVerticalMargins(
+        raster.dataUrl,
+        raster.width,
+        raster.height,
+        raster.pixelRatio,
+      );
+      if (crop) {
+        const cropped = await cropPngDataUrl(
+          raster.dataUrl,
+          crop,
+          raster.pixelRatio,
+        );
+        snapshotFile = await dataUrlToPngFile(cropped.dataUrl);
+        emailHeight = cropped.height;
+        htmlCrop = crop;
+        trimMeta = { enabled: true, top: crop.top, bottom: crop.bottom };
+      } else {
+        trimMeta = { enabled: true, top: 0, bottom: 0 };
+      }
+    }
+  } catch (err) {
+    snapshotError =
+      err instanceof Error ? err.message : "PNG snapshot failed";
+    snapshotFile = null;
+  }
+
+  const remoteUploads: Array<{
+    fileName: string;
+    path: string;
+    url: string;
+  }> = [];
   for (const asset of assets) {
     const file = new File([asset.blob], asset.fileName, {
       type:
@@ -104,87 +191,48 @@ export async function importCanvaZipToTemplate(
       file,
       "source",
     );
-    uploads.push({
+    remoteUploads.push({
       fileName: asset.fileName,
       path: asset.path,
       url: resolveMediaUrl(uploaded.url) ?? uploaded.url,
     });
   }
 
-  const previous =
-    options?.previousPlaceholders ??
-    parsePlaceholdersFromDesignJson(options?.previousDesignJson);
-  const previousSlots =
-    options?.previousImageSlots ??
-    parseImageSlotsFromDesignJson(options?.previousDesignJson);
-  const ignored =
-    options?.ignoredPlaceholders ??
-    parseIgnoredPlaceholdersFromDesignJson(options?.previousDesignJson);
-
-  // Tag slots on pre-rewrite HTML so ids match the in-browser ZIP scan,
-  // then rewrite asset URLs and refresh originalSrc while keeping ids/modes.
-  const preSynced = syncImageSlotsWithHtml(html, previousSlots);
   let compiledHtml = rewriteMediaUrlsInHtml(
-    rewriteCanvaAssetUrls(preSynced.html, uploads),
+    rewriteCanvaAssetUrls(preSynced.html, remoteUploads),
   );
+  if (htmlCrop) {
+    compiledHtml = applyHtmlVerticalCrop(compiledHtml, htmlCrop);
+  }
   const synced = syncImageSlotsWithHtml(compiledHtml, preSynced.slots);
   compiledHtml = synced.html;
   const imageSlots = synced.slots;
-
   const placeholders = syncPlaceholdersWithHtml(
     compiledHtml,
     previous,
     ignored,
   );
   const imageCount = assets.filter((a) => a.kind === "image").length;
-  const emailWidth = inferEmailWidth(compiledHtml);
 
-  let previewUrl: string | null = null;
-  let emailHeight = 800;
-  let trimMeta: { enabled: boolean; top: number; bottom: number } | null =
-    null;
-
-  try {
-    const raster = await rasterizeEmailHtmlToFile(compiledHtml, emailWidth);
-    let snapshotFile = raster.file;
-    emailHeight = raster.height;
-
-    if (options?.trimWhiteMargins) {
-      const crop = await detectWhiteVerticalMargins(
-        raster.dataUrl,
-        raster.width,
-        raster.height,
-        raster.pixelRatio,
-      );
-      if (crop) {
-        compiledHtml = applyHtmlVerticalCrop(compiledHtml, crop);
-        const cropped = await cropPngDataUrl(
-          raster.dataUrl,
-          crop,
-          raster.pixelRatio,
-        );
-        snapshotFile = await dataUrlToPngFile(cropped.dataUrl);
-        emailHeight = cropped.height;
-        trimMeta = { enabled: true, top: crop.top, bottom: crop.bottom };
-      } else {
-        trimMeta = { enabled: true, top: 0, bottom: 0 };
-      }
-    }
-
+  if (snapshotFile) {
     try {
-      await api.purgeCompiledAssets(token, templateId);
-    } catch {
-      /* optional */
+      try {
+        await api.purgeCompiledAssets(token, templateId);
+      } catch {
+        /* optional */
+      }
+      const { asset: compiled } = await api.uploadTemplateAsset(
+        token,
+        templateId,
+        snapshotFile,
+        "compiled",
+      );
+      previewUrl = resolveMediaUrl(compiled.url) ?? compiled.url;
+    } catch (err) {
+      snapshotError =
+        err instanceof Error ? err.message : "Could not upload PNG snapshot";
+      previewUrl = null;
     }
-    const { asset: compiled } = await api.uploadTemplateAsset(
-      token,
-      templateId,
-      snapshotFile,
-      "compiled",
-    );
-    previewUrl = resolveMediaUrl(compiled.url) ?? compiled.url;
-  } catch {
-    /* HTML-only import still works */
   }
 
   await api.saveTemplateVersion(token, templateId, {
@@ -208,6 +256,7 @@ export async function importCanvaZipToTemplate(
             trimWhiteBottom: trimMeta.bottom,
           }
         : { trimWhiteMargins: false }),
+      ...(snapshotError ? { snapshotError } : {}),
     },
     compiledHtml,
     previewUrl,
@@ -220,6 +269,7 @@ export async function importCanvaZipToTemplate(
     placeholders,
     imageSlots,
     trimmedWhiteMargins: Boolean(trimMeta?.top || trimMeta?.bottom),
+    snapshotError,
   };
 }
 
@@ -235,8 +285,9 @@ export async function regenerateCanvaSnapshot(
       ? designJson.width
       : inferEmailWidth(compiledHtml);
 
+  const htmlForRaster = rewriteMediaUrlsInHtml(compiledHtml);
   const { file, height } = await rasterizeEmailHtmlToFile(
-    compiledHtml,
+    htmlForRaster,
     emailWidth,
   );
   try {
@@ -258,7 +309,7 @@ export async function regenerateCanvaSnapshot(
       width: emailWidth,
       height,
     },
-    compiledHtml,
+    compiledHtml: htmlForRaster,
     previewUrl,
   });
   return { previewUrl, width: emailWidth, height };
