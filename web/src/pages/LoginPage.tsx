@@ -8,7 +8,7 @@ export function LoginPage() {
   const { user, login, loading } = useAuth();
   const [displayName, setDisplayName] = useState("Seniru");
   const [email, setEmail] = useState("seniru@slt.com.lk");
-  const [role, setRole] = useState<AppRole>("ADMIN");
+  const [role, setRole] = useState<AppRole>("USER");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [modes, setModes] = useState("…");
