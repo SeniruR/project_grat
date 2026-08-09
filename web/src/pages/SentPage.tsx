@@ -75,23 +75,27 @@ export function SentPage() {
       </div>
 
       {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Loading…</p> : null}
 
-      {!loading && items.length === 0 ? (
-        <p className="muted">
-          No sends yet. Pick a card from Browse cards and send it.
-        </p>
-      ) : (
-        <ul className="sent-list">
-          {items.map((item) => (
-            <li key={item.id} className="sent-row">
-              <button
-                type="button"
-                className="sent-row-head"
-                onClick={() => setPreviewItem(item)}
-              >
-                <div>
-                  <strong>{item.subject}</strong>
+      <div data-tour="sent-list">
+        {loading ? <p className="muted">Loading…</p> : null}
+
+        {!loading && items.length === 0 ? (
+          <p className="muted">
+            No sends yet. Pick a card from Browse cards and send it.
+          </p>
+        ) : null}
+
+        {!loading && items.length > 0 ? (
+          <ul className="sent-list">
+            {items.map((item) => (
+              <li key={item.id} className="sent-row">
+                <button
+                  type="button"
+                  className="sent-row-head"
+                  onClick={() => setPreviewItem(item)}
+                >
+                  <div>
+                    <strong>{item.subject}</strong>
                     <span className="meta">
                       {item.job.template.name}
                       {item.job.categoryName
@@ -103,15 +107,16 @@ export function SentPage() {
                         ? ` · by ${item.job.requester.displayName}`
                         : ""}
                     </span>
-                </div>
-                <span className="muted small">
-                  {new Date(item.createdAt).toLocaleString()}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                  </div>
+                  <span className="muted small">
+                    {new Date(item.createdAt).toLocaleString()}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
 
       {previewItem ? (
         <SentPreviewModal

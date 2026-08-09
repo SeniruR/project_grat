@@ -98,7 +98,7 @@ export function MarketplaceDetailPage() {
             by {card.owner.displayName}
           </p>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" data-tour="send-card">
           <button
             type="button"
             className={`marketplace-fav-toggle ${card.isFavorite ? "is-on" : ""}`}

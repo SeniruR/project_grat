@@ -907,7 +907,7 @@ export function ComposePage() {
         <aside
           className={`compose-panel ${advancedCompose ? "is-advanced" : "is-simple"}`}
         >
-          <section className="compose-section">
+          <section className="compose-section" data-tour="compose-recipients">
             <header className="compose-section-head">
               <span className="compose-section-step" aria-hidden>
                 1
@@ -1021,7 +1021,7 @@ export function ComposePage() {
             </div>
           </section>
 
-          <section className="compose-section">
+          <section className="compose-section" data-tour="compose-from">
             <header className="compose-section-head">
               <span className="compose-section-step" aria-hidden>
                 2
@@ -1089,7 +1089,7 @@ export function ComposePage() {
             </div>
           </section>
 
-          <section className="compose-section">
+          <section className="compose-section" data-tour="compose-subject">
             <header className="compose-section-head">
               <span className="compose-section-step" aria-hidden>
                 3
@@ -1458,7 +1458,7 @@ export function ComposePage() {
             </>
           ) : null}
 
-          <div className="compose-panel-footer">
+          <div className="compose-panel-footer" data-tour="compose-send">
             {error ? (
               <p className="error compose-inline-error" role="alert">
                 {error}

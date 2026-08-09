@@ -599,7 +599,7 @@ export function TemplateDetailPage() {
             {modeLabel}
           </p>
         </div>
-        <div className="surface-actions template-detail-actions">
+        <div className="surface-actions template-detail-actions" data-tour="design-send">
           {canEdit ? (
             <div className="template-detail-tools">
               {canRescan ? (
@@ -759,6 +759,7 @@ export function TemplateDetailPage() {
             className={`field-with-hint${
               markUnsaved && dirtyFields.visibility ? " field-unsaved" : ""
             }`}
+            data-tour="design-visibility"
           >
             <span className="field-label">Visibility</span>
             <select

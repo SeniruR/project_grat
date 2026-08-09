@@ -135,7 +135,7 @@ export function CategoryManagePanel({
         </div>
       ) : null}
 
-      <div className="category-manage-create">
+      <div className="category-manage-create" data-tour="categories-create">
         <label className="category-manage-create-field">
           <span className="visually-hidden">New category name</span>
           <input

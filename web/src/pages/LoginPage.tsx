@@ -3,12 +3,14 @@ import { Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import type { AppRole } from "../lib/roles";
+import { setTourPending } from "../tour/storage";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
   const [displayName, setDisplayName] = useState("Seniru");
   const [email, setEmail] = useState("seniru@slt.com.lk");
   const [role, setRole] = useState<AppRole>("USER");
+  const [startTutorial, setStartTutorial] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [modes, setModes] = useState("…");
@@ -31,12 +33,14 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
+      setTourPending(startTutorial);
       await login({
         email,
         displayName,
         role,
       });
     } catch (err) {
+      setTourPending(false);
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setSubmitting(false);
@@ -111,6 +115,18 @@ export function LoginPage() {
                 Admin - full access
               </label>
             </fieldset>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={startTutorial}
+                onChange={(e) => setStartTutorial(e.target.checked)}
+              />
+              Start tutorial after sign in
+            </label>
+            <p className="muted small login-tour-hint">
+              Covers the flow for the role you pick above (User, Designer, or
+              Admin).
+            </p>
             {error ? <p className="error">{error}</p> : null}
             <button type="submit" disabled={submitting}>
               {submitting ? "Signing in…" : "Sign in"}

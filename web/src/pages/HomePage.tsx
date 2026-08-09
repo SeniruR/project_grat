@@ -17,7 +17,11 @@ export function HomePage() {
       </section>
 
       <div className="home-paths">
-        <Link to="/emails" className="home-path home-path--primary">
+        <Link
+          to="/emails"
+          className="home-path home-path--primary"
+          data-tour="home-cards"
+        >
           <span className="home-path-label">Start here</span>
           <h2>Cards</h2>
           <p>Browse, create, and send thank-you cards.</p>

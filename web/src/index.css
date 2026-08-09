@@ -281,6 +281,12 @@ button.ghost:hover:not(:disabled) {
   font-weight: 500;
 }
 
+.login-tour-hint {
+  margin: -0.35rem 0 0;
+  padding-left: 1.7rem;
+  line-height: 1.35;
+}
+
 .mode-line {
   margin: 1.2rem 0 0;
   font-size: 0.82rem;
@@ -4651,5 +4657,79 @@ button.danger-text {
   .topnav-user-meta {
     display: none;
   }
+}
+
+/* —— Product tutorial —— */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  pointer-events: none;
+}
+
+.tour-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 27, 45, 0.42);
+  pointer-events: auto;
+}
+
+.tour-spotlight {
+  position: fixed;
+  z-index: 1;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(15, 27, 45, 0.42);
+  outline: 2px solid color-mix(in srgb, var(--brand-sky) 70%, #fff);
+  outline-offset: 2px;
+  pointer-events: none;
+  transition:
+    top 0.18s ease,
+    left 0.18s ease,
+    width 0.18s ease,
+    height 0.18s ease;
+}
+
+.tour-root:has(.tour-spotlight) .tour-scrim {
+  background: transparent;
+  pointer-events: auto;
+}
+
+.tour-callout {
+  z-index: 2;
+  pointer-events: auto;
+  max-width: calc(100vw - 24px);
+  padding: 1rem 1.1rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(0, 86, 163, 0.2);
+  text-align: left;
+}
+
+.tour-callout-step {
+  margin: 0 0 0.35rem;
+}
+
+.tour-callout-title {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.tour-callout-body {
+  margin: 0 0 1rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.tour-callout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 

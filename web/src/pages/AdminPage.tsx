@@ -57,7 +57,7 @@ export function AdminPage() {
       {error ? <p className="error">{error}</p> : null}
 
       {stats ? (
-        <div className="stats-row">
+        <div className="stats-row" data-tour="admin-stats">
           <div>
             <strong>{stats.users}</strong>
             <span>Users</span>
@@ -80,10 +80,12 @@ export function AdminPage() {
           </div>
         </div>
       ) : (
-        <p className="muted">Loading stats…</p>
+        <p className="muted" data-tour="admin-stats">
+          Loading stats…
+        </p>
       )}
 
-      <div className="catalog-grid">
+      <div className="catalog-grid" data-tour="admin-tiles">
         <Link to="/admin/summary" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">SUMMARY</span>
           <h2>Send summary</h2>

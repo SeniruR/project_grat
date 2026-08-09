@@ -72,7 +72,7 @@ export function AdminAuditPage() {
         ]}
       />
       <AdminSubNav />
-      <header className="page-header">
+      <header className="page-header" data-tour="admin-audit">
         <div>
           <p className="eyebrow">Admin</p>
           <h1>Audit log</h1>

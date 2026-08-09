@@ -109,7 +109,7 @@ export function AdminPeoplePage() {
         ]}
       />
       <AdminSubNav />
-      <header className="page-header">
+      <header className="page-header" data-tour="admin-people">
         <div>
           <p className="eyebrow">Admin</p>
           <h1>People</h1>

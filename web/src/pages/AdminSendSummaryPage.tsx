@@ -48,7 +48,7 @@ export function AdminSendSummaryPage() {
         ]}
       />
       <AdminSubNav />
-      <header className="page-header">
+      <header className="page-header" data-tour="admin-summary">
         <div>
           <p className="eyebrow">Admin</p>
           <h1>Send summary</h1>

@@ -24,7 +24,7 @@ export function EmailsHomePage() {
       </header>
 
       <div className="action-grid">
-        <Link to="/marketplace" className="action-tile">
+        <Link to="/marketplace" className="action-tile" data-tour="hub-browse">
           <span className="action-tile-icon" aria-hidden>
             ⌕
           </span>
@@ -33,7 +33,7 @@ export function EmailsHomePage() {
         </Link>
 
         {canManageDesigns(user) ? (
-          <Link to="/cards" className="action-tile">
+          <Link to="/cards" className="action-tile" data-tour="hub-mycards">
             <span className="action-tile-icon" aria-hidden>
               ✎
             </span>
@@ -53,7 +53,7 @@ export function EmailsHomePage() {
         ) : null}
 
         {isAdmin(user) ? (
-          <Link to="/admin" className="action-tile">
+          <Link to="/admin" className="action-tile" data-tour="hub-admin">
             <span className="action-tile-icon" aria-hidden>
               ⚙
             </span>

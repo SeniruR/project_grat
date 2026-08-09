@@ -128,7 +128,7 @@ export function AdminSettingsPage() {
         ]}
       />
       <AdminSubNav />
-      <header className="page-header">
+      <header className="page-header" data-tour="admin-settings">
         <div>
           <p className="eyebrow">Admin</p>
           <h1>Send settings</h1>

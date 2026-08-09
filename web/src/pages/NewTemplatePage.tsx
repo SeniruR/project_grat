@@ -252,7 +252,7 @@ export function NewTemplatePage() {
           </span>
         </label>
 
-        <fieldset className="choice-set">
+        <fieldset className="choice-set" data-tour="design-import">
           <legend>How do you want to start?</legend>
           <div className="starter-grid" role="radiogroup" aria-label="Starter">
             {STARTERS.map((s) => (
@@ -457,7 +457,7 @@ export function NewTemplatePage() {
 
         {error ? <p className="error">{error}</p> : null}
 
-        <div className="actions">
+        <div className="actions" data-tour="design-save">
           <button type="submit" disabled={saving || scanning}>
             {saving
               ? starter === "canva_zip"

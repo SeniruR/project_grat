@@ -86,7 +86,7 @@ export function MarketplacePage() {
         </div>
       </header>
 
-      <div className="marketplace-toolbar">
+      <div className="marketplace-toolbar" data-tour="marketplace-browse">
         {token ? (
           <div className="marketplace-category-filter">
             <CategoryCombobox

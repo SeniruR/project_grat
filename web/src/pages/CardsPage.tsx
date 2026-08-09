@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { wrapWithHeaderFooter } from "../lib/emailHtml";
@@ -17,6 +17,7 @@ type VisibilityFilter = "all" | "private" | "published";
 export function CardsPage() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,10 @@ export function CardsPage() {
     null,
   );
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    setManageCategories(searchParams.get("tourCategories") === "1");
+  }, [searchParams]);
 
   async function reload() {
     if (!token) return;
@@ -107,18 +112,19 @@ export function CardsPage() {
             <button
               type="button"
               className="ghost"
+              data-tour="mycards-categories"
               onClick={() => setManageCategories(true)}
             >
               Categories
             </button>
           ) : null}
-          <Link className="btn-link" to="/cards/new">
+          <Link className="btn-link" to="/cards/new" data-tour="mycards-new">
             New card
           </Link>
         </div>
       </header>
 
-      <div className="studio-toolbar">
+      <div className="studio-toolbar" data-tour="mycards-list">
         {token ? (
           <div className="studio-category-filter">
             <CategoryCombobox
