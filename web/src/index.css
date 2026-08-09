@@ -3054,10 +3054,9 @@ button.danger-text {
 
 .compose-from-line {
   margin: 0;
-  padding: 0.7rem 0.8rem;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--ink) 2%, #fff);
+  padding: 0;
+  border: none;
+  background: transparent;
   text-align: left;
   line-height: 1.45;
   word-break: break-word;

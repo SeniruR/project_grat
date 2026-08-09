@@ -310,9 +310,10 @@ export function ComposePage() {
   const sampleCtx = useMemo(
     () => {
       const previewKey = previewPerson ? personKey(previewPerson) : "";
+      const recipientLabel = previewPerson?.displayName?.trim() || "recipient";
       const titledRecipient = withHonorific(
         previewKey ? recipientTitles[previewKey] || "" : "",
-        previewPerson?.displayName ?? "Alex",
+        recipientLabel,
       );
       const titledSender = withHonorific(
         senderTitleEnabled ? senderTitle : "",
@@ -320,7 +321,7 @@ export function ComposePage() {
       );
       return {
         recipientName: titledRecipient,
-        recipientEmail: previewPerson?.email ?? "alex@example.com",
+        recipientEmail: previewPerson?.email ?? "",
         senderName: titledSender,
         senderEmail: senderEmail.trim() || user?.email || "you@example.com",
         shared: sharedFields,
@@ -726,12 +727,15 @@ export function ComposePage() {
       reportError("Pick at least one recipient.");
       return;
     }
-    if (!senderName.trim() && mailMode !== "smtp") {
-      reportError("Sender name is required.");
+    if (!senderName.trim() && !user?.displayName && mailMode !== "smtp") {
+      reportError("Your account name is missing. Sign in again and retry.");
       return;
     }
-    if (mailMode !== "smtp" && !EMAIL_RE.test(senderEmail.trim())) {
-      reportError("Enter a valid sender email.");
+    if (
+      mailMode !== "smtp" &&
+      !EMAIL_RE.test((senderEmail.trim() || user?.email || "").trim())
+    ) {
+      reportError("Your account email is missing or invalid. Sign in again and retry.");
       return;
     }
     const mergeErr = validateMergeInputs();
@@ -776,11 +780,13 @@ export function ComposePage() {
         subject: subject.trim(),
         senderName:
           titledSenderName().trim() ||
-          (mailMode === "smtp" ? "Gratitude cards" : senderName.trim()),
+          (mailMode === "smtp"
+            ? "Gratitude cards"
+            : senderName.trim() || user?.displayName || ""),
         senderEmail:
           mailMode === "smtp"
             ? (smtpFrom || senderEmail).trim().toLowerCase()
-            : senderEmail.trim().toLowerCase(),
+            : (senderEmail.trim() || user?.email || "").trim().toLowerCase(),
         ...(Object.keys(trimmedShared).length
           ? { sharedFields: trimmedShared }
           : {}),
@@ -1025,44 +1031,36 @@ export function ComposePage() {
                 <p className="compose-section-hint">
                   {mailMode === "smtp"
                     ? "Shown as the sender on the email."
-                    : "Enter the name and email people will see."}
+                    : "Taken from your login."}
                 </p>
               </div>
             </header>
             <div className="compose-section-body">
-              {mailMode === "smtp" ? (
-                <p className="compose-from-line">
-                  <span className="muted">Sent as</span>{" "}
-                  <strong>{smtpFromName || "Gratitude cards"}</strong>
-                  {smtpFrom ? (
-                    <span className="muted"> ({smtpFrom})</span>
-                  ) : null}
-                </p>
-              ) : (
-                <div className="compose-from-fields form-stack">
-                  <label>
-                    Your name
-                    <input
-                      value={senderName}
-                      onChange={(e) => setSenderName(e.target.value)}
-                      disabled={busy}
-                      maxLength={200}
-                      placeholder="Your name"
-                    />
-                  </label>
-                  <label>
-                    Your email
-                    <input
-                      type="email"
-                      value={senderEmail}
-                      onChange={(e) => setSenderEmail(e.target.value)}
-                      disabled={busy}
-                      maxLength={320}
-                      placeholder="you@example.com"
-                    />
-                  </label>
-                </div>
-              )}
+              <p className="compose-from-line">
+                {mailMode === "smtp" ? (
+                  <>
+                    <span className="muted">Sent as</span>{" "}
+                    <strong>{smtpFromName || "Gratitude cards"}</strong>
+                    {smtpFrom ? (
+                      <span className="muted"> ({smtpFrom})</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <strong>
+                      {senderName.trim() ||
+                        user?.displayName ||
+                        "Your account"}
+                    </strong>
+                    {senderEmail.trim() || user?.email ? (
+                      <span className="muted">
+                        {" "}
+                        ({senderEmail.trim() || user?.email})
+                      </span>
+                    ) : null}
+                  </>
+                )}
+              </p>
               {usesSenderName ? (
                 <label className="compose-honorific-row">
                   <input
@@ -1133,7 +1131,9 @@ export function ComposePage() {
                 </div>
               ) : (
                 <p className="compose-subject-readonly">
-                  {previewSubject || subject || "Thank you"}
+                  {selected.length > 0
+                    ? previewSubject || subject || "Thank you"
+                    : subject || "Thank you"}
                 </p>
               )}
             </div>
@@ -1507,14 +1507,19 @@ export function ComposePage() {
             {advancedCompose ? (
               <>
                 Live merge for{" "}
-                <strong>{previewPerson?.displayName ?? "Alex"}</strong>
+                <strong>
+                  {previewPerson?.displayName ?? "recipient"}
+                </strong>
                 {" - "}
                 sender <strong>{sampleCtx.senderName}</strong>.
               </>
             ) : (
               <>
                 How it looks for{" "}
-                <strong>{previewPerson?.displayName ?? "the recipient"}</strong>.
+                <strong>
+                  {previewPerson?.displayName ?? "the recipient"}
+                </strong>
+                .
               </>
             )}
           </p>
