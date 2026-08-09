@@ -95,17 +95,27 @@ export function suggestPlaceholderSource(key: string): PlaceholderSource {
   return "shared";
 }
 
-/** Tokens that typically map to recipient name (default suggestion only). */
+/** Tokens that typically map to recipient name (incl. common Canva typos). */
 export function isRecipientNameToken(key: string): boolean {
   const k = key.toLowerCase().replace(/[_.-]/g, "");
-  return (
+  if (
     k === "name" ||
     k === "displayname" ||
-    k === "recipientname" ||
     k === "firstname" ||
-    k === "fullname" ||
+    k === "fname" ||
     k === "fullname"
-  );
+  ) {
+    return true;
+  }
+  // recipientName + common typos (recepientname, recipentname, …)
+  if (k.includes("recipient") && k.includes("name")) return true;
+  if (
+    (k.startsWith("recip") || k.startsWith("recep") || k.startsWith("reciep")) &&
+    k.endsWith("name")
+  ) {
+    return true;
+  }
+  return k === "recipientname";
 }
 
 export function isRecipientEmailToken(key: string): boolean {
@@ -308,12 +318,26 @@ export function buildMergeFieldMapFromPlaceholders(
       case "senderEmail":
         map[ph.key] = ctx.senderEmail;
         break;
-      case "shared":
-        map[ph.key] = (ctx.shared[ph.key] ?? "").trim();
+      case "shared": {
+        const sharedVal = (ctx.shared[ph.key] ?? "").trim();
+        // Name-shaped tokens: use selected recipient when no shared value
+        // (normal users never fill shared fields).
+        map[ph.key] =
+          sharedVal ||
+          (isRecipientNameToken(ph.key)
+            ? recipientNameValueForKey(ph.key, name)
+            : "");
         break;
-      case "perRecipient":
-        map[ph.key] = (ctx.perRecipient[ph.key] ?? "").trim();
+      }
+      case "perRecipient": {
+        const perVal = (ctx.perRecipient[ph.key] ?? "").trim();
+        map[ph.key] =
+          perVal ||
+          (isRecipientNameToken(ph.key)
+            ? recipientNameValueForKey(ph.key, name)
+            : "");
         break;
+      }
     }
   }
 
@@ -328,6 +352,13 @@ export function buildMergeFieldMapFromPlaceholders(
   setAlias("recipientEmail", ctx.recipientEmail);
   setAlias("senderName", sender);
   setAlias("senderEmail", ctx.senderEmail);
+
+  // Any empty name-shaped entry still gets the selected recipient.
+  for (const [key, value] of Object.entries(map)) {
+    if (!value.trim() && isRecipientNameToken(key)) {
+      map[key] = recipientNameValueForKey(key, name);
+    }
+  }
 
   return map;
 }

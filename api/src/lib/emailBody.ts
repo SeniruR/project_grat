@@ -68,6 +68,28 @@ function recipientNameValueForKey(key: string, fullName: string): string {
   return name;
 }
 
+/** Tokens that mean the selected recipient's name (incl. common typos). */
+export function isRecipientNameToken(key: string): boolean {
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  if (
+    k === "name" ||
+    k === "displayname" ||
+    k === "firstname" ||
+    k === "fname" ||
+    k === "fullname"
+  ) {
+    return true;
+  }
+  if (k.includes("recipient") && k.includes("name")) return true;
+  if (
+    (k.startsWith("recip") || k.startsWith("recep") || k.startsWith("reciep")) &&
+    k.endsWith("name")
+  ) {
+    return true;
+  }
+  return k === "recipientname";
+}
+
 export function parsePlaceholdersFromDesignJson(
   designJson: unknown,
 ): PlaceholderDef[] {
@@ -125,12 +147,24 @@ export function buildMergeFieldMap(input: {
       case "senderEmail":
         map[ph.key] = input.sender.email;
         break;
-      case "shared":
-        map[ph.key] = (shared[ph.key] ?? "").trim();
+      case "shared": {
+        const sharedVal = (shared[ph.key] ?? "").trim();
+        map[ph.key] =
+          sharedVal ||
+          (isRecipientNameToken(ph.key)
+            ? recipientNameValueForKey(ph.key, name)
+            : "");
         break;
-      case "perRecipient":
-        map[ph.key] = (perRecipient[ph.key] ?? "").trim();
+      }
+      case "perRecipient": {
+        const perVal = (perRecipient[ph.key] ?? "").trim();
+        map[ph.key] =
+          perVal ||
+          (isRecipientNameToken(ph.key)
+            ? recipientNameValueForKey(ph.key, name)
+            : "");
         break;
+      }
     }
   }
 
@@ -145,6 +179,12 @@ export function buildMergeFieldMap(input: {
   setAlias("recipientEmail", input.recipient.email);
   setAlias("senderName", senderName);
   setAlias("senderEmail", input.sender.email);
+
+  for (const [key, value] of Object.entries(map)) {
+    if (!value.trim() && isRecipientNameToken(key)) {
+      map[key] = recipientNameValueForKey(key, name);
+    }
+  }
 
   return map;
 }
