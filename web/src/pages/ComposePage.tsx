@@ -17,7 +17,6 @@ import {
   DEFAULT_NAME_HONORIFICS,
   parsePlaceholdersFromDesignJson,
   perRecipientPlaceholderKeys,
-  PLACEHOLDER_SOURCES,
   placeholderSourceLabel,
   resolveTemplateDefaultSubject,
   sharedPlaceholderKeys,
@@ -46,10 +45,6 @@ import { canManageDesigns, canUseAdvancedCompose } from "../lib/roles";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const COMPOSE_PLACEHOLDER_SOURCES = PLACEHOLDER_SOURCES.filter(
-  (s) => s.value !== "shared" && s.value !== "perRecipient",
-);
 
 function parseTypedEmail(raw: string): DirectoryPerson | null {
   const email = raw.trim().toLowerCase();
@@ -597,21 +592,6 @@ export function ComposePage() {
     );
   }
 
-  function toggleSubjectTag(key: string) {
-    const token = `{{${key}}}`;
-    setSubject((prev) => {
-      if (prev.includes(token)) {
-        return prev
-          .split(token)
-          .join("")
-          .replace(/\s{2,}/g, " ")
-          .trim();
-      }
-      const base = prev.trim();
-      return base ? `${base} ${token}` : token;
-    });
-  }
-
   function setShared(key: string, value: string) {
     setSharedFields((prev) => ({ ...prev, [key]: value }));
   }
@@ -622,19 +602,6 @@ export function ComposePage() {
       ...prev,
       [ek]: { ...(prev[ek] ?? {}), [key]: value },
     }));
-  }
-
-  function updateSubjectExtra(
-    key: string,
-    patch: Partial<Pick<PlaceholderDef, "label" | "source">>,
-  ) {
-    setSubjectExtras((prev) =>
-      prev.map((row) =>
-        row.key.toLowerCase() === key.toLowerCase()
-          ? { ...row, ...patch }
-          : row,
-      ),
-    );
   }
 
   async function uploadSlotImage(
@@ -854,9 +821,6 @@ export function ComposePage() {
   }
 
   const advancedCompose = canUseAdvancedCompose(user);
-  const composePlaceholderSources = advancedCompose
-    ? PLACEHOLDER_SOURCES
-    : COMPOSE_PLACEHOLDER_SOURCES;
 
   const usesRecipientName = useMemo(() => {
     if (placeholders.some((p) => p.source === "recipientName")) return true;
@@ -870,28 +834,6 @@ export function ComposePage() {
       return n === "sendername" || n === "fromname" || n === "sender";
     });
   }, [placeholders, subject]);
-
-  const subjectTagOptions = useMemo(() => {
-    const byKey = new Map<string, PlaceholderDef>();
-    for (const ph of placeholders) {
-      if (ph.source === "shared" || ph.source === "perRecipient") continue;
-      byKey.set(ph.key.toLowerCase(), ph);
-    }
-    const ensure = (
-      key: string,
-      label: string,
-      source: PlaceholderSource,
-    ) => {
-      if (!byKey.has(key.toLowerCase())) {
-        byKey.set(key.toLowerCase(), { key, label, source });
-      }
-    };
-    ensure("recipientName", "Recipient name", "recipientName");
-    ensure("senderName", "Sender name", "senderName");
-    ensure("recipientEmail", "Recipient email", "recipientEmail");
-    ensure("senderEmail", "Sender email", "senderEmail");
-    return [...byKey.values()];
-  }, [placeholders]);
 
   if (!template && !error) {
     return (
@@ -1158,7 +1100,7 @@ export function ComposePage() {
                 <h2 className="compose-section-title">Subject</h2>
                 <p className="compose-section-hint">
                   {advancedCompose
-                    ? "Edit the subject. Each person can get their own filled-in subject."
+                    ? "Edit if needed. Tags from the card fill in automatically."
                     : "Set by the card. Names fill in automatically."}
                 </p>
               </div>
@@ -1183,36 +1125,6 @@ export function ComposePage() {
                       }
                     />
                   </label>
-                  <p className="muted small compose-subject-hint">
-                    You can include fill-in fields like{" "}
-                    <code>{"{{recipientName}}"}</code>.
-                  </p>
-                  <div
-                    className="compose-subject-tags"
-                    role="group"
-                    aria-label="Subject tags"
-                  >
-                    {subjectTagOptions.map((tag) => {
-                      const token = `{{${tag.key}}}`;
-                      const active = subject.includes(token);
-                      return (
-                        <button
-                          key={tag.key}
-                          type="button"
-                          className={`compose-subject-tag ${active ? "is-active" : ""}`}
-                          disabled={busy}
-                          onClick={() => toggleSubjectTag(tag.key)}
-                          title={
-                            active
-                              ? `Remove ${token} from subject`
-                              : `Insert ${token} into subject`
-                          }
-                        >
-                          {token}
-                        </button>
-                      );
-                    })}
-                  </div>
                   {previewSubject && previewSubject !== subject.trim() ? (
                     <p className="compose-subject-preview muted small">
                       Preview: <strong>{previewSubject}</strong>
@@ -1224,74 +1136,6 @@ export function ComposePage() {
                   {previewSubject || subject || "Thank you"}
                 </p>
               )}
-
-              {advancedCompose && subjectExtras.length > 0 ? (
-                <div className="compose-subject-extras">
-                  <h4 className="merge-input-title">New subject placeholders</h4>
-                  <p className="muted small">
-                    These tokens are only in the subject (not on the card).
-                    Choose shared vs per-person (or auto fields).
-                  </p>
-                  <div className="merge-guide-table-wrap">
-                    <table className="merge-guide-table placeholder-config-table">
-                      <thead>
-                        <tr>
-                          <th>Placeholder</th>
-                          <th>Meaning</th>
-                          <th>Filled how</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {subjectExtras.map((ph) => (
-                          <tr key={ph.key.toLowerCase()}>
-                            <td>
-                              <code>{`{{${ph.key}}}`}</code>
-                            </td>
-                            <td>
-                              <input
-                                value={ph.label}
-                                onChange={(e) =>
-                                  updateSubjectExtra(ph.key, {
-                                    label: e.target.value,
-                                  })
-                                }
-                                disabled={busy}
-                                maxLength={120}
-                                aria-label={`Label for ${ph.key}`}
-                              />
-                            </td>
-                            <td>
-                              <select
-                                value={ph.source}
-                                onChange={(e) =>
-                                  updateSubjectExtra(ph.key, {
-                                    source: e.target.value as PlaceholderSource,
-                                  })
-                                }
-                                disabled={busy}
-                                aria-label={`Source for ${ph.key}`}
-                              >
-                                {composePlaceholderSources.map((s) => (
-                                  <option key={s.value} value={s.value}>
-                                    {s.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <span className="muted small merge-alias">
-                                {
-                                  composePlaceholderSources.find(
-                                    (s) => s.value === ph.source,
-                                  )?.hint
-                                }
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </section>
 
