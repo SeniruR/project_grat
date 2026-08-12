@@ -207,8 +207,10 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   ownedTemplates?: Prisma.TemplateListRelationFilter
+  createdCategories?: Prisma.TemplateCategoryListRelationFilter
   auditEvents?: Prisma.AuditEventListRelationFilter
   draftJobs?: Prisma.DraftJobListRelationFilter
+  favorites?: Prisma.TemplateFavoriteListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -221,8 +223,10 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   ownedTemplates?: Prisma.TemplateOrderByRelationAggregateInput
+  createdCategories?: Prisma.TemplateCategoryOrderByRelationAggregateInput
   auditEvents?: Prisma.AuditEventOrderByRelationAggregateInput
   draftJobs?: Prisma.DraftJobOrderByRelationAggregateInput
+  favorites?: Prisma.TemplateFavoriteOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -238,8 +242,10 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   ownedTemplates?: Prisma.TemplateListRelationFilter
+  createdCategories?: Prisma.TemplateCategoryListRelationFilter
   auditEvents?: Prisma.AuditEventListRelationFilter
   draftJobs?: Prisma.DraftJobListRelationFilter
+  favorites?: Prisma.TemplateFavoriteListRelationFilter
 }, "id" | "aadOid" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -280,8 +286,10 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryCreateNestedManyWithoutCreatedByInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -294,8 +302,10 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedCreateNestedManyWithoutCreatedByInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -308,8 +318,10 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUpdateManyWithoutCreatedByNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -322,8 +334,10 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
   draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -392,14 +406,14 @@ export type UserMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type UserScalarRelationFilter = {
-  is?: Prisma.UserWhereInput
-  isNot?: Prisma.UserWhereInput
-}
-
 export type UserNullableScalarRelationFilter = {
   is?: Prisma.UserWhereInput | null
   isNot?: Prisma.UserWhereInput | null
+}
+
+export type UserScalarRelationFilter = {
+  is?: Prisma.UserWhereInput
+  isNot?: Prisma.UserWhereInput
 }
 
 export type StringFieldUpdateOperationsInput = {
@@ -418,6 +432,22 @@ export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
+export type UserCreateNestedOneWithoutCreatedCategoriesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreatedCategoriesInput, Prisma.UserUncheckedCreateWithoutCreatedCategoriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreatedCategoriesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutCreatedCategoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreatedCategoriesInput, Prisma.UserUncheckedCreateWithoutCreatedCategoriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreatedCategoriesInput
+  upsert?: Prisma.UserUpsertWithoutCreatedCategoriesInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreatedCategoriesInput, Prisma.UserUpdateWithoutCreatedCategoriesInput>, Prisma.UserUncheckedUpdateWithoutCreatedCategoriesInput>
+}
+
 export type UserCreateNestedOneWithoutOwnedTemplatesInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutOwnedTemplatesInput, Prisma.UserUncheckedCreateWithoutOwnedTemplatesInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutOwnedTemplatesInput
@@ -430,6 +460,20 @@ export type UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput = {
   upsert?: Prisma.UserUpsertWithoutOwnedTemplatesInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOwnedTemplatesInput, Prisma.UserUpdateWithoutOwnedTemplatesInput>, Prisma.UserUncheckedUpdateWithoutOwnedTemplatesInput>
+}
+
+export type UserCreateNestedOneWithoutFavoritesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFavoritesInput, Prisma.UserUncheckedCreateWithoutFavoritesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFavoritesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutFavoritesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFavoritesInput, Prisma.UserUncheckedCreateWithoutFavoritesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFavoritesInput
+  upsert?: Prisma.UserUpsertWithoutFavoritesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFavoritesInput, Prisma.UserUpdateWithoutFavoritesInput>, Prisma.UserUncheckedUpdateWithoutFavoritesInput>
 }
 
 export type UserCreateNestedOneWithoutDraftJobsInput = {
@@ -462,6 +506,82 @@ export type UserUpdateOneWithoutAuditEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuditEventsInput, Prisma.UserUpdateWithoutAuditEventsInput>, Prisma.UserUncheckedUpdateWithoutAuditEventsInput>
 }
 
+export type UserCreateWithoutCreatedCategoriesInput = {
+  id?: string
+  aadOid: string
+  email: string
+  displayName: string
+  role?: $Enums.Role
+  isDirectory?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
+  auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
+  draftJobs?: Prisma.DraftJobCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutCreatedCategoriesInput = {
+  id?: string
+  aadOid: string
+  email: string
+  displayName: string
+  role?: $Enums.Role
+  isDirectory?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
+  auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
+  draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutCreatedCategoriesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreatedCategoriesInput, Prisma.UserUncheckedCreateWithoutCreatedCategoriesInput>
+}
+
+export type UserUpsertWithoutCreatedCategoriesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreatedCategoriesInput, Prisma.UserUncheckedUpdateWithoutCreatedCategoriesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreatedCategoriesInput, Prisma.UserUncheckedCreateWithoutCreatedCategoriesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreatedCategoriesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreatedCategoriesInput, Prisma.UserUncheckedUpdateWithoutCreatedCategoriesInput>
+}
+
+export type UserUpdateWithoutCreatedCategoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  aadOid?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
+  auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
+  draftJobs?: Prisma.DraftJobUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreatedCategoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  aadOid?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
+  auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
+  draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutUserNestedInput
+}
+
 export type UserCreateWithoutOwnedTemplatesInput = {
   id?: string
   aadOid: string
@@ -471,8 +591,10 @@ export type UserCreateWithoutOwnedTemplatesInput = {
   isDirectory?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  createdCategories?: Prisma.TemplateCategoryCreateNestedManyWithoutCreatedByInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOwnedTemplatesInput = {
@@ -484,8 +606,10 @@ export type UserUncheckedCreateWithoutOwnedTemplatesInput = {
   isDirectory?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  createdCategories?: Prisma.TemplateCategoryUncheckedCreateNestedManyWithoutCreatedByInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOwnedTemplatesInput = {
@@ -513,8 +637,10 @@ export type UserUpdateWithoutOwnedTemplatesInput = {
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdCategories?: Prisma.TemplateCategoryUpdateManyWithoutCreatedByNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOwnedTemplatesInput = {
@@ -526,6 +652,84 @@ export type UserUncheckedUpdateWithoutOwnedTemplatesInput = {
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdCategories?: Prisma.TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput
+  auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
+  draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutFavoritesInput = {
+  id?: string
+  aadOid: string
+  email: string
+  displayName: string
+  role?: $Enums.Role
+  isDirectory?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryCreateNestedManyWithoutCreatedByInput
+  auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
+  draftJobs?: Prisma.DraftJobCreateNestedManyWithoutRequesterInput
+}
+
+export type UserUncheckedCreateWithoutFavoritesInput = {
+  id?: string
+  aadOid: string
+  email: string
+  displayName: string
+  role?: $Enums.Role
+  isDirectory?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedCreateNestedManyWithoutCreatedByInput
+  auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
+  draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutRequesterInput
+}
+
+export type UserCreateOrConnectWithoutFavoritesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutFavoritesInput, Prisma.UserUncheckedCreateWithoutFavoritesInput>
+}
+
+export type UserUpsertWithoutFavoritesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutFavoritesInput, Prisma.UserUncheckedUpdateWithoutFavoritesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutFavoritesInput, Prisma.UserUncheckedCreateWithoutFavoritesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutFavoritesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutFavoritesInput, Prisma.UserUncheckedUpdateWithoutFavoritesInput>
+}
+
+export type UserUpdateWithoutFavoritesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  aadOid?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUpdateManyWithoutCreatedByNestedInput
+  auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
+  draftJobs?: Prisma.DraftJobUpdateManyWithoutRequesterNestedInput
+}
+
+export type UserUncheckedUpdateWithoutFavoritesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  aadOid?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
   draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutRequesterNestedInput
 }
@@ -540,7 +744,9 @@ export type UserCreateWithoutDraftJobsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryCreateNestedManyWithoutCreatedByInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDraftJobsInput = {
@@ -553,7 +759,9 @@ export type UserUncheckedCreateWithoutDraftJobsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedCreateNestedManyWithoutCreatedByInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDraftJobsInput = {
@@ -582,7 +790,9 @@ export type UserUpdateWithoutDraftJobsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUpdateManyWithoutCreatedByNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDraftJobsInput = {
@@ -595,7 +805,9 @@ export type UserUncheckedUpdateWithoutDraftJobsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuditEventsInput = {
@@ -608,7 +820,9 @@ export type UserCreateWithoutAuditEventsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryCreateNestedManyWithoutCreatedByInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditEventsInput = {
@@ -621,7 +835,9 @@ export type UserUncheckedCreateWithoutAuditEventsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedCreateNestedManyWithoutCreatedByInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutRequesterInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditEventsInput = {
@@ -650,7 +866,9 @@ export type UserUpdateWithoutAuditEventsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUpdateManyWithoutCreatedByNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditEventsInput = {
@@ -663,7 +881,9 @@ export type UserUncheckedUpdateWithoutAuditEventsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
+  createdCategories?: Prisma.TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput
   draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutRequesterNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -673,14 +893,18 @@ export type UserUncheckedUpdateWithoutAuditEventsInput = {
 
 export type UserCountOutputType = {
   ownedTemplates: number
+  createdCategories: number
   auditEvents: number
   draftJobs: number
+  favorites: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownedTemplates?: boolean | UserCountOutputTypeCountOwnedTemplatesArgs
+  createdCategories?: boolean | UserCountOutputTypeCountCreatedCategoriesArgs
   auditEvents?: boolean | UserCountOutputTypeCountAuditEventsArgs
   draftJobs?: boolean | UserCountOutputTypeCountDraftJobsArgs
+  favorites?: boolean | UserCountOutputTypeCountFavoritesArgs
 }
 
 /**
@@ -703,6 +927,13 @@ export type UserCountOutputTypeCountOwnedTemplatesArgs<ExtArgs extends runtime.T
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountCreatedCategoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TemplateCategoryWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountAuditEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AuditEventWhereInput
 }
@@ -712,6 +943,13 @@ export type UserCountOutputTypeCountAuditEventsArgs<ExtArgs extends runtime.Type
  */
 export type UserCountOutputTypeCountDraftJobsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.DraftJobWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountFavoritesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TemplateFavoriteWhereInput
 }
 
 
@@ -725,8 +963,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   ownedTemplates?: boolean | Prisma.User$ownedTemplatesArgs<ExtArgs>
+  createdCategories?: boolean | Prisma.User$createdCategoriesArgs<ExtArgs>
   auditEvents?: boolean | Prisma.User$auditEventsArgs<ExtArgs>
   draftJobs?: boolean | Prisma.User$draftJobsArgs<ExtArgs>
+  favorites?: boolean | Prisma.User$favoritesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -766,8 +1006,10 @@ export type UserSelectScalar = {
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aadOid" | "email" | "displayName" | "role" | "isDirectory" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownedTemplates?: boolean | Prisma.User$ownedTemplatesArgs<ExtArgs>
+  createdCategories?: boolean | Prisma.User$createdCategoriesArgs<ExtArgs>
   auditEvents?: boolean | Prisma.User$auditEventsArgs<ExtArgs>
   draftJobs?: boolean | Prisma.User$draftJobsArgs<ExtArgs>
+  favorites?: boolean | Prisma.User$favoritesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -777,8 +1019,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "User"
   objects: {
     ownedTemplates: Prisma.$TemplatePayload<ExtArgs>[]
+    createdCategories: Prisma.$TemplateCategoryPayload<ExtArgs>[]
     auditEvents: Prisma.$AuditEventPayload<ExtArgs>[]
     draftJobs: Prisma.$DraftJobPayload<ExtArgs>[]
+    favorites: Prisma.$TemplateFavoritePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1190,8 +1434,10 @@ readonly fields: UserFieldRefs;
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   ownedTemplates<T extends Prisma.User$ownedTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ownedTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  createdCategories<T extends Prisma.User$createdCategoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdCategoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TemplateCategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditEvents<T extends Prisma.User$auditEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   draftJobs<T extends Prisma.User$draftJobsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$draftJobsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DraftJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  favorites<T extends Prisma.User$favoritesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$favoritesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TemplateFavoritePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1646,6 +1892,30 @@ export type User$ownedTemplatesArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
+ * User.createdCategories
+ */
+export type User$createdCategoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TemplateCategory
+   */
+  select?: Prisma.TemplateCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TemplateCategory
+   */
+  omit?: Prisma.TemplateCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TemplateCategoryInclude<ExtArgs> | null
+  where?: Prisma.TemplateCategoryWhereInput
+  orderBy?: Prisma.TemplateCategoryOrderByWithRelationInput | Prisma.TemplateCategoryOrderByWithRelationInput[]
+  cursor?: Prisma.TemplateCategoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TemplateCategoryScalarFieldEnum | Prisma.TemplateCategoryScalarFieldEnum[]
+}
+
+/**
  * User.auditEvents
  */
 export type User$auditEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1691,6 +1961,30 @@ export type User$draftJobsArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.DraftJobScalarFieldEnum | Prisma.DraftJobScalarFieldEnum[]
+}
+
+/**
+ * User.favorites
+ */
+export type User$favoritesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TemplateFavorite
+   */
+  select?: Prisma.TemplateFavoriteSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TemplateFavorite
+   */
+  omit?: Prisma.TemplateFavoriteOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TemplateFavoriteInclude<ExtArgs> | null
+  where?: Prisma.TemplateFavoriteWhereInput
+  orderBy?: Prisma.TemplateFavoriteOrderByWithRelationInput | Prisma.TemplateFavoriteOrderByWithRelationInput[]
+  cursor?: Prisma.TemplateFavoriteWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TemplateFavoriteScalarFieldEnum | Prisma.TemplateFavoriteScalarFieldEnum[]
 }
 
 /**

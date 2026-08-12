@@ -31,6 +31,7 @@ export type TemplateMinAggregateOutputType = {
   visibility: $Enums.TemplateVisibility | null
   status: $Enums.TemplateStatus | null
   ownerId: string | null
+  categoryId: string | null
   headerHtml: string | null
   footerHtml: string | null
   createdAt: Date | null
@@ -44,6 +45,7 @@ export type TemplateMaxAggregateOutputType = {
   visibility: $Enums.TemplateVisibility | null
   status: $Enums.TemplateStatus | null
   ownerId: string | null
+  categoryId: string | null
   headerHtml: string | null
   footerHtml: string | null
   createdAt: Date | null
@@ -57,6 +59,7 @@ export type TemplateCountAggregateOutputType = {
   visibility: number
   status: number
   ownerId: number
+  categoryId: number
   headerHtml: number
   footerHtml: number
   createdAt: number
@@ -72,6 +75,7 @@ export type TemplateMinAggregateInputType = {
   visibility?: true
   status?: true
   ownerId?: true
+  categoryId?: true
   headerHtml?: true
   footerHtml?: true
   createdAt?: true
@@ -85,6 +89,7 @@ export type TemplateMaxAggregateInputType = {
   visibility?: true
   status?: true
   ownerId?: true
+  categoryId?: true
   headerHtml?: true
   footerHtml?: true
   createdAt?: true
@@ -98,6 +103,7 @@ export type TemplateCountAggregateInputType = {
   visibility?: true
   status?: true
   ownerId?: true
+  categoryId?: true
   headerHtml?: true
   footerHtml?: true
   createdAt?: true
@@ -184,6 +190,7 @@ export type TemplateGroupByOutputType = {
   visibility: $Enums.TemplateVisibility
   status: $Enums.TemplateStatus
   ownerId: string
+  categoryId: string | null
   headerHtml: string | null
   footerHtml: string | null
   createdAt: Date
@@ -218,14 +225,17 @@ export type TemplateWhereInput = {
   visibility?: Prisma.EnumTemplateVisibilityFilter<"Template"> | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFilter<"Template"> | $Enums.TemplateStatus
   ownerId?: Prisma.StringFilter<"Template"> | string
+  categoryId?: Prisma.StringNullableFilter<"Template"> | string | null
   headerHtml?: Prisma.StringNullableFilter<"Template"> | string | null
   footerHtml?: Prisma.StringNullableFilter<"Template"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  category?: Prisma.XOR<Prisma.TemplateCategoryNullableScalarRelationFilter, Prisma.TemplateCategoryWhereInput> | null
   versions?: Prisma.TemplateVersionListRelationFilter
   assets?: Prisma.TemplateAssetListRelationFilter
   draftJobs?: Prisma.DraftJobListRelationFilter
+  favorites?: Prisma.TemplateFavoriteListRelationFilter
 }
 
 export type TemplateOrderByWithRelationInput = {
@@ -235,14 +245,17 @@ export type TemplateOrderByWithRelationInput = {
   visibility?: Prisma.SortOrder
   status?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   headerHtml?: Prisma.SortOrderInput | Prisma.SortOrder
   footerHtml?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   owner?: Prisma.UserOrderByWithRelationInput
+  category?: Prisma.TemplateCategoryOrderByWithRelationInput
   versions?: Prisma.TemplateVersionOrderByRelationAggregateInput
   assets?: Prisma.TemplateAssetOrderByRelationAggregateInput
   draftJobs?: Prisma.DraftJobOrderByRelationAggregateInput
+  favorites?: Prisma.TemplateFavoriteOrderByRelationAggregateInput
 }
 
 export type TemplateWhereUniqueInput = Prisma.AtLeast<{
@@ -255,14 +268,17 @@ export type TemplateWhereUniqueInput = Prisma.AtLeast<{
   visibility?: Prisma.EnumTemplateVisibilityFilter<"Template"> | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFilter<"Template"> | $Enums.TemplateStatus
   ownerId?: Prisma.StringFilter<"Template"> | string
+  categoryId?: Prisma.StringNullableFilter<"Template"> | string | null
   headerHtml?: Prisma.StringNullableFilter<"Template"> | string | null
   footerHtml?: Prisma.StringNullableFilter<"Template"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  category?: Prisma.XOR<Prisma.TemplateCategoryNullableScalarRelationFilter, Prisma.TemplateCategoryWhereInput> | null
   versions?: Prisma.TemplateVersionListRelationFilter
   assets?: Prisma.TemplateAssetListRelationFilter
   draftJobs?: Prisma.DraftJobListRelationFilter
+  favorites?: Prisma.TemplateFavoriteListRelationFilter
 }, "id">
 
 export type TemplateOrderByWithAggregationInput = {
@@ -272,6 +288,7 @@ export type TemplateOrderByWithAggregationInput = {
   visibility?: Prisma.SortOrder
   status?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   headerHtml?: Prisma.SortOrderInput | Prisma.SortOrder
   footerHtml?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -291,6 +308,7 @@ export type TemplateScalarWhereWithAggregatesInput = {
   visibility?: Prisma.EnumTemplateVisibilityWithAggregatesFilter<"Template"> | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusWithAggregatesFilter<"Template"> | $Enums.TemplateStatus
   ownerId?: Prisma.StringWithAggregatesFilter<"Template"> | string
+  categoryId?: Prisma.StringNullableWithAggregatesFilter<"Template"> | string | null
   headerHtml?: Prisma.StringNullableWithAggregatesFilter<"Template"> | string | null
   footerHtml?: Prisma.StringNullableWithAggregatesFilter<"Template"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Template"> | Date | string
@@ -308,9 +326,11 @@ export type TemplateCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   owner: Prisma.UserCreateNestedOneWithoutOwnedTemplatesInput
+  category?: Prisma.TemplateCategoryCreateNestedOneWithoutTemplatesInput
   versions?: Prisma.TemplateVersionCreateNestedManyWithoutTemplateInput
   assets?: Prisma.TemplateAssetCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateUncheckedCreateInput = {
@@ -320,6 +340,7 @@ export type TemplateUncheckedCreateInput = {
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
   ownerId: string
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
@@ -327,6 +348,7 @@ export type TemplateUncheckedCreateInput = {
   versions?: Prisma.TemplateVersionUncheckedCreateNestedManyWithoutTemplateInput
   assets?: Prisma.TemplateAssetUncheckedCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateUpdateInput = {
@@ -340,9 +362,11 @@ export type TemplateUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput
+  category?: Prisma.TemplateCategoryUpdateOneWithoutTemplatesNestedInput
   versions?: Prisma.TemplateVersionUpdateManyWithoutTemplateNestedInput
   assets?: Prisma.TemplateAssetUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateUncheckedUpdateInput = {
@@ -352,6 +376,7 @@ export type TemplateUncheckedUpdateInput = {
   visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -359,6 +384,7 @@ export type TemplateUncheckedUpdateInput = {
   versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
   assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateCreateManyInput = {
@@ -368,6 +394,7 @@ export type TemplateCreateManyInput = {
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
   ownerId: string
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
@@ -393,6 +420,7 @@ export type TemplateUncheckedUpdateManyInput = {
   visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -416,6 +444,7 @@ export type TemplateCountOrderByAggregateInput = {
   visibility?: Prisma.SortOrder
   status?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   headerHtml?: Prisma.SortOrder
   footerHtml?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -429,6 +458,7 @@ export type TemplateMaxOrderByAggregateInput = {
   visibility?: Prisma.SortOrder
   status?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   headerHtml?: Prisma.SortOrder
   footerHtml?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -442,6 +472,7 @@ export type TemplateMinOrderByAggregateInput = {
   visibility?: Prisma.SortOrder
   status?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   headerHtml?: Prisma.SortOrder
   footerHtml?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -451,6 +482,11 @@ export type TemplateMinOrderByAggregateInput = {
 export type TemplateScalarRelationFilter = {
   is?: Prisma.TemplateWhereInput
   isNot?: Prisma.TemplateWhereInput
+}
+
+export type TemplateNullableScalarRelationFilter = {
+  is?: Prisma.TemplateWhereInput | null
+  isNot?: Prisma.TemplateWhereInput | null
 }
 
 export type TemplateCreateNestedManyWithoutOwnerInput = {
@@ -495,6 +531,48 @@ export type TemplateUncheckedUpdateManyWithoutOwnerNestedInput = {
   deleteMany?: Prisma.TemplateScalarWhereInput | Prisma.TemplateScalarWhereInput[]
 }
 
+export type TemplateCreateNestedManyWithoutCategoryInput = {
+  create?: Prisma.XOR<Prisma.TemplateCreateWithoutCategoryInput, Prisma.TemplateUncheckedCreateWithoutCategoryInput> | Prisma.TemplateCreateWithoutCategoryInput[] | Prisma.TemplateUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutCategoryInput | Prisma.TemplateCreateOrConnectWithoutCategoryInput[]
+  createMany?: Prisma.TemplateCreateManyCategoryInputEnvelope
+  connect?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+}
+
+export type TemplateUncheckedCreateNestedManyWithoutCategoryInput = {
+  create?: Prisma.XOR<Prisma.TemplateCreateWithoutCategoryInput, Prisma.TemplateUncheckedCreateWithoutCategoryInput> | Prisma.TemplateCreateWithoutCategoryInput[] | Prisma.TemplateUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutCategoryInput | Prisma.TemplateCreateOrConnectWithoutCategoryInput[]
+  createMany?: Prisma.TemplateCreateManyCategoryInputEnvelope
+  connect?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+}
+
+export type TemplateUpdateManyWithoutCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.TemplateCreateWithoutCategoryInput, Prisma.TemplateUncheckedCreateWithoutCategoryInput> | Prisma.TemplateCreateWithoutCategoryInput[] | Prisma.TemplateUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutCategoryInput | Prisma.TemplateCreateOrConnectWithoutCategoryInput[]
+  upsert?: Prisma.TemplateUpsertWithWhereUniqueWithoutCategoryInput | Prisma.TemplateUpsertWithWhereUniqueWithoutCategoryInput[]
+  createMany?: Prisma.TemplateCreateManyCategoryInputEnvelope
+  set?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  disconnect?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  delete?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  connect?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  update?: Prisma.TemplateUpdateWithWhereUniqueWithoutCategoryInput | Prisma.TemplateUpdateWithWhereUniqueWithoutCategoryInput[]
+  updateMany?: Prisma.TemplateUpdateManyWithWhereWithoutCategoryInput | Prisma.TemplateUpdateManyWithWhereWithoutCategoryInput[]
+  deleteMany?: Prisma.TemplateScalarWhereInput | Prisma.TemplateScalarWhereInput[]
+}
+
+export type TemplateUncheckedUpdateManyWithoutCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.TemplateCreateWithoutCategoryInput, Prisma.TemplateUncheckedCreateWithoutCategoryInput> | Prisma.TemplateCreateWithoutCategoryInput[] | Prisma.TemplateUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutCategoryInput | Prisma.TemplateCreateOrConnectWithoutCategoryInput[]
+  upsert?: Prisma.TemplateUpsertWithWhereUniqueWithoutCategoryInput | Prisma.TemplateUpsertWithWhereUniqueWithoutCategoryInput[]
+  createMany?: Prisma.TemplateCreateManyCategoryInputEnvelope
+  set?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  disconnect?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  delete?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  connect?: Prisma.TemplateWhereUniqueInput | Prisma.TemplateWhereUniqueInput[]
+  update?: Prisma.TemplateUpdateWithWhereUniqueWithoutCategoryInput | Prisma.TemplateUpdateWithWhereUniqueWithoutCategoryInput[]
+  updateMany?: Prisma.TemplateUpdateManyWithWhereWithoutCategoryInput | Prisma.TemplateUpdateManyWithWhereWithoutCategoryInput[]
+  deleteMany?: Prisma.TemplateScalarWhereInput | Prisma.TemplateScalarWhereInput[]
+}
+
 export type EnumCatalogTypeFieldUpdateOperationsInput = {
   set?: $Enums.CatalogType
 }
@@ -507,8 +585,18 @@ export type EnumTemplateStatusFieldUpdateOperationsInput = {
   set?: $Enums.TemplateStatus
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
+export type TemplateCreateNestedOneWithoutFavoritesInput = {
+  create?: Prisma.XOR<Prisma.TemplateCreateWithoutFavoritesInput, Prisma.TemplateUncheckedCreateWithoutFavoritesInput>
+  connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutFavoritesInput
+  connect?: Prisma.TemplateWhereUniqueInput
+}
+
+export type TemplateUpdateOneRequiredWithoutFavoritesNestedInput = {
+  create?: Prisma.XOR<Prisma.TemplateCreateWithoutFavoritesInput, Prisma.TemplateUncheckedCreateWithoutFavoritesInput>
+  connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutFavoritesInput
+  upsert?: Prisma.TemplateUpsertWithoutFavoritesInput
+  connect?: Prisma.TemplateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TemplateUpdateToOneWithWhereWithoutFavoritesInput, Prisma.TemplateUpdateWithoutFavoritesInput>, Prisma.TemplateUncheckedUpdateWithoutFavoritesInput>
 }
 
 export type TemplateCreateNestedOneWithoutVersionsInput = {
@@ -545,10 +633,12 @@ export type TemplateCreateNestedOneWithoutDraftJobsInput = {
   connect?: Prisma.TemplateWhereUniqueInput
 }
 
-export type TemplateUpdateOneRequiredWithoutDraftJobsNestedInput = {
+export type TemplateUpdateOneWithoutDraftJobsNestedInput = {
   create?: Prisma.XOR<Prisma.TemplateCreateWithoutDraftJobsInput, Prisma.TemplateUncheckedCreateWithoutDraftJobsInput>
   connectOrCreate?: Prisma.TemplateCreateOrConnectWithoutDraftJobsInput
   upsert?: Prisma.TemplateUpsertWithoutDraftJobsInput
+  disconnect?: Prisma.TemplateWhereInput | boolean
+  delete?: Prisma.TemplateWhereInput | boolean
   connect?: Prisma.TemplateWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.TemplateUpdateToOneWithWhereWithoutDraftJobsInput, Prisma.TemplateUpdateWithoutDraftJobsInput>, Prisma.TemplateUncheckedUpdateWithoutDraftJobsInput>
 }
@@ -563,9 +653,11 @@ export type TemplateCreateWithoutOwnerInput = {
   footerHtml?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  category?: Prisma.TemplateCategoryCreateNestedOneWithoutTemplatesInput
   versions?: Prisma.TemplateVersionCreateNestedManyWithoutTemplateInput
   assets?: Prisma.TemplateAssetCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateUncheckedCreateWithoutOwnerInput = {
@@ -574,6 +666,7 @@ export type TemplateUncheckedCreateWithoutOwnerInput = {
   catalogType?: $Enums.CatalogType
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
@@ -581,6 +674,7 @@ export type TemplateUncheckedCreateWithoutOwnerInput = {
   versions?: Prisma.TemplateVersionUncheckedCreateNestedManyWithoutTemplateInput
   assets?: Prisma.TemplateAssetUncheckedCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateCreateOrConnectWithoutOwnerInput = {
@@ -619,10 +713,155 @@ export type TemplateScalarWhereInput = {
   visibility?: Prisma.EnumTemplateVisibilityFilter<"Template"> | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFilter<"Template"> | $Enums.TemplateStatus
   ownerId?: Prisma.StringFilter<"Template"> | string
+  categoryId?: Prisma.StringNullableFilter<"Template"> | string | null
   headerHtml?: Prisma.StringNullableFilter<"Template"> | string | null
   footerHtml?: Prisma.StringNullableFilter<"Template"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Template"> | Date | string
+}
+
+export type TemplateCreateWithoutCategoryInput = {
+  id?: string
+  name: string
+  catalogType?: $Enums.CatalogType
+  visibility?: $Enums.TemplateVisibility
+  status?: $Enums.TemplateStatus
+  headerHtml?: string | null
+  footerHtml?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner: Prisma.UserCreateNestedOneWithoutOwnedTemplatesInput
+  versions?: Prisma.TemplateVersionCreateNestedManyWithoutTemplateInput
+  assets?: Prisma.TemplateAssetCreateNestedManyWithoutTemplateInput
+  draftJobs?: Prisma.DraftJobCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutTemplateInput
+}
+
+export type TemplateUncheckedCreateWithoutCategoryInput = {
+  id?: string
+  name: string
+  catalogType?: $Enums.CatalogType
+  visibility?: $Enums.TemplateVisibility
+  status?: $Enums.TemplateStatus
+  ownerId: string
+  headerHtml?: string | null
+  footerHtml?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  versions?: Prisma.TemplateVersionUncheckedCreateNestedManyWithoutTemplateInput
+  assets?: Prisma.TemplateAssetUncheckedCreateNestedManyWithoutTemplateInput
+  draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutTemplateInput
+}
+
+export type TemplateCreateOrConnectWithoutCategoryInput = {
+  where: Prisma.TemplateWhereUniqueInput
+  create: Prisma.XOR<Prisma.TemplateCreateWithoutCategoryInput, Prisma.TemplateUncheckedCreateWithoutCategoryInput>
+}
+
+export type TemplateCreateManyCategoryInputEnvelope = {
+  data: Prisma.TemplateCreateManyCategoryInput | Prisma.TemplateCreateManyCategoryInput[]
+  skipDuplicates?: boolean
+}
+
+export type TemplateUpsertWithWhereUniqueWithoutCategoryInput = {
+  where: Prisma.TemplateWhereUniqueInput
+  update: Prisma.XOR<Prisma.TemplateUpdateWithoutCategoryInput, Prisma.TemplateUncheckedUpdateWithoutCategoryInput>
+  create: Prisma.XOR<Prisma.TemplateCreateWithoutCategoryInput, Prisma.TemplateUncheckedCreateWithoutCategoryInput>
+}
+
+export type TemplateUpdateWithWhereUniqueWithoutCategoryInput = {
+  where: Prisma.TemplateWhereUniqueInput
+  data: Prisma.XOR<Prisma.TemplateUpdateWithoutCategoryInput, Prisma.TemplateUncheckedUpdateWithoutCategoryInput>
+}
+
+export type TemplateUpdateManyWithWhereWithoutCategoryInput = {
+  where: Prisma.TemplateScalarWhereInput
+  data: Prisma.XOR<Prisma.TemplateUpdateManyMutationInput, Prisma.TemplateUncheckedUpdateManyWithoutCategoryInput>
+}
+
+export type TemplateCreateWithoutFavoritesInput = {
+  id?: string
+  name: string
+  catalogType?: $Enums.CatalogType
+  visibility?: $Enums.TemplateVisibility
+  status?: $Enums.TemplateStatus
+  headerHtml?: string | null
+  footerHtml?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner: Prisma.UserCreateNestedOneWithoutOwnedTemplatesInput
+  category?: Prisma.TemplateCategoryCreateNestedOneWithoutTemplatesInput
+  versions?: Prisma.TemplateVersionCreateNestedManyWithoutTemplateInput
+  assets?: Prisma.TemplateAssetCreateNestedManyWithoutTemplateInput
+  draftJobs?: Prisma.DraftJobCreateNestedManyWithoutTemplateInput
+}
+
+export type TemplateUncheckedCreateWithoutFavoritesInput = {
+  id?: string
+  name: string
+  catalogType?: $Enums.CatalogType
+  visibility?: $Enums.TemplateVisibility
+  status?: $Enums.TemplateStatus
+  ownerId: string
+  categoryId?: string | null
+  headerHtml?: string | null
+  footerHtml?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  versions?: Prisma.TemplateVersionUncheckedCreateNestedManyWithoutTemplateInput
+  assets?: Prisma.TemplateAssetUncheckedCreateNestedManyWithoutTemplateInput
+  draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutTemplateInput
+}
+
+export type TemplateCreateOrConnectWithoutFavoritesInput = {
+  where: Prisma.TemplateWhereUniqueInput
+  create: Prisma.XOR<Prisma.TemplateCreateWithoutFavoritesInput, Prisma.TemplateUncheckedCreateWithoutFavoritesInput>
+}
+
+export type TemplateUpsertWithoutFavoritesInput = {
+  update: Prisma.XOR<Prisma.TemplateUpdateWithoutFavoritesInput, Prisma.TemplateUncheckedUpdateWithoutFavoritesInput>
+  create: Prisma.XOR<Prisma.TemplateCreateWithoutFavoritesInput, Prisma.TemplateUncheckedCreateWithoutFavoritesInput>
+  where?: Prisma.TemplateWhereInput
+}
+
+export type TemplateUpdateToOneWithWhereWithoutFavoritesInput = {
+  where?: Prisma.TemplateWhereInput
+  data: Prisma.XOR<Prisma.TemplateUpdateWithoutFavoritesInput, Prisma.TemplateUncheckedUpdateWithoutFavoritesInput>
+}
+
+export type TemplateUpdateWithoutFavoritesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
+  visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
+  status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
+  headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput
+  category?: Prisma.TemplateCategoryUpdateOneWithoutTemplatesNestedInput
+  versions?: Prisma.TemplateVersionUpdateManyWithoutTemplateNestedInput
+  assets?: Prisma.TemplateAssetUpdateManyWithoutTemplateNestedInput
+  draftJobs?: Prisma.DraftJobUpdateManyWithoutTemplateNestedInput
+}
+
+export type TemplateUncheckedUpdateWithoutFavoritesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
+  visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
+  status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
+  ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
+  assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
+  draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateCreateWithoutVersionsInput = {
@@ -636,8 +875,10 @@ export type TemplateCreateWithoutVersionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   owner: Prisma.UserCreateNestedOneWithoutOwnedTemplatesInput
+  category?: Prisma.TemplateCategoryCreateNestedOneWithoutTemplatesInput
   assets?: Prisma.TemplateAssetCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateUncheckedCreateWithoutVersionsInput = {
@@ -647,12 +888,14 @@ export type TemplateUncheckedCreateWithoutVersionsInput = {
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
   ownerId: string
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   assets?: Prisma.TemplateAssetUncheckedCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateCreateOrConnectWithoutVersionsInput = {
@@ -682,8 +925,10 @@ export type TemplateUpdateWithoutVersionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput
+  category?: Prisma.TemplateCategoryUpdateOneWithoutTemplatesNestedInput
   assets?: Prisma.TemplateAssetUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateUncheckedUpdateWithoutVersionsInput = {
@@ -693,12 +938,14 @@ export type TemplateUncheckedUpdateWithoutVersionsInput = {
   visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateCreateWithoutAssetsInput = {
@@ -712,8 +959,10 @@ export type TemplateCreateWithoutAssetsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   owner: Prisma.UserCreateNestedOneWithoutOwnedTemplatesInput
+  category?: Prisma.TemplateCategoryCreateNestedOneWithoutTemplatesInput
   versions?: Prisma.TemplateVersionCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateUncheckedCreateWithoutAssetsInput = {
@@ -723,12 +972,14 @@ export type TemplateUncheckedCreateWithoutAssetsInput = {
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
   ownerId: string
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   versions?: Prisma.TemplateVersionUncheckedCreateNestedManyWithoutTemplateInput
   draftJobs?: Prisma.DraftJobUncheckedCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateCreateOrConnectWithoutAssetsInput = {
@@ -758,8 +1009,10 @@ export type TemplateUpdateWithoutAssetsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput
+  category?: Prisma.TemplateCategoryUpdateOneWithoutTemplatesNestedInput
   versions?: Prisma.TemplateVersionUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateUncheckedUpdateWithoutAssetsInput = {
@@ -769,12 +1022,14 @@ export type TemplateUncheckedUpdateWithoutAssetsInput = {
   visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateCreateWithoutDraftJobsInput = {
@@ -788,8 +1043,10 @@ export type TemplateCreateWithoutDraftJobsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   owner: Prisma.UserCreateNestedOneWithoutOwnedTemplatesInput
+  category?: Prisma.TemplateCategoryCreateNestedOneWithoutTemplatesInput
   versions?: Prisma.TemplateVersionCreateNestedManyWithoutTemplateInput
   assets?: Prisma.TemplateAssetCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateUncheckedCreateWithoutDraftJobsInput = {
@@ -799,12 +1056,14 @@ export type TemplateUncheckedCreateWithoutDraftJobsInput = {
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
   ownerId: string
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   versions?: Prisma.TemplateVersionUncheckedCreateNestedManyWithoutTemplateInput
   assets?: Prisma.TemplateAssetUncheckedCreateNestedManyWithoutTemplateInput
+  favorites?: Prisma.TemplateFavoriteUncheckedCreateNestedManyWithoutTemplateInput
 }
 
 export type TemplateCreateOrConnectWithoutDraftJobsInput = {
@@ -834,8 +1093,10 @@ export type TemplateUpdateWithoutDraftJobsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput
+  category?: Prisma.TemplateCategoryUpdateOneWithoutTemplatesNestedInput
   versions?: Prisma.TemplateVersionUpdateManyWithoutTemplateNestedInput
   assets?: Prisma.TemplateAssetUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateUncheckedUpdateWithoutDraftJobsInput = {
@@ -845,12 +1106,14 @@ export type TemplateUncheckedUpdateWithoutDraftJobsInput = {
   visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
   assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateCreateManyOwnerInput = {
@@ -859,6 +1122,7 @@ export type TemplateCreateManyOwnerInput = {
   catalogType?: $Enums.CatalogType
   visibility?: $Enums.TemplateVisibility
   status?: $Enums.TemplateStatus
+  categoryId?: string | null
   headerHtml?: string | null
   footerHtml?: string | null
   createdAt?: Date | string
@@ -875,12 +1139,57 @@ export type TemplateUpdateWithoutOwnerInput = {
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  category?: Prisma.TemplateCategoryUpdateOneWithoutTemplatesNestedInput
   versions?: Prisma.TemplateVersionUpdateManyWithoutTemplateNestedInput
   assets?: Prisma.TemplateAssetUpdateManyWithoutTemplateNestedInput
   draftJobs?: Prisma.DraftJobUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutTemplateNestedInput
 }
 
 export type TemplateUncheckedUpdateWithoutOwnerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
+  visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
+  status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
+  assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
+  draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutTemplateNestedInput
+}
+
+export type TemplateUncheckedUpdateManyWithoutOwnerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
+  visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
+  status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type TemplateCreateManyCategoryInput = {
+  id?: string
+  name: string
+  catalogType?: $Enums.CatalogType
+  visibility?: $Enums.TemplateVisibility
+  status?: $Enums.TemplateStatus
+  ownerId: string
+  headerHtml?: string | null
+  footerHtml?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type TemplateUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
@@ -890,17 +1199,37 @@ export type TemplateUncheckedUpdateWithoutOwnerInput = {
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
-  assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
-  draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
+  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedTemplatesNestedInput
+  versions?: Prisma.TemplateVersionUpdateManyWithoutTemplateNestedInput
+  assets?: Prisma.TemplateAssetUpdateManyWithoutTemplateNestedInput
+  draftJobs?: Prisma.DraftJobUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUpdateManyWithoutTemplateNestedInput
 }
 
-export type TemplateUncheckedUpdateManyWithoutOwnerInput = {
+export type TemplateUncheckedUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
   visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
   status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
+  ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.TemplateVersionUncheckedUpdateManyWithoutTemplateNestedInput
+  assets?: Prisma.TemplateAssetUncheckedUpdateManyWithoutTemplateNestedInput
+  draftJobs?: Prisma.DraftJobUncheckedUpdateManyWithoutTemplateNestedInput
+  favorites?: Prisma.TemplateFavoriteUncheckedUpdateManyWithoutTemplateNestedInput
+}
+
+export type TemplateUncheckedUpdateManyWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  catalogType?: Prisma.EnumCatalogTypeFieldUpdateOperationsInput | $Enums.CatalogType
+  visibility?: Prisma.EnumTemplateVisibilityFieldUpdateOperationsInput | $Enums.TemplateVisibility
+  status?: Prisma.EnumTemplateStatusFieldUpdateOperationsInput | $Enums.TemplateStatus
+  ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   headerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   footerHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -916,12 +1245,14 @@ export type TemplateCountOutputType = {
   versions: number
   assets: number
   draftJobs: number
+  favorites: number
 }
 
 export type TemplateCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   versions?: boolean | TemplateCountOutputTypeCountVersionsArgs
   assets?: boolean | TemplateCountOutputTypeCountAssetsArgs
   draftJobs?: boolean | TemplateCountOutputTypeCountDraftJobsArgs
+  favorites?: boolean | TemplateCountOutputTypeCountFavoritesArgs
 }
 
 /**
@@ -955,6 +1286,13 @@ export type TemplateCountOutputTypeCountDraftJobsArgs<ExtArgs extends runtime.Ty
   where?: Prisma.DraftJobWhereInput
 }
 
+/**
+ * TemplateCountOutputType without action
+ */
+export type TemplateCountOutputTypeCountFavoritesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TemplateFavoriteWhereInput
+}
+
 
 export type TemplateSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -963,14 +1301,17 @@ export type TemplateSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   visibility?: boolean
   status?: boolean
   ownerId?: boolean
+  categoryId?: boolean
   headerHtml?: boolean
   footerHtml?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.Template$categoryArgs<ExtArgs>
   versions?: boolean | Prisma.Template$versionsArgs<ExtArgs>
   assets?: boolean | Prisma.Template$assetsArgs<ExtArgs>
   draftJobs?: boolean | Prisma.Template$draftJobsArgs<ExtArgs>
+  favorites?: boolean | Prisma.Template$favoritesArgs<ExtArgs>
   _count?: boolean | Prisma.TemplateCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["template"]>
 
@@ -981,11 +1322,13 @@ export type TemplateSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   visibility?: boolean
   status?: boolean
   ownerId?: boolean
+  categoryId?: boolean
   headerHtml?: boolean
   footerHtml?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.Template$categoryArgs<ExtArgs>
 }, ExtArgs["result"]["template"]>
 
 export type TemplateSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -995,11 +1338,13 @@ export type TemplateSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   visibility?: boolean
   status?: boolean
   ownerId?: boolean
+  categoryId?: boolean
   headerHtml?: boolean
   footerHtml?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.Template$categoryArgs<ExtArgs>
 }, ExtArgs["result"]["template"]>
 
 export type TemplateSelectScalar = {
@@ -1009,34 +1354,41 @@ export type TemplateSelectScalar = {
   visibility?: boolean
   status?: boolean
   ownerId?: boolean
+  categoryId?: boolean
   headerHtml?: boolean
   footerHtml?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type TemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "catalogType" | "visibility" | "status" | "ownerId" | "headerHtml" | "footerHtml" | "createdAt" | "updatedAt", ExtArgs["result"]["template"]>
+export type TemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "catalogType" | "visibility" | "status" | "ownerId" | "categoryId" | "headerHtml" | "footerHtml" | "createdAt" | "updatedAt", ExtArgs["result"]["template"]>
 export type TemplateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.Template$categoryArgs<ExtArgs>
   versions?: boolean | Prisma.Template$versionsArgs<ExtArgs>
   assets?: boolean | Prisma.Template$assetsArgs<ExtArgs>
   draftJobs?: boolean | Prisma.Template$draftJobsArgs<ExtArgs>
+  favorites?: boolean | Prisma.Template$favoritesArgs<ExtArgs>
   _count?: boolean | Prisma.TemplateCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TemplateIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.Template$categoryArgs<ExtArgs>
 }
 export type TemplateIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.Template$categoryArgs<ExtArgs>
 }
 
 export type $TemplatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Template"
   objects: {
     owner: Prisma.$UserPayload<ExtArgs>
+    category: Prisma.$TemplateCategoryPayload<ExtArgs> | null
     versions: Prisma.$TemplateVersionPayload<ExtArgs>[]
     assets: Prisma.$TemplateAssetPayload<ExtArgs>[]
     draftJobs: Prisma.$DraftJobPayload<ExtArgs>[]
+    favorites: Prisma.$TemplateFavoritePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1045,6 +1397,7 @@ export type $TemplatePayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     visibility: $Enums.TemplateVisibility
     status: $Enums.TemplateStatus
     ownerId: string
+    categoryId: string | null
     /**
      * Optional HTML blocks outside the freeform canvas
      */
@@ -1447,9 +1800,11 @@ readonly fields: TemplateFieldRefs;
 export interface Prisma__TemplateClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   owner<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  category<T extends Prisma.Template$categoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Template$categoryArgs<ExtArgs>>): Prisma.Prisma__TemplateCategoryClient<runtime.Types.Result.GetResult<Prisma.$TemplateCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   versions<T extends Prisma.Template$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Template$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TemplateVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assets<T extends Prisma.Template$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Template$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TemplateAssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   draftJobs<T extends Prisma.Template$draftJobsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Template$draftJobsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DraftJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  favorites<T extends Prisma.Template$favoritesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Template$favoritesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TemplateFavoritePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1485,6 +1840,7 @@ export interface TemplateFieldRefs {
   readonly visibility: Prisma.FieldRef<"Template", 'TemplateVisibility'>
   readonly status: Prisma.FieldRef<"Template", 'TemplateStatus'>
   readonly ownerId: Prisma.FieldRef<"Template", 'String'>
+  readonly categoryId: Prisma.FieldRef<"Template", 'String'>
   readonly headerHtml: Prisma.FieldRef<"Template", 'String'>
   readonly footerHtml: Prisma.FieldRef<"Template", 'String'>
   readonly createdAt: Prisma.FieldRef<"Template", 'DateTime'>
@@ -1890,6 +2246,25 @@ export type TemplateDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 /**
+ * Template.category
+ */
+export type Template$categoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TemplateCategory
+   */
+  select?: Prisma.TemplateCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TemplateCategory
+   */
+  omit?: Prisma.TemplateCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TemplateCategoryInclude<ExtArgs> | null
+  where?: Prisma.TemplateCategoryWhereInput
+}
+
+/**
  * Template.versions
  */
 export type Template$versionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1959,6 +2334,30 @@ export type Template$draftJobsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.DraftJobScalarFieldEnum | Prisma.DraftJobScalarFieldEnum[]
+}
+
+/**
+ * Template.favorites
+ */
+export type Template$favoritesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TemplateFavorite
+   */
+  select?: Prisma.TemplateFavoriteSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TemplateFavorite
+   */
+  omit?: Prisma.TemplateFavoriteOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TemplateFavoriteInclude<ExtArgs> | null
+  where?: Prisma.TemplateFavoriteWhereInput
+  orderBy?: Prisma.TemplateFavoriteOrderByWithRelationInput | Prisma.TemplateFavoriteOrderByWithRelationInput[]
+  cursor?: Prisma.TemplateFavoriteWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TemplateFavoriteScalarFieldEnum | Prisma.TemplateFavoriteScalarFieldEnum[]
 }
 
 /**

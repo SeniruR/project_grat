@@ -35,6 +35,160 @@ export function applyMergeFields(
   });
 }
 
+export type PlaceholderSource =
+  | "recipientName"
+  | "recipientEmail"
+  | "senderName"
+  | "senderEmail"
+  | "shared"
+  | "perRecipient";
+
+export type PlaceholderDef = {
+  key: string;
+  label: string;
+  source: PlaceholderSource;
+};
+
+const PLACEHOLDER_SOURCES = new Set<string>([
+  "recipientName",
+  "recipientEmail",
+  "senderName",
+  "senderEmail",
+  "shared",
+  "perRecipient",
+]);
+
+function recipientNameValueForKey(key: string, fullName: string): string {
+  const name = fullName.trim();
+  if (!name) return "";
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  if (k === "firstname" || k === "fname") {
+    return name.split(/\s+/)[0] ?? name;
+  }
+  return name;
+}
+
+/** Tokens that mean the selected recipient's name (incl. common typos). */
+export function isRecipientNameToken(key: string): boolean {
+  const k = key.toLowerCase().replace(/[_.-]/g, "");
+  if (
+    k === "name" ||
+    k === "displayname" ||
+    k === "firstname" ||
+    k === "fname" ||
+    k === "fullname"
+  ) {
+    return true;
+  }
+  if (k.includes("recipient") && k.includes("name")) return true;
+  if (
+    (k.startsWith("recip") || k.startsWith("recep") || k.startsWith("reciep")) &&
+    k.endsWith("name")
+  ) {
+    return true;
+  }
+  return k === "recipientname";
+}
+
+export function parsePlaceholdersFromDesignJson(
+  designJson: unknown,
+): PlaceholderDef[] {
+  if (!designJson || typeof designJson !== "object") return [];
+  const raw = (designJson as { placeholders?: unknown }).placeholders;
+  if (!Array.isArray(raw)) return [];
+  const out: PlaceholderDef[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const key = typeof row.key === "string" ? row.key.trim() : "";
+    if (!key || seen.has(key.toLowerCase())) continue;
+    if (typeof row.source !== "string" || !PLACEHOLDER_SOURCES.has(row.source)) {
+      continue;
+    }
+    const label =
+      typeof row.label === "string" && row.label.trim()
+        ? row.label.trim()
+        : key;
+    seen.add(key.toLowerCase());
+    out.push({
+      key,
+      label,
+      source: row.source as PlaceholderSource,
+    });
+  }
+  return out;
+}
+
+export function buildMergeFieldMap(input: {
+  placeholders?: PlaceholderDef[];
+  recipient: { displayName?: string | null; email: string };
+  sender: { displayName?: string | null; email: string };
+  shared?: Record<string, string>;
+  perRecipient?: Record<string, string>;
+}): Record<string, string> {
+  const name = input.recipient.displayName?.trim() || input.recipient.email;
+  const senderName = input.sender.displayName?.trim() || input.sender.email;
+  const shared = input.shared ?? {};
+  const perRecipient = input.perRecipient ?? {};
+  const map: Record<string, string> = {};
+
+  for (const ph of input.placeholders ?? []) {
+    switch (ph.source) {
+      case "recipientName":
+        map[ph.key] = recipientNameValueForKey(ph.key, name);
+        break;
+      case "recipientEmail":
+        map[ph.key] = input.recipient.email;
+        break;
+      case "senderName":
+        map[ph.key] = senderName;
+        break;
+      case "senderEmail":
+        map[ph.key] = input.sender.email;
+        break;
+      case "shared": {
+        const sharedVal = (shared[ph.key] ?? "").trim();
+        map[ph.key] =
+          sharedVal ||
+          (isRecipientNameToken(ph.key)
+            ? recipientNameValueForKey(ph.key, name)
+            : "");
+        break;
+      }
+      case "perRecipient": {
+        const perVal = (perRecipient[ph.key] ?? "").trim();
+        map[ph.key] =
+          perVal ||
+          (isRecipientNameToken(ph.key)
+            ? recipientNameValueForKey(ph.key, name)
+            : "");
+        break;
+      }
+    }
+  }
+
+  // Aliases only when the token was never defined on the template.
+  const setAlias = (key: string, value: string) => {
+    if (!(key in map)) map[key] = value;
+  };
+  setAlias("name", name);
+  setAlias("displayName", name);
+  setAlias("recipientName", name);
+  setAlias("email", input.recipient.email);
+  setAlias("recipientEmail", input.recipient.email);
+  setAlias("senderName", senderName);
+  setAlias("senderEmail", input.sender.email);
+
+  for (const [key, value] of Object.entries(map)) {
+    if (!value.trim() && isRecipientNameToken(key)) {
+      map[key] = recipientNameValueForKey(key, name);
+    }
+  }
+
+  return map;
+}
+
 export function buildOutboundBodyHtml(input: {
   compiledHtml: string;
   headerHtml?: string | null;
@@ -45,6 +199,16 @@ export function buildOutboundBodyHtml(input: {
     displayName?: string | null;
     email: string;
   };
+  sender: {
+    displayName?: string | null;
+    email: string;
+  };
+  placeholders?: PlaceholderDef[];
+  shared?: Record<string, string>;
+  perRecipient?: Record<string, string>;
+  /** slotId → absolute image URL overrides for this send */
+  imageOverrides?: Record<string, string>;
+  imageSlots?: ImageSlotDef[];
 }) {
   const resolved = resolveHtmlImageSrcs(
     input.compiledHtml,
@@ -69,12 +233,137 @@ export function buildOutboundBodyHtml(input: {
       : null,
   );
 
-  const name = input.recipient.displayName?.trim() || input.recipient.email;
-  return applyMergeFields(wrapped, {
-    name,
-    displayName: name,
-    recipientName: name,
-    email: input.recipient.email,
-    recipientEmail: input.recipient.email,
+  const merged = applyMergeFields(
+    wrapped,
+    buildMergeFieldMap({
+      placeholders: input.placeholders,
+      recipient: input.recipient,
+      sender: input.sender,
+      shared: input.shared,
+      perRecipient: input.perRecipient,
+    }),
+  );
+
+  return applyImageSlotOverrides(
+    merged,
+    input.imageOverrides ?? {},
+    input.imageSlots ?? parseImageSlotsFromDesignJson(null),
+  );
+}
+
+export type ImageSlotDef = {
+  id: string;
+  label: string;
+  mode: "fixed" | "shared" | "perRecipient";
+  originalSrc: string;
+  designedWidth: number;
+  designedHeight: number;
+  borderRadius: number;
+};
+
+export function parseImageSlotsFromDesignJson(
+  designJson: unknown,
+): ImageSlotDef[] {
+  if (!designJson || typeof designJson !== "object") return [];
+  const raw = (designJson as { imageSlots?: unknown }).imageSlots;
+  if (!Array.isArray(raw)) return [];
+  const out: ImageSlotDef[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const id = typeof row.id === "string" ? row.id.trim() : "";
+    if (!id || seen.has(id)) continue;
+    const mode = row.mode;
+    if (mode !== "fixed" && mode !== "shared" && mode !== "perRecipient") {
+      continue;
+    }
+    seen.add(id);
+    out.push({
+      id,
+      label:
+        typeof row.label === "string" && row.label.trim()
+          ? row.label.trim()
+          : id,
+      mode,
+      originalSrc:
+        typeof row.originalSrc === "string" ? row.originalSrc : "",
+      designedWidth:
+        typeof row.designedWidth === "number" && row.designedWidth > 0
+          ? Math.round(row.designedWidth)
+          : 600,
+      designedHeight:
+        typeof row.designedHeight === "number" && row.designedHeight > 0
+          ? Math.round(row.designedHeight)
+          : 400,
+      borderRadius:
+        typeof row.borderRadius === "number" && row.borderRadius > 0
+          ? Math.round(row.borderRadius)
+          : 0,
+    });
+  }
+  return out;
+}
+
+function imgAttr(attrs: string, name: string): string | null {
+  const re = new RegExp(
+    `\\b${name}\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))`,
+    "i",
+  );
+  const m = re.exec(attrs);
+  if (!m) return null;
+  return (m[1] ?? m[2] ?? m[3] ?? "").trim() || null;
+}
+
+function ensureImgBorderRadius(attrs: string, radius: number): string {
+  // Keep existing radius if present; never inject a new one (avoids double-round
+  // with clipped replacement PNGs).
+  void radius;
+  return attrs;
+}
+
+/** Replace src on imgs matching data-grat-slot (or originalSrc fallback). */
+export function applyImageSlotOverrides(
+  html: string,
+  overrides: Record<string, string>,
+  slots: ImageSlotDef[] = [],
+): string {
+  const map = new Map(
+    Object.entries(overrides)
+      .filter(([, url]) => Boolean(url?.trim()))
+      .map(([k, url]) => [k, url.trim()] as const),
+  );
+  if (map.size === 0) return html;
+
+  const slotsById = new Map(slots.map((s) => [s.id, s] as const));
+  const byOriginal = new Map(
+    slots
+      .filter((s) => map.has(s.id))
+      .map((s) => [s.originalSrc, map.get(s.id)!] as const),
+  );
+
+  return html.replace(/<img\b([^>]*?)>/gi, (full, attrs: string) => {
+    const slotId = imgAttr(attrs, "data-grat-slot");
+    const src = imgAttr(attrs, "src") ?? "";
+    const nextUrl =
+      (slotId && map.get(slotId)) ||
+      (src ? byOriginal.get(src) : undefined);
+    if (!nextUrl) return full;
+
+    const slot =
+      (slotId ? slotsById.get(slotId) : undefined) ??
+      slots.find((s) => s.originalSrc === src);
+
+    let nextAttrs = attrs;
+    if (/\bsrc\s*=/i.test(nextAttrs)) {
+      nextAttrs = nextAttrs.replace(
+        /\bsrc\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s>]+)/i,
+        `src="${nextUrl}"`,
+      );
+    } else {
+      nextAttrs = ` src="${nextUrl}"${nextAttrs}`;
+    }
+    nextAttrs = ensureImgBorderRadius(nextAttrs, slot?.borderRadius ?? 0);
+    return `<img${nextAttrs}>`;
   });
 }

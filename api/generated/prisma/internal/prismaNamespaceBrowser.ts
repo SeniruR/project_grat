@@ -52,12 +52,15 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  TemplateCategory: 'TemplateCategory',
   Template: 'Template',
+  TemplateFavorite: 'TemplateFavorite',
   TemplateVersion: 'TemplateVersion',
   TemplateAsset: 'TemplateAsset',
   DraftJob: 'DraftJob',
   OutboundDraft: 'OutboundDraft',
-  AuditEvent: 'AuditEvent'
+  AuditEvent: 'AuditEvent',
+  AppSetting: 'AppSetting'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -90,6 +93,17 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const TemplateCategoryScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TemplateCategoryScalarFieldEnum = (typeof TemplateCategoryScalarFieldEnum)[keyof typeof TemplateCategoryScalarFieldEnum]
+
+
 export const TemplateScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -97,6 +111,7 @@ export const TemplateScalarFieldEnum = {
   visibility: 'visibility',
   status: 'status',
   ownerId: 'ownerId',
+  categoryId: 'categoryId',
   headerHtml: 'headerHtml',
   footerHtml: 'footerHtml',
   createdAt: 'createdAt',
@@ -104,6 +119,16 @@ export const TemplateScalarFieldEnum = {
 } as const
 
 export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
+
+
+export const TemplateFavoriteScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  templateId: 'templateId',
+  createdAt: 'createdAt'
+} as const
+
+export type TemplateFavoriteScalarFieldEnum = (typeof TemplateFavoriteScalarFieldEnum)[keyof typeof TemplateFavoriteScalarFieldEnum]
 
 
 export const TemplateVersionScalarFieldEnum = {
@@ -141,6 +166,9 @@ export const DraftJobScalarFieldEnum = {
   requesterId: 'requesterId',
   templateId: 'templateId',
   templateVersionId: 'templateVersionId',
+  templateName: 'templateName',
+  templateVersionNumber: 'templateVersionNumber',
+  categoryName: 'categoryName',
   status: 'status',
   total: 'total',
   completed: 'completed',
@@ -180,6 +208,15 @@ export const AuditEventScalarFieldEnum = {
 } as const
 
 export type AuditEventScalarFieldEnum = (typeof AuditEventScalarFieldEnum)[keyof typeof AuditEventScalarFieldEnum]
+
+
+export const AppSettingScalarFieldEnum = {
+  key: 'key',
+  value: 'value',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AppSettingScalarFieldEnum = (typeof AppSettingScalarFieldEnum)[keyof typeof AppSettingScalarFieldEnum]
 
 
 export const SortOrder = {

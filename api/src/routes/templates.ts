@@ -8,6 +8,12 @@ import {
   suggestedImgTag,
 } from "../lib/htmlAssets.js";
 import { config } from "../config.js";
+import {
+  canComposeTemplate,
+  canEditTemplate,
+  canManageDesigns,
+  canViewTemplate,
+} from "../lib/roles.js";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -17,7 +23,10 @@ import { unlink, stat } from "node:fs/promises";
 const createBody = z.object({
   name: z.string().min(1).max(160),
   visibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
-  mode: z.enum(["blank", "html_import", "designer"]).default("blank"),
+  categoryId: z.string().min(1).optional(),
+  mode: z
+    .enum(["blank", "html_import", "canva_html", "image_import"])
+    .default("blank"),
   html: z.string().max(500_000).optional(),
   headerHtml: z.string().max(50_000).optional(),
   footerHtml: z.string().max(50_000).optional(),
@@ -27,6 +36,7 @@ const patchBody = z.object({
   name: z.string().min(1).max(160).optional(),
   visibility: z.enum(["PRIVATE", "SHARED"]).optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+  categoryId: z.string().min(1).nullable().optional(),
   headerHtml: z.string().max(50_000).nullable().optional(),
   footerHtml: z.string().max(50_000).nullable().optional(),
 });
@@ -39,6 +49,7 @@ const versionBody = z.object({
 
 const templateInclude = {
   owner: { select: { id: true, displayName: true, email: true } },
+  category: { select: { id: true, name: true } },
   versions: { orderBy: { version: "desc" as const }, take: 1 },
   /// Only user uploads — compiled flatten outputs are internal
   assets: {
@@ -48,21 +59,17 @@ const templateInclude = {
 };
 
 function canView(
-  template: { ownerId: string; visibility: string },
+  template: { ownerId: string; visibility: string; status: string },
   user: { id: string; role: string },
 ) {
-  return (
-    template.ownerId === user.id ||
-    template.visibility === "SHARED" ||
-    user.role === "ADMIN"
-  );
+  return canViewTemplate(template, user);
 }
 
 function canEdit(
   template: { ownerId: string },
   user: { id: string; role: string },
 ) {
-  return template.ownerId === user.id || user.role === "ADMIN";
+  return canEditTemplate(template, user);
 }
 
 export const templateRoutes: FastifyPluginAsync = async (app) => {
@@ -71,28 +78,73 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: [app.authenticate] },
     async (request) => {
       const user = request.appUser!;
+      // Design studio — own templates only (marketplace is separate).
+      if (!canManageDesigns(user)) {
+        return { templates: [] };
+      }
       const templates = await prisma.template.findMany({
-        where:
-          user.role === "ADMIN"
-            ? { catalogType: "CARD" }
-            : {
-                catalogType: "CARD",
-                OR: [{ ownerId: user.id }, { visibility: "SHARED" }],
-              },
+        where: {
+          catalogType: "CARD",
+          ownerId: user.id,
+        },
         orderBy: { updatedAt: "desc" },
         include: {
           owner: { select: { id: true, displayName: true, email: true } },
+          category: { select: { id: true, name: true } },
           versions: { orderBy: { version: "desc" }, take: 1 },
           _count: { select: { assets: true } },
         },
       });
-      return { templates };
+
+      const ids = templates.map((t) => t.id);
+      const usageByTemplate = new Map<
+        string,
+        { total: Set<string>; sinceEdit: Set<string> }
+      >();
+      for (const id of ids) {
+        usageByTemplate.set(id, { total: new Set(), sinceEdit: new Set() });
+      }
+
+      if (ids.length) {
+        const jobs = await prisma.draftJob.findMany({
+          where: { templateId: { in: ids } },
+          select: {
+            templateId: true,
+            requesterId: true,
+            createdAt: true,
+          },
+        });
+        const editedAt = new Map(
+          templates.map((t) => [t.id, t.updatedAt.getTime()] as const),
+        );
+        for (const job of jobs) {
+          if (!job.templateId) continue;
+          const bucket = usageByTemplate.get(job.templateId);
+          if (!bucket) continue;
+          bucket.total.add(job.requesterId);
+          const cut = editedAt.get(job.templateId) ?? 0;
+          if (job.createdAt.getTime() >= cut) {
+            bucket.sinceEdit.add(job.requesterId);
+          }
+        }
+      }
+
+      return {
+        templates: templates.map((t) => {
+          const usage = usageByTemplate.get(t.id);
+          return {
+            ...t,
+            usageTotalUsers: usage?.total.size ?? 0,
+            usageSinceLastEdit: usage?.sinceEdit.size ?? 0,
+          };
+        }),
+      };
     },
   );
 
   app.post(
     "/templates",
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.requireDesigner] },
     async (request, reply) => {
       const user = request.appUser!;
       const parsed = createBody.safeParse(request.body);
@@ -100,7 +152,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid template payload" });
       }
 
-      const { name, visibility, mode, html, headerHtml, footerHtml } =
+      const { name, visibility, mode, html, headerHtml, footerHtml, categoryId } =
         parsed.data;
 
       if (mode === "html_import" && !html?.trim()) {
@@ -109,10 +161,26 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           .send({ error: "HTML is required for html_import mode" });
       }
 
+      if (categoryId) {
+        const cat = await prisma.templateCategory.findUnique({
+          where: { id: categoryId },
+        });
+        if (!cat) {
+          return reply.code(400).send({ error: "Category not found" });
+        }
+      }
+
       const designJson =
         mode === "html_import"
           ? { mode: "html_import", sourceHtml: html }
-          : { mode: mode === "designer" ? "designer" : "blank", objects: [] };
+          : mode === "canva_html"
+            ? { mode: "canva_html", source: "canva_zip" }
+            : mode === "image_import"
+              ? { mode: "image_import", source: "upload" }
+              : {
+                  mode: "blank",
+                  objects: [],
+                };
 
       const compiledHtml =
         mode === "html_import" ? html!.trim() : "<div></div>";
@@ -121,9 +189,10 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         data: {
           name: name.trim(),
           visibility,
-          status: "DRAFT",
+          status: visibility === "SHARED" ? "PUBLISHED" : "DRAFT",
           catalogType: "CARD",
           ownerId: user.id,
+          categoryId: categoryId || null,
           headerHtml: headerHtml?.trim() || null,
           footerHtml: footerHtml?.trim() || null,
           versions: {
@@ -143,7 +212,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         action: "template.created",
         entityType: "template",
         entityId: template.id,
-        payload: { name: template.name, visibility, mode },
+        payload: { name: template.name, visibility, mode, categoryId },
       });
 
       return reply.code(201).send({ template });
@@ -189,6 +258,24 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const data = parsed.data;
+      if (data.categoryId) {
+        const cat = await prisma.templateCategory.findUnique({
+          where: { id: data.categoryId },
+        });
+        if (!cat) {
+          return reply.code(400).send({ error: "Category not found" });
+        }
+      }
+
+      // Keep status aligned with visibility so "Published" means marketplace-ready.
+      const syncedStatus =
+        data.status ??
+        (data.visibility !== undefined
+          ? data.visibility === "SHARED"
+            ? "PUBLISHED"
+            : "DRAFT"
+          : undefined);
+
       const template = await prisma.template.update({
         where: { id },
         data: {
@@ -196,7 +283,10 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           ...(data.visibility !== undefined
             ? { visibility: data.visibility }
             : {}),
-          ...(data.status !== undefined ? { status: data.status } : {}),
+          ...(syncedStatus !== undefined ? { status: syncedStatus } : {}),
+          ...(data.categoryId !== undefined
+            ? { categoryId: data.categoryId }
+            : {}),
           ...(data.headerHtml !== undefined
             ? { headerHtml: data.headerHtml }
             : {}),
@@ -316,11 +406,18 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       const { id } = request.params as { id: string };
 
       const existing = await prisma.template.findUnique({ where: { id } });
-      if (!existing || !canEdit(existing, user)) {
+      if (!existing) {
+        return reply.code(404).send({ error: "Template not found" });
+      }
+      // Owners/editors upload source/compiled; composers may only upload overrides.
+      if (
+        !canEdit(existing, user) &&
+        !canComposeTemplate(existing, user)
+      ) {
         return reply.code(404).send({ error: "Template not found" });
       }
 
-      let kind: "source" | "compiled" = "source";
+      let kind: "source" | "compiled" | "override" = "source";
       let saved: {
         absPath: string;
         storageKey: string;
@@ -334,7 +431,13 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         if (part.type !== "file") {
           if (part.fieldname === "kind") {
             const value = String(part.value);
-            if (value === "compiled" || value === "source") kind = value;
+            if (
+              value === "compiled" ||
+              value === "source" ||
+              value === "override"
+            ) {
+              kind = value;
+            }
           }
           continue;
         }
@@ -344,25 +447,73 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           "image/png",
           "image/gif",
           "image/webp",
+          // Canva HTML ZIP may ship web fonts referenced from @font-face
+          "font/woff",
+          "font/woff2",
+          "font/ttf",
+          "font/otf",
+          "application/font-woff",
+          "application/font-woff2",
+          "application/x-font-ttf",
+          "application/x-font-otf",
+          "application/vnd.ms-fontobject",
+          "application/octet-stream",
         ]);
-        if (!allowed.has(part.mimetype)) {
+        const fileExt = path.extname(part.filename || "").toLowerCase();
+        const fontExt = new Set([
+          ".woff",
+          ".woff2",
+          ".ttf",
+          ".otf",
+          ".eot",
+        ]);
+        const isFont =
+          fontExt.has(fileExt) ||
+          part.mimetype.startsWith("font/") ||
+          part.mimetype.includes("font");
+        const isImage = part.mimetype.startsWith("image/");
+        if (
+          !allowed.has(part.mimetype) &&
+          !(part.mimetype === "application/octet-stream" && (isFont || isImage))
+        ) {
           part.file.resume();
-          return reply
-            .code(400)
-            .send({ error: "Only JPEG, PNG, GIF, or WebP images allowed" });
+          return reply.code(400).send({
+            error:
+              "Only JPEG, PNG, GIF, WebP images or web fonts (woff/ttf) allowed",
+          });
+        }
+        if (part.mimetype === "application/octet-stream" && !isFont && !isImage) {
+          part.file.resume();
+          return reply.code(400).send({
+            error:
+              "Only JPEG, PNG, GIF, WebP images or web fonts (woff/ttf) allowed",
+          });
         }
 
         const ext =
-          path.extname(part.filename || "").toLowerCase() ||
+          fileExt ||
           (part.mimetype === "image/png"
             ? ".png"
             : part.mimetype === "image/webp"
               ? ".webp"
               : part.mimetype === "image/gif"
                 ? ".gif"
-                : ".jpg");
+                : part.mimetype.includes("woff2")
+                  ? ".woff2"
+                  : part.mimetype.includes("woff")
+                    ? ".woff"
+                    : part.mimetype.includes("ttf")
+                      ? ".ttf"
+                      : part.mimetype.includes("otf")
+                        ? ".otf"
+                        : ".jpg");
 
-        const folder = kind === "compiled" ? "compiled" : "source";
+        const folder =
+          kind === "compiled"
+            ? "compiled"
+            : kind === "override"
+              ? "override"
+              : "source";
         const safeName =
           kind === "compiled"
             ? `preview-${Date.now()}${ext}`
@@ -387,15 +538,26 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Expected multipart file field" });
       }
 
-      const maxBytes = kind === "compiled" ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+      // Non-owners may only attach compose replacement images (override).
+      if (kind === "override") {
+        if (!canComposeTemplate(existing, user)) {
+          await unlink(saved.absPath).catch(() => undefined);
+          return reply.code(404).send({ error: "Template not found" });
+        }
+      } else if (!canEdit(existing, user)) {
+        await unlink(saved.absPath).catch(() => undefined);
+        return reply.code(404).send({ error: "Template not found" });
+      }
+
+      const maxBytes = 5 * 1024 * 1024;
       const fileStat = await stat(saved.absPath);
       if (fileStat.size > maxBytes) {
         await unlink(saved.absPath);
         return reply.code(400).send({
           error:
             kind === "compiled"
-              ? "Compiled image is too large — simplify the design"
-              : "Image must be 2MB or smaller",
+              ? "Compiled image is too large - simplify the design"
+              : "Image must be 5MB or smaller",
         });
       }
 
@@ -410,6 +572,44 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
           await prisma.templateAsset.deleteMany({
             where: { templateId: id, kind: "compiled" },
           });
+        }
+      }
+
+      // Compose slot replacements — only replace prior file for THIS exact
+      // override stem (shared vs per-recipient must not delete each other).
+      if (kind === "override") {
+        // e.g. img-hero-override-shared-482x300.png
+        //      img-hero-override-r-alex-at-ex-com-482x300.png
+        const stem =
+          saved.fileName
+            .replace(/\.[^.]+$/i, "")
+            .replace(/-\d+x\d+$/i, "")
+            .trim() || null;
+        if (stem) {
+          const old = await prisma.templateAsset.findMany({
+            where: {
+              templateId: id,
+              kind: "override",
+              OR: [
+                { fileName: { startsWith: `${stem}-` } },
+                { fileName: { startsWith: stem } },
+              ],
+            },
+          });
+          const toRemove = old.filter((row) => {
+            const rowStem = row.fileName
+              .replace(/\.[^.]+$/i, "")
+              .replace(/-\d+x\d+$/i, "");
+            return rowStem.toLowerCase() === stem.toLowerCase();
+          });
+          for (const row of toRemove) {
+            await removeUploadFile(row.storageKey);
+          }
+          if (toRemove.length) {
+            await prisma.templateAsset.deleteMany({
+              where: { id: { in: toRemove.map((r) => r.id) } },
+            });
+          }
         }
       }
 
@@ -558,6 +758,7 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         await removeUploadFile(asset.storageKey);
       }
 
+      // Keep DraftJob / OutboundDraft rows for Sent history (FKs SetNull).
       await prisma.template.delete({ where: { id } });
       await writeAudit({
         actorId: user.id,

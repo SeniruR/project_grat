@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
+/** Admin hub - stats + links to Summary, People, Audit. */
 export function AdminPage() {
   const { token, user } = useAuth();
   const [stats, setStats] = useState<{
@@ -10,25 +12,15 @@ export function AdminPage() {
     templates: number;
     drafts: number;
     audits: number;
+    designers?: number;
   } | null>(null);
-  const [events, setEvents] = useState<
-    Array<{
-      id: string;
-      action: string;
-      entityType: string;
-      createdAt: string;
-      actor: { displayName: string; email: string } | null;
-    }>
-  >([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
-    Promise.all([api.adminStats(token), api.adminAudit(token)])
-      .then(([s, a]) => {
-        setStats(s);
-        setEvents(a.events);
-      })
+    api
+      .adminStats(token)
+      .then(setStats)
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load admin"),
       );
@@ -45,63 +37,79 @@ export function AdminPage() {
 
   return (
     <div className="page">
-      <p className="back">
-        <Link to="/">← Catalog</Link>
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "Admin" },
+        ]}
+      />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Admin</p>
-          <h1>Oversight</h1>
-          <p className="lede">Who did what, when — expand with send previews later.</p>
+          <p className="eyebrow">Cards</p>
+          <h1>Admin</h1>
+          <p className="lede">
+            People, send activity, and the activity log.
+          </p>
         </div>
       </header>
 
       {error ? <p className="error">{error}</p> : null}
 
       {stats ? (
-        <div className="stats-row">
+        <div className="stats-row" data-tour="admin-stats">
           <div>
             <strong>{stats.users}</strong>
             <span>Users</span>
           </div>
           <div>
+            <strong>{stats.designers ?? "-"}</strong>
+            <span>Designers</span>
+          </div>
+          <div>
             <strong>{stats.templates}</strong>
-            <span>Templates</span>
+            <span>Cards</span>
           </div>
           <div>
             <strong>{stats.drafts}</strong>
-            <span>Drafts</span>
+            <span>Sends</span>
           </div>
           <div>
             <strong>{stats.audits}</strong>
             <span>Audit events</span>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <p className="muted" data-tour="admin-stats">
+          Loading stats…
+        </p>
+      )}
 
-      <section className="panel">
-        <h2>Recent audit</h2>
-        <table className="audit-table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Who</th>
-              <th>Action</th>
-              <th>Entity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((e) => (
-              <tr key={e.id}>
-                <td>{new Date(e.createdAt).toLocaleString()}</td>
-                <td>{e.actor?.displayName ?? "—"}</td>
-                <td>{e.action}</td>
-                <td>{e.entityType}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <div className="catalog-grid" data-tour="admin-tiles">
+        <Link to="/admin/summary" className="catalog-tile catalog-tile--live">
+          <span className="catalog-type">SUMMARY</span>
+          <h2>Send summary</h2>
+          <p>See what each user has sent - jobs, message counts, and recent cards.</p>
+        </Link>
+        <Link to="/admin/people" className="catalog-tile catalog-tile--live">
+          <span className="catalog-type">PEOPLE</span>
+          <h2>People</h2>
+          <p>Assign Admin, Designer, or User roles and remove unused accounts.</p>
+        </Link>
+        <Link to="/admin/settings" className="catalog-tile catalog-tile--live">
+          <span className="catalog-type">SETTINGS</span>
+          <h2>Send settings</h2>
+          <p>
+            Choose which name titles (Mr., Mrs., Sir, …) become recipient groups
+            when sending.
+          </p>
+        </Link>
+        <Link to="/admin/audit" className="catalog-tile catalog-tile--live">
+          <span className="catalog-type">AUDIT</span>
+          <h2>Audit log</h2>
+          <p>Browse detailed events - expand a row to inspect the payload.</p>
+        </Link>
+      </div>
     </div>
   );
 }

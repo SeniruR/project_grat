@@ -2,6 +2,7 @@ import fp from "fastify-plugin";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "../db.js";
 import type { AuthUser } from "../providers/auth/types.js";
+import { canManageDesigns, isAdmin } from "../lib/roles.js";
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {
@@ -18,6 +19,10 @@ declare module "fastify" {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     requireAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requireDesigner: (
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ) => Promise<void>;
   }
 }
 
@@ -50,8 +55,21 @@ const authPluginImpl: FastifyPluginAsync = async (app) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       await app.authenticate(request, reply);
       if (reply.sent) return;
-      if (request.appUser?.role !== "ADMIN") {
+      if (!request.appUser || !isAdmin(request.appUser)) {
         return reply.code(403).send({ error: "Admin only" });
+      }
+    },
+  );
+
+  app.decorate(
+    "requireDesigner",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      await app.authenticate(request, reply);
+      if (reply.sent) return;
+      if (!request.appUser || !canManageDesigns(request.appUser)) {
+        return reply.code(403).send({
+          error: "Designer or admin role required to manage templates",
+        });
       }
     },
   );

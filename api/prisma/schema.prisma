@@ -13,6 +13,7 @@ datasource db {
 
 enum Role {
   USER
+  DESIGNER
   ADMIN
 }
 
@@ -43,11 +44,26 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  ownedTemplates Template[]     @relation("TemplateOwner")
-  auditEvents    AuditEvent[]
-  draftJobs      DraftJob[]
+  ownedTemplates    Template[]         @relation("TemplateOwner")
+  createdCategories TemplateCategory[] @relation("CategoryCreator")
+  auditEvents       AuditEvent[]
+  draftJobs         DraftJob[]
+  favorites         TemplateFavorite[]
 
   @@map("users")
+}
+
+model TemplateCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  createdById String?  @map("created_by_id")
+  createdBy   User?    @relation("CategoryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  templates Template[]
+
+  @@map("template_categories")
 }
 
 model Template {
@@ -58,6 +74,8 @@ model Template {
   status      TemplateStatus     @default(DRAFT)
   ownerId     String             @map("owner_id")
   owner       User               @relation("TemplateOwner", fields: [ownerId], references: [id])
+  categoryId  String?            @map("category_id")
+  category    TemplateCategory?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   /// Optional HTML blocks outside the freeform canvas
   headerHtml  String?            @map("header_html")
   footerHtml  String?            @map("footer_html")
@@ -67,8 +85,24 @@ model Template {
   versions TemplateVersion[]
   assets    TemplateAsset[]
   draftJobs DraftJob[]
+  favorites TemplateFavorite[]
 
+  @@index([categoryId])
   @@map("templates")
+}
+
+/// Per-user favorites for marketplace / quick access
+model TemplateFavorite {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId String   @map("template_id")
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, templateId])
+  @@index([userId])
+  @@map("template_favorites")
 }
 
 model TemplateVersion {
@@ -109,18 +143,23 @@ model TemplateAsset {
 }
 
 model DraftJob {
-  id                String   @id @default(cuid())
-  requesterId       String   @map("requester_id")
-  requester         User     @relation(fields: [requesterId], references: [id])
-  templateId        String   @map("template_id")
-  template          Template @relation(fields: [templateId], references: [id])
-  templateVersionId String   @map("template_version_id")
-  templateVersion   TemplateVersion @relation(fields: [templateVersionId], references: [id])
-  status            String   @default("pending")
-  total             Int      @default(0)
-  completed         Int      @default(0)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                    String           @id @default(cuid())
+  requesterId           String           @map("requester_id")
+  requester             User             @relation(fields: [requesterId], references: [id])
+  /// Kept after template delete so Sent history survives (SetNull).
+  templateId            String?          @map("template_id")
+  template              Template?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateVersionId     String?          @map("template_version_id")
+  templateVersion       TemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  /// Snapshot at send time — used when the template is later deleted
+  templateName          String           @default("Deleted template") @map("template_name")
+  templateVersionNumber Int?             @map("template_version_number")
+  categoryName          String?          @map("category_name")
+  status                String           @default("pending")
+  total                 Int              @default(0)
+  completed             Int              @default(0)
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
 
   drafts OutboundDraft[]
 
@@ -159,4 +198,13 @@ model AuditEvent {
   @@index([createdAt])
   @@index([actorId])
   @@map("audit_events")
+}
+
+/// Key/value app settings (e.g. Compose name prefixes).
+model AppSetting {
+  key       String   @id
+  value     Json     @default("{}")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }

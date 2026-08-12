@@ -4,6 +4,7 @@ import { api, type DraftJobDetail } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { COMPOSE_ENABLED } from "../features";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
 export function DraftJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -50,20 +51,26 @@ export function DraftJobPage() {
 
   return (
     <div className="page">
-      <p className="back">
-        <Link to={`/cards/${job.template.id}`}>← {job.template.name}</Link>
-        {COMPOSE_ENABLED ? (
-          <>
-            {" · "}
-            <Link to={`/cards/${job.template.id}/compose`}>Compose again</Link>
-          </>
-        ) : null}
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Home", to: "/" },
+          emailsCrumb,
+          { label: "Sent", to: "/sent" },
+          { label: job.template.name },
+        ]}
+      />
+      {COMPOSE_ENABLED ? (
+        <p className="back">
+          <Link to={`/cards/${job.template.id}/compose`}>Send again</Link>
+        </p>
+      ) : null}
       <header className="page-header">
         <div>
-          <p className="eyebrow">Draft job</p>
+          <p className="eyebrow">Cards</p>
           <h1>
-            {okCount} draft{okCount === 1 ? "" : "s"} ready
+            {mailMode === "smtp"
+              ? `${okCount} message${okCount === 1 ? "" : "s"} sent`
+              : `${okCount} draft${okCount === 1 ? "" : "s"} ready`}
             {failCount ? ` · ${failCount} failed` : ""}
           </h1>
           <p className="lede">
@@ -77,13 +84,18 @@ export function DraftJobPage() {
 
       {mailMode === "mock" ? (
         <p className="notice">
-          Mock mode — drafts are stored here only. Set{" "}
-          <code>MAIL_MODE=graph</code> with Azure app credentials to create real
-          Outlook Drafts.
+          Mock mode - drafts are stored here only. Set{" "}
+          <code>MAIL_MODE=smtp</code> (Gmail) or <code>MAIL_MODE=graph</code> in{" "}
+          <code>api/.env</code> to send for real.
+        </p>
+      ) : mailMode === "smtp" ? (
+        <p className="notice">
+          SMTP mode - messages were sent with images embedded in the email (not
+          linked from localhost). Check the recipient inbox.
         </p>
       ) : (
         <p className="notice">
-          Graph mode — drafts were created in Outlook (mailbox from the signed-in
+          Graph mode - drafts were created in Outlook (mailbox from the signed-in
           user email, or <code>GRAPH_MAILBOX_UPN</code>).
         </p>
       )}
@@ -115,13 +127,18 @@ export function DraftJobPage() {
                     <strong>Subject:</strong> {d.subject}
                   </p>
                   {d.error ? <p className="error">{d.error}</p> : null}
-                  {d.graphMessageId ? (
-                    <p className="muted small">
-                      Provider id: <code>{d.graphMessageId}</code>
-                    </p>
-                  ) : null}
                   {d.bodyHtml ? (
-                    <OutlookDualPreview html={d.bodyHtml} />
+                    <>
+                      {/\bcid:/i.test(d.bodyHtml) ? (
+                        <p className="notice">
+                          This older send stored embedded <code>cid:</code>{" "}
+                          image links, which browsers can’t display here. Images
+                          may still have arrived in the real inbox. New sends
+                          keep a normal preview.
+                        </p>
+                      ) : null}
+                      <OutlookDualPreview html={d.bodyHtml} />
+                    </>
                   ) : (
                     <p className="muted">No HTML stored for this draft.</p>
                   )}

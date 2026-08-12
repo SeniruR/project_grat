@@ -18,7 +18,7 @@ type AuthState = {
   login: (input: {
     email: string;
     displayName: string;
-    role?: "USER" | "ADMIN";
+    role?: "USER" | "DESIGNER" | "ADMIN";
   }) => Promise<void>;
   logout: () => void;
 };
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (input: {
       email: string;
       displayName: string;
-      role?: "USER" | "ADMIN";
+      role?: "USER" | "DESIGNER" | "ADMIN";
     }) => {
       const { token: nextToken, user: nextUser } = await api.devLogin(input);
       localStorage.setItem(TOKEN_KEY, nextToken);

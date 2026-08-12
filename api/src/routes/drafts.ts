@@ -2,14 +2,20 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
 import { writeAudit } from "../lib/audit.js";
-import { buildOutboundBodyHtml } from "../lib/emailBody.js";
+import { buildOutboundBodyHtml, applyMergeFields, buildMergeFieldMap, parseImageSlotsFromDesignJson, parsePlaceholdersFromDesignJson } from "../lib/emailBody.js";
+import { embedLocalUploadImages, inlineLocalUploadImagesAsDataUrls } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
+import { canComposeTemplate, canUseAdvancedCompose, isAdmin } from "../lib/roles.js";
 
 const recipientBody = z.object({
   aadOid: z.string().min(1).max(200).optional(),
   email: z.string().email().max(320),
   displayName: z.string().min(1).max(200).optional(),
+  /** Per-recipient custom merge values (e.g. personalNote). */
+  fields: z.record(z.string().max(80), z.string().max(2000)).optional(),
+  /** Per-recipient image slot overrides (slotId → absolute image URL). */
+  imageSlots: z.record(z.string().max(80), z.string().url().max(2000)).optional(),
 });
 
 const createJobBody = z.object({
@@ -17,17 +23,44 @@ const createJobBody = z.object({
   templateVersionId: z.string().min(1).optional(),
   subject: z.string().min(1).max(300),
   recipients: z.array(recipientBody).min(1).max(50),
+  /** Optional override for {{senderName}} (defaults to signed-in user). */
+  senderName: z.string().min(1).max(200).optional(),
+  /** Optional override for {{senderEmail}} (defaults to signed-in user). */
+  senderEmail: z.string().email().max(320).optional(),
+  /** Shared merge values for every recipient (eventName, eventDate, …). */
+  sharedFields: z.record(z.string().max(80), z.string().max(2000)).optional(),
+  /** Shared image slot overrides (slotId → absolute image URL). */
+  sharedImageSlots: z
+    .record(z.string().max(80), z.string().url().max(2000))
+    .optional(),
+  /**
+   * Extra placeholder defs for tokens used only in the subject
+   * (not already defined on the template).
+   */
+  extraPlaceholders: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(80),
+        label: z.string().min(1).max(120),
+        source: z.enum([
+          "recipientName",
+          "recipientEmail",
+          "senderName",
+          "senderEmail",
+          "shared",
+          "perRecipient",
+        ]),
+      }),
+    )
+    .max(40)
+    .optional(),
 });
 
-function canView(
-  template: { ownerId: string; visibility: string },
+function canCompose(
+  template: { ownerId: string; visibility: string; status: string },
   user: { id: string; role: string },
 ) {
-  return (
-    template.ownerId === user.id ||
-    template.visibility === "SHARED" ||
-    user.role === "ADMIN"
-  );
+  return canComposeTemplate(template, user);
 }
 
 const draftSelect = {
@@ -52,6 +85,29 @@ const jobInclude = {
   },
 } as const;
 
+function jobTemplateLabel(job: {
+  templateName: string;
+  template: { id: string; name: string } | null;
+  templateVersionNumber: number | null;
+  templateVersion: { id: string; version: number } | null;
+}) {
+  return {
+    id: job.template?.id ?? "deleted",
+    name: job.template?.name ?? job.templateName ?? "Deleted template",
+  };
+}
+
+function jobVersionLabel(job: {
+  templateVersionNumber: number | null;
+  templateVersion: { id: string; version: number } | null;
+}) {
+  return {
+    id: job.templateVersion?.id ?? "deleted",
+    version:
+      job.templateVersion?.version ?? job.templateVersionNumber ?? 0,
+  };
+}
+
 export const draftRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/draft-jobs",
@@ -59,7 +115,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
     async (request) => {
       const user = request.appUser!;
       const jobs = await prisma.draftJob.findMany({
-        where: user.role === "ADMIN" ? {} : { requesterId: user.id },
+        where: isAdmin(user) ? {} : { requesterId: user.id },
         orderBy: { createdAt: "desc" },
         take: 40,
         include: {
@@ -68,7 +124,103 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
           _count: { select: { drafts: true } },
         },
       });
-      return { jobs, mailMode: config.mailMode };
+      return {
+        jobs: jobs.map((job) => ({
+          ...job,
+          template: jobTemplateLabel(job),
+          templateVersion: jobVersionLabel(job),
+        })),
+        mailMode: config.mailMode,
+      };
+    },
+  );
+
+  /** Flat per-recipient send history for the signed-in user (or all for admin). */
+  app.get(
+    "/sent",
+    { preHandler: [app.authenticate] },
+    async (request) => {
+      const user = request.appUser!;
+      const q = (request.query as { q?: string }).q?.trim() ?? "";
+      const drafts = await prisma.outboundDraft.findMany({
+        where: {
+          ...(isAdmin(user) ? {} : { job: { requesterId: user.id } }),
+          ...(q
+            ? {
+                OR: [
+                  { subject: { contains: q, mode: "insensitive" } },
+                  { recipientEmail: { contains: q, mode: "insensitive" } },
+                  { recipientName: { contains: q, mode: "insensitive" } },
+                  {
+                    job: {
+                      categoryName: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    job: {
+                      templateName: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    job: {
+                      template: {
+                        name: { contains: q, mode: "insensitive" },
+                      },
+                    },
+                  },
+                  {
+                    job: {
+                      template: {
+                        category: {
+                          name: { contains: q, mode: "insensitive" },
+                        },
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        select: {
+          ...draftSelect,
+          job: {
+            select: {
+              id: true,
+              status: true,
+              createdAt: true,
+              templateName: true,
+              templateVersionNumber: true,
+              categoryName: true,
+              template: {
+                select: {
+                  id: true,
+                  name: true,
+                  category: { select: { id: true, name: true } },
+                },
+              },
+              templateVersion: { select: { id: true, version: true } },
+              requester: {
+                select: { id: true, displayName: true, email: true },
+              },
+            },
+          },
+        },
+      });
+      return {
+        items: drafts.map((d) => ({
+          ...d,
+          job: {
+            ...d.job,
+            template: jobTemplateLabel(d.job),
+            templateVersion: jobVersionLabel(d.job),
+            categoryName:
+              d.job.categoryName ?? d.job.template?.category?.name ?? null,
+          },
+        })),
+        mailMode: config.mailMode,
+      };
     },
   );
 
@@ -85,10 +237,17 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       if (!job) {
         return reply.code(404).send({ error: "Draft job not found" });
       }
-      if (job.requesterId !== user.id && user.role !== "ADMIN") {
+      if (job.requesterId !== user.id && !isAdmin(user)) {
         return reply.code(403).send({ error: "Not allowed to view this job" });
       }
-      return { job, mailMode: config.mailMode };
+      return {
+        job: {
+          ...job,
+          template: jobTemplateLabel(job),
+          templateVersion: jobVersionLabel(job),
+        },
+        mailMode: config.mailMode,
+      };
     },
   );
 
@@ -102,8 +261,78 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid draft job payload" });
       }
 
-      const { templateId, templateVersionId, subject, recipients } =
-        parsed.data;
+      const {
+        templateId,
+        templateVersionId,
+        subject,
+        recipients,
+        senderName,
+        senderEmail,
+        sharedFields,
+        sharedImageSlots,
+        extraPlaceholders,
+      } = parsed.data;
+
+      const sender = {
+        displayName:
+          senderName?.trim() ||
+          (config.mailMode === "smtp"
+            ? config.smtpFromName?.trim() || user.displayName
+            : user.displayName),
+        email:
+          config.mailMode === "smtp"
+            ? config.smtpFrom?.trim() ||
+              config.smtpUser?.trim() ||
+              senderEmail?.trim() ||
+              user.email
+            : senderEmail?.trim() || user.email,
+      };
+
+      const advancedCompose = canUseAdvancedCompose(user);
+      if (!advancedCompose) {
+        if (sharedFields && Object.keys(sharedFields).length > 0) {
+          return reply.code(403).send({
+            error:
+              "Shared placeholders are only available to designers and admins.",
+          });
+        }
+        if (sharedImageSlots && Object.keys(sharedImageSlots).length > 0) {
+          return reply.code(403).send({
+            error:
+              "Image replacement is only available to designers and admins.",
+          });
+        }
+        if (
+          extraPlaceholders?.some(
+            (p) => p.source === "shared" || p.source === "perRecipient",
+          )
+        ) {
+          return reply.code(403).send({
+            error:
+              "Shared and per-person subject placeholders are only available to designers and admins.",
+          });
+        }
+        for (const recipient of recipients) {
+          if (recipient.fields && Object.keys(recipient.fields).length > 0) {
+            return reply.code(403).send({
+              error:
+                "Per-person placeholders are only available to designers and admins.",
+            });
+          }
+          if (
+            recipient.imageSlots &&
+            Object.keys(recipient.imageSlots).length > 0
+          ) {
+            return reply.code(403).send({
+              error:
+                "Image replacement is only available to designers and admins.",
+            });
+          }
+        }
+      }
+
+      const shared = advancedCompose ? (sharedFields ?? {}) : {};
+      const sharedImages = advancedCompose ? (sharedImageSlots ?? {}) : {};
 
       // Dedupe by email (case-insensitive)
       const seen = new Set<string>();
@@ -117,6 +346,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       const template = await prisma.template.findUnique({
         where: { id: templateId },
         include: {
+          category: { select: { id: true, name: true } },
           assets: {
             where: { kind: "source" },
             select: { fileName: true, storageKey: true },
@@ -124,8 +354,14 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
-      if (!template || !canView(template, user)) {
-        return reply.code(404).send({ error: "Template not found" });
+      if (!template) {
+        return reply.code(404).send({ error: "Card not found" });
+      }
+      if (!canCompose(template, user)) {
+        return reply.code(403).send({
+          error:
+            "You can only send shared cards from Browse cards. Ask a designer to share this card.",
+        });
       }
 
       const version = templateVersionId
@@ -145,16 +381,39 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       if (!compiled) {
         return reply.code(400).send({
           error:
-            "This template has no compiled email HTML yet. Save & compile in Designer (or Recompile preview) first.",
+            "This template has no compiled email HTML yet. Import a Canva ZIP (or HTML) first.",
         });
       }
 
-      const mail = getMailProvider();
+      const templatePlaceholders = parsePlaceholdersFromDesignJson(
+        version.designJson,
+      );
+      const templateKeys = new Set(
+        templatePlaceholders.map((p) => p.key.toLowerCase()),
+      );
+      const placeholders = [
+        ...templatePlaceholders,
+        ...(extraPlaceholders ?? [])
+          .filter(
+            (p) =>
+              advancedCompose ||
+              (p.source !== "shared" && p.source !== "perRecipient"),
+          )
+          .filter(
+            (p) => !templateKeys.has(p.key.trim().toLowerCase()),
+          ),
+      ];
+      const imageSlots = parseImageSlotsFromDesignJson(version.designJson);
+
+      const mail = await getMailProvider();
       const job = await prisma.draftJob.create({
         data: {
           requesterId: user.id,
           templateId: template.id,
           templateVersionId: version.id,
+          templateName: template.name,
+          templateVersionNumber: version.version,
+          categoryName: template.category?.name ?? null,
           status: "running",
           total: uniqueRecipients.length,
           completed: 0,
@@ -169,7 +428,13 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       }> = [];
 
       for (const recipient of uniqueRecipients) {
-        const bodyHtml = buildOutboundBodyHtml({
+        const imageOverrides = advancedCompose
+          ? {
+              ...sharedImages,
+              ...(recipient.imageSlots ?? {}),
+            }
+          : {};
+        let bodyHtml = buildOutboundBodyHtml({
           compiledHtml: compiled,
           headerHtml: template.headerHtml,
           footerHtml: template.footerHtml,
@@ -179,7 +444,45 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             displayName: recipient.displayName,
             email: recipient.email,
           },
+          sender,
+          placeholders,
+          shared,
+          perRecipient: advancedCompose ? (recipient.fields ?? {}) : {},
+          imageOverrides,
+          imageSlots,
         });
+
+        const mergedSubject = applyMergeFields(
+          subject,
+          buildMergeFieldMap({
+            placeholders,
+            recipient: {
+              displayName: recipient.displayName,
+              email: recipient.email,
+            },
+            sender,
+            shared,
+            perRecipient: advancedCompose ? (recipient.fields ?? {}) : {},
+          }),
+        ).trim() || subject;
+
+        // Freeze images into the stored preview so template delete/update
+        // cannot blank or rewrite Sent history. SMTP still uses cid: embeds.
+        const bodyHtmlForPreview =
+          await inlineLocalUploadImagesAsDataUrls(bodyHtml);
+
+        let sendHtml = bodyHtml;
+        let inlineAttachments:
+          | Awaited<ReturnType<typeof embedLocalUploadImages>>["attachments"]
+          | undefined;
+        if (mail.mode === "smtp") {
+          const embedded = await embedLocalUploadImages(
+            bodyHtml,
+            config.publicApiUrl,
+          );
+          sendHtml = embedded.html;
+          inlineAttachments = embedded.attachments;
+        }
 
         try {
           const result = await mail.createDraft({
@@ -188,8 +491,9 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             recipientEmail: recipient.email,
             recipientName: recipient.displayName,
             recipientOid: recipient.aadOid,
-            subject,
-            bodyHtml,
+            subject: mergedSubject,
+            bodyHtml: sendHtml,
+            inlineAttachments,
           });
 
           const draft = await prisma.outboundDraft.create({
@@ -198,10 +502,18 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
               recipientOid: recipient.aadOid ?? null,
               recipientEmail: recipient.email,
               recipientName: recipient.displayName ?? null,
-              subject,
-              bodyHtml,
-              graphMessageId: result.graphMessageId ?? result.draftId,
-              status: result.mode === "mock" ? "mock_created" : "graph_draft",
+              subject: mergedSubject,
+              bodyHtml: bodyHtmlForPreview,
+              graphMessageId:
+                result.graphMessageId ??
+                (result.mode === "smtp" ? result.smtpMessageId : undefined) ??
+                result.draftId,
+              status:
+                result.mode === "mock"
+                  ? "mock_created"
+                  : result.mode === "graph"
+                    ? "graph_draft"
+                    : "smtp_sent",
             },
           });
           draftRows.push({
@@ -223,8 +535,8 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
               recipientOid: recipient.aadOid ?? null,
               recipientEmail: recipient.email,
               recipientName: recipient.displayName ?? null,
-              subject,
-              bodyHtml,
+              subject: mergedSubject,
+              bodyHtml: bodyHtmlForPreview,
               status: "failed",
               error: message,
             },

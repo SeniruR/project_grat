@@ -47,10 +47,20 @@ export { Prisma }
  */
 export type User = Prisma.UserModel
 /**
+ * Model TemplateCategory
+ * 
+ */
+export type TemplateCategory = Prisma.TemplateCategoryModel
+/**
  * Model Template
  * 
  */
 export type Template = Prisma.TemplateModel
+/**
+ * Model TemplateFavorite
+ * Per-user favorites for marketplace / quick access
+ */
+export type TemplateFavorite = Prisma.TemplateFavoriteModel
 /**
  * Model TemplateVersion
  * 
@@ -76,3 +86,8 @@ export type OutboundDraft = Prisma.OutboundDraftModel
  * 
  */
 export type AuditEvent = Prisma.AuditEventModel
+/**
+ * Model AppSetting
+ * Key/value app settings (e.g. Compose name prefixes).
+ */
+export type AppSetting = Prisma.AppSettingModel
