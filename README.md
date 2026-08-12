@@ -95,6 +95,15 @@ npm run dev
 - Web: http://localhost:5173  
 - API: http://localhost:3001/health  
 
+## CI (GitHub Actions)
+
+On every pull request and push to `main` or `staging`, GitHub runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+
+- API: `prisma generate`, `prisma migrate deploy` (Postgres service), TypeScript check
+- Web: oxlint, TypeScript check, production build
+
+After pushing this repo to GitHub, enable **branch protection** on `main` / `staging` and require the **CI** check to pass before merge.
+
 ## What to try
 
 1. Open the site → **Enter intranet** (dev login).
