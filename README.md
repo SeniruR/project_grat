@@ -97,7 +97,7 @@ npm run dev
 
 ## CI (GitHub Actions)
 
-On every pull request and push to `main` or `staging`, GitHub runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+On every pull request and every push, GitHub runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 
 - API: `prisma generate`, `prisma migrate deploy` (Postgres service), TypeScript check
 - Web: oxlint, TypeScript check, production build
