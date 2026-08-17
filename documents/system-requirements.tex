@@ -1,0 +1,333 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.4cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+\setlength{\headheight}{14pt}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  citecolor=black
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Gratitude}
+\rhead{System Requirements}
+\cfoot{\thepage}
+
+\title{\textbf{Gratitude}\\[0.4em]
+\large System Requirements Specification}
+\author{Project Grat - Intranet thank-you cards}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Purpose}
+This document states the hardware, software, network, and configuration requirements needed to run, develop, test, and deploy \textbf{Gratitude} (repository \texttt{project\_grat}): an intranet application for designing, browsing, and sending thank-you cards by email.
+
+It describes the system as implemented today (development login, mock directory, mock or SMTP/Graph mail) and notes planned production substitutions (Azure AD, Microsoft Graph).
+
+\section{System overview}
+Gratitude is a two-process web application:
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Web} - React 19 + Vite 8 single-page application (default development URL \url{http://localhost:5173}).
+  \item \textbf{API} - Fastify 5 + Prisma 7 + PostgreSQL (default \url{http://localhost:3001}; health check \texttt{/health}).
+\end{itemize}
+
+Card images and compiled HTML assets are stored on the API host under \texttt{api/uploads/} and served at \texttt{/uploads/}. Mail delivery is pluggable: mock (no real send), SMTP (e.g.\ Gmail), or Microsoft Graph (Outlook drafts).
+
+\subsection{Repository layout}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Path} & \textbf{Role} \\
+  \midrule
+  \texttt{api/} & HTTP API, Prisma schema, migrations, mail/auth providers \\
+  \texttt{web/} & Browser UI (compose, marketplace, designer studio, admin) \\
+  \texttt{.github/workflows/} & Continuous integration (GitHub Actions) \\
+  \texttt{documents/} & Project documentation (this specification) \\
+  \bottomrule
+\end{tabularx}
+
+\section{Hardware requirements}
+
+\subsection{Developer workstation}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Item} & \textbf{Minimum} \\
+  \midrule
+  CPU & 2 cores \\
+  RAM & 8\,GB (16\,GB recommended when running Postgres, Node API, and Vite together) \\
+  Disk & 2\,GB free for Node modules, Postgres data, and uploaded card assets \\
+  Display & 1280$\times$720 or larger for the designer and compose layouts \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{PostgreSQL database server}
+Run PostgreSQL on its own host. The application server connects with \texttt{DATABASE\_URL}; card image files are \emph{not} stored in the database.
+
+Sizing assumes an intranet of roughly 50 to 500 operators and thousands of sent records, not a public internet load.
+
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Item} & \textbf{Requirement} \\
+  \midrule
+  OS & Linux (Ubuntu 22.04/24.04 LTS or RHEL-compatible) \\
+  PostgreSQL & 14 or newer (16 recommended, same as CI) \\
+  CPU & 2 vCPU minimum; 4 vCPU if many concurrent compose/admin queries \\
+  RAM & 4\,GB minimum; 8\,GB recommended (Postgres cache + connections) \\
+  Disk & 40\,GB SSD minimum; 80\,GB+ recommended. Use a dedicated volume for \texttt{PGDATA}. Database rows are small; growth is mainly audit events and sent-mail metadata. \\
+  IOPS & SSD required. Avoid spinning disks. \\
+  Network & Private LAN or VPC only. Listen on TCP 5432. Allow inbound 5432 \emph{only} from the application server (and admin jump host). No public internet. TLS recommended for the connection. \\
+  Backup & Nightly logical dump or WAL archiving to separate storage. Retain at least 7 days. \\
+  HA (optional) & Primary + replica if the organisation requires failover; not required for a small intranet. \\
+  \bottomrule
+\end{tabularx}
+
+Create an empty database named \texttt{project\_grat} (or equivalent) and a dedicated role with rights only on that database. Point the API at it:
+
+\begin{verbatim}
+DATABASE_URL="postgresql://grat_user:PASSWORD@db.internal:5432/project_grat?schema=public"
+\end{verbatim}
+
+\subsection{Application server}
+This host runs the Node API, serves the built web UI (or sits behind nginx), and stores uploaded card assets under \texttt{api/uploads/}.
+
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Item} & \textbf{Requirement} \\
+  \midrule
+  OS & Linux (Ubuntu 22.04/24.04 LTS or RHEL-compatible) \\
+  Runtime & Node.js 20 or newer; nginx (or equivalent) for HTTPS reverse proxy and static files \\
+  CPU & 2 vCPU minimum; 4 vCPU recommended when designers import Canva ZIPs and rasterize PNG snapshots \\
+  RAM & 4\,GB minimum; 8\,GB recommended (Node process, nginx, ZIP/PDF import, html-to-image) \\
+  Disk & 40\,GB SSD minimum for OS + Node modules. \textbf{Separate persistent volume} of 50\,GB+ for \texttt{uploads/} (Canva images, compiled HTML, PNG snapshots). Plan about 2 to 10\,MB per imported card; 50\,GB covers hundreds of cards with versions. \\
+  Network inbound & TCP 443 (HTTPS) from the intranet. Optional 80 redirect to 443. Do not expose 3001 publicly; proxy it. \\
+  Network outbound & TCP 5432 to the database host; HTTPS to SMTP (587/465) or Microsoft Graph if those mail modes are used. \\
+  Process & systemd or equivalent: \texttt{npx tsx src/index.ts} (or a built start command), restart on failure. Health check: \texttt{/health}. \\
+  TLS & Certificate on nginx. Set \texttt{PUBLIC\_API\_URL} and \texttt{VITE\_API\_URL} to the public HTTPS API origin. \\
+  \bottomrule
+\end{tabularx}
+
+\noindent\textit{Note.} If \texttt{uploads/} is not on persistent disk, card images disappear on rebuild or disk replacement. Keep Postgres and uploads on different machines so a web-tier rebuild does not wipe the database.
+
+\subsection{Two-host layout}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Host} & \textbf{Runs} \\
+  \midrule
+  DB server & PostgreSQL only. No Node, no nginx, no uploads. \\
+  App server & nginx, Node API, static \texttt{web/dist}, \texttt{uploads/} volume. \\
+  Operator PCs & Browser only. \\
+  \bottomrule
+\end{tabularx}
+
+\section{Software requirements}
+
+\subsection{Runtime}
+\begin{tabularx}{\textwidth}{llX}
+  \toprule
+  \textbf{Component} & \textbf{Version} & \textbf{Notes} \\
+  \midrule
+  Node.js & 20 or newer & Required for API (\texttt{tsx}) and web (Vite) \\
+  npm & 10+ (bundled with Node 20) & Install from lockfiles with \texttt{npm ci} in CI \\
+  PostgreSQL & 14 or newer (16 used in CI) & Empty database named \texttt{project\_grat} for local development \\
+  Git & 2.x & Source control and GitHub Actions checkout \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Local development tools}
+\begin{itemize}[leftmargin=1.4em]
+  \item A PostgreSQL client (pgAdmin 4, \texttt{psql}, or equivalent) to create the database.
+  \item A modern browser (see Section~\ref{sec:browsers}).
+  \item Optional: Canva (web) to export \textbf{Email} designs as HTML + images ZIP.
+\end{itemize}
+
+\subsection{Compile this document}
+A \LaTeX{} distribution with \texttt{pdflatex} (TeX Live or MiKTeX) is required only to build this PDF:
+\begin{verbatim}
+cd documents
+pdflatex system-requirements.tex
+pdflatex system-requirements.tex
+\end{verbatim}
+The second pass refreshes the table of contents.
+
+\subsection{Application stack (locked by package files)}
+\begin{tabularx}{\textwidth}{llX}
+  \toprule
+  \textbf{Layer} & \textbf{Libraries} & \textbf{Purpose} \\
+  \midrule
+  API & Fastify, Prisma, pg, Zod, Nodemailer, JWT & HTTP, ORM, validation, mail, sessions \\
+  Web & React, React Router, Vite, JSZip, pdf.js, html-to-image & UI, Canva ZIP import, PDF page-1 fallback, PNG snapshots \\
+  Root & concurrently & Run API and web together via \texttt{npm run dev} \\
+  \bottomrule
+\end{tabularx}
+
+\section{Network and ports}
+\label{sec:network}
+\begin{tabularx}{\textwidth}{llX}
+  \toprule
+  \textbf{Service} & \textbf{Default} & \textbf{Purpose} \\
+  \midrule
+  Web (Vite) & TCP 5173 & Developer UI; proxies \texttt{/api} to the API \\
+  API & TCP 3001 & REST API, static \texttt{/uploads}, \texttt{/health} \\
+  PostgreSQL & TCP 5432 & Database \\
+  SMTP & TCP 587 (STARTTLS) or 465 & Optional real send when \texttt{MAIL\_MODE=smtp} \\
+  \bottomrule
+\end{tabularx}
+
+The web app calls the API using \texttt{VITE\_API\_URL} (default \texttt{http://localhost:3001}). The API must list the web origin in \texttt{CORS\_ORIGIN}. Card images in outbound HTML must be reachable at \texttt{PUBLIC\_API\_URL}.
+
+\section{Functional requirements}
+
+\subsection{Roles}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Role} & \textbf{Capabilities} \\
+  \midrule
+  User & Browse shared cards, send (compose), view Sent history. Cards tab opens Browse directly. \\
+  Designer & All User capabilities plus My cards: import Canva ZIP or image, categories, visibility (private/shared), advanced compose placeholders. \\
+  Admin & All Designer capabilities plus people/roles, send summary, send settings (name titles), audit log. \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Core capabilities}
+The system shall:
+\begin{enumerate}[leftmargin=1.6em]
+  \item Authenticate operators (development login today; Azure AD planned).
+  \item Let designers import Canva \textbf{HTML and images} ZIP files or upload PNG/JPEG/PDF.
+  \item Detect merge tokens such as \texttt{\{\{recipientName\}\}} and fill them at send time.
+  \item Let users pick recipients from the directory (mock list today; Graph planned).
+  \item Create mock drafts, SMTP messages, or Outlook drafts according to \texttt{MAIL\_MODE}.
+  \item Record sent items for the operator (admins may see organisation-wide history).
+\end{enumerate}
+
+\subsection{Out of scope (current release)}
+\begin{itemize}[leftmargin=1.4em]
+  \item Physical gifts (Gifts nav is disabled).
+  \item Azure AD interactive login (\texttt{AUTH\_MODE=azure} is reserved).
+  \item Durable object storage (S3/Blob); uploads are local disk.
+\end{itemize}
+
+\section{Non-functional requirements}
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Availability.} Split the database and application onto two hosts. Keep the app process under a supervisor and back up PostgreSQL nightly.
+  \item \textbf{Security.} JWT sessions; change \texttt{JWT\_SECRET} outside local mock use. Do not commit \texttt{api/.env}. SMTP must use an app password, not a Google account password.
+  \item \textbf{Compatibility.} HTML cards should be designed as Canva \emph{Email} layouts (tables). Overlay text on photos may flatten to PNG on export and can break in Outlook Desktop.
+  \item \textbf{Quality gate.} GitHub Actions CI must typecheck the API, lint/typecheck/build the web app, and apply Prisma migrations against PostgreSQL~16.
+\end{itemize}
+
+\section{Configuration requirements}
+Copy \texttt{api/.env.example} to \texttt{api/.env}. Required and optional variables:
+
+\subsection{Always required}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Variable} & \textbf{Meaning} \\
+  \midrule
+  \texttt{DATABASE\_URL} & PostgreSQL connection string (database \texttt{project\_grat} locally) \\
+  \texttt{JWT\_SECRET} & Signing key for session tokens \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Typical local defaults}
+\begin{tabularx}{\textwidth}{llX}
+  \toprule
+  \textbf{Variable} & \textbf{Default} & \textbf{Meaning} \\
+  \midrule
+  \texttt{PORT} / \texttt{HOST} & 3001 / 0.0.0.0 & API bind address \\
+  \texttt{CORS\_ORIGIN} & \texttt{http://localhost:5173} & Allowed browser origins (comma-separated) \\
+  \texttt{PUBLIC\_API\_URL} & \texttt{http://localhost:3001} & Absolute base for image URLs in mail \\
+  \texttt{AUTH\_MODE} & \texttt{dev} & Development login form \\
+  \texttt{DIRECTORY\_MODE} & \texttt{mock} & In-app recipient directory \\
+  \texttt{MAIL\_MODE} & \texttt{mock} & No real mailbox send \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Web build-time variables}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Variable} & \textbf{Meaning} \\
+  \midrule
+  \texttt{VITE\_API\_URL} & API origin baked into the frontend at build time \\
+  \texttt{VITE\_COMPOSE\_ENABLED} & \texttt{true} to show send/compose in production builds; in Vite \texttt{dev} compose is on unless set to \texttt{false} \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{SMTP (\texttt{MAIL\_MODE=smtp})}
+Requires \texttt{SMTP\_USER}, \texttt{SMTP\_PASS} (Gmail App Password), and usually \texttt{SMTP\_HOST=smtp.gmail.com}, \texttt{SMTP\_PORT=587}, \texttt{SMTP\_FROM}, \texttt{SMTP\_FROM\_NAME}.
+
+\subsection{Microsoft Graph (\texttt{MAIL\_MODE=graph})}
+Requires \texttt{AZURE\_TENANT\_ID}, \texttt{AZURE\_CLIENT\_ID}, \texttt{AZURE\_CLIENT\_SECRET}, application permission \texttt{Mail.ReadWrite} with admin consent. Optional \texttt{GRAPH\_MAILBOX\_UPN} pins drafts to one mailbox.
+
+\section{Browser requirements}
+\label{sec:browsers}
+The UI targets current evergreen browsers:
+
+\begin{itemize}[leftmargin=1.4em]
+  \item Google Chrome, Microsoft Edge, or Firefox (latest two major versions)
+  \item JavaScript enabled
+  \item Desktop viewport recommended for designer and compose
+\end{itemize}
+
+Recipients of sent mail may use Outlook Desktop, Outlook on the web, or Gmail. Outlook Desktop (Word rendering) may ignore absolute positioning and some CSS used in Canva overlays.
+
+\section{Deployment environments}
+
+\subsection{Local}
+\begin{verbatim}
+npm install
+cd api && npm install && npx prisma generate
+npx prisma migrate dev && npm run db:seed
+cd ../web && npm install && cd ..
+npm run dev
+\end{verbatim}
+Web: \url{http://localhost:5173}. API health: \url{http://localhost:3001/health}.
+
+\subsection{Continuous integration}
+GitHub Actions workflow \texttt{.github/workflows/ci.yml} runs on every push and pull request: PostgreSQL~16 service, \texttt{prisma migrate deploy}, API typecheck, web lint, typecheck, and production build.
+
+\subsection{Production (two hosts)}
+Use a dedicated PostgreSQL server and a separate application server (see hardware section). Secrets stay on the hosts - not in Git.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{DB server:} install PostgreSQL, create database and role, restrict 5432 to the app server, enable backups.
+  \item \textbf{App server:} nginx on 443; Node API proxied from \texttt{/api} or a dedicated API hostname; static files from \texttt{web/dist}; persistent \texttt{uploads/} volume.
+  \item On deploy: \texttt{npx prisma generate} and \texttt{prisma migrate deploy} from the app server against \texttt{DATABASE\_URL}; start \texttt{npx tsx src/index.ts}; health check \texttt{/health}.
+  \item Build the web app with \texttt{VITE\_API\_URL} set to the public HTTPS API origin. Set \texttt{CORS\_ORIGIN} and \texttt{PUBLIC\_API\_URL} on the API to match.
+\end{itemize}
+
+\section{Assumptions and constraints}
+\begin{enumerate}[leftmargin=1.6em]
+  \item Operators have intranet or VPN access in production; the product is not a public marketing site.
+  \item Designers export Canva \textbf{Email} HTML ZIP (not a single flattened poster) when merge fields must remain editable text.
+  \item Development authentication does not prove identity; it is for local and staging UX only.
+  \item Seed data is for empty databases; do not re-seed production casually.
+\end{enumerate}
+
+\section{Document control}
+\begin{tabularx}{\textwidth}{lX}
+  \toprule
+  \textbf{Item} & \textbf{Value} \\
+  \midrule
+  System name & Gratitude (\texttt{project\_grat}) \\
+  Version described & 0.1.0 (application package version) \\
+  Source of truth & Repository README, \texttt{api/.env.example}, \texttt{package.json} files \\
+  \bottomrule
+\end{tabularx}
+
+\end{document}

@@ -373,6 +373,17 @@ button.ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--brand-sky) 18%, #fff);
 }
 
+.topnav-link-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.topnav-sent-icon {
+  display: block;
+  flex: 0 0 auto;
+}
+
 .nav-dropdown {
   position: relative;
 }

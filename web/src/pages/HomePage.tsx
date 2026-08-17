@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { roleLabel } from "../lib/roles";
+import { canManageDesigns, roleLabel } from "../lib/roles";
 
 /** App home - brand-forward entry into Cards. */
 export function HomePage() {
   const { user } = useAuth();
+  const cardsTo = canManageDesigns(user) ? "/emails" : "/marketplace";
 
   return (
     <div className="page home-page">
@@ -18,13 +19,17 @@ export function HomePage() {
 
       <div className="home-paths">
         <Link
-          to="/emails"
+          to={cardsTo}
           className="home-path home-path--primary"
           data-tour="home-cards"
         >
           <span className="home-path-label">Start here</span>
           <h2>Cards</h2>
-          <p>Browse, create, and send thank-you cards.</p>
+          <p>
+            {canManageDesigns(user)
+              ? "Browse, create, and send thank-you cards."
+              : "Browse shared cards and send them to colleagues."}
+          </p>
         </Link>
         <div className="home-path home-path--muted" aria-disabled="true">
           <span className="home-path-label">Coming soon</span>

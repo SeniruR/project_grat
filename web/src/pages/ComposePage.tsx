@@ -866,6 +866,20 @@ export function ComposePage() {
   const parentDetailTo = fromDesigns
     ? `/cards/${template.id}`
     : `/marketplace/${template.id}`;
+  const cancelTo = fromDesigns ? `/cards/${template.id}` : "/marketplace";
+  const composeCrumbs = fromDesigns
+    ? [
+        { label: "Home", to: "/" },
+        emailsCrumb,
+        parentCrumb,
+        { label: template.name, to: parentDetailTo },
+        { label: "Send" },
+      ]
+    : [
+        { label: "Home", to: "/" },
+        parentCrumb,
+        { label: "Send" },
+      ];
 
   return (
     <div className="page">
@@ -874,15 +888,7 @@ export function ComposePage() {
         message={error}
         onClose={dismissError}
       />
-      <Breadcrumbs
-        items={[
-          { label: "Home", to: "/" },
-          emailsCrumb,
-          parentCrumb,
-          { label: template.name, to: parentDetailTo },
-          { label: "Send" },
-        ]}
-      />
+      <Breadcrumbs items={composeCrumbs} />
       <header className="page-header">
         <div>
           <p className="eyebrow">Cards</p>
@@ -1477,7 +1483,7 @@ export function ComposePage() {
                   ? `Send to ${selected.length} recipient${selected.length === 1 ? "" : "s"}`
                   : `Create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}`}
             </button>
-            <Link className="ghost btn-link-ghost" to={`/cards/${template.id}`}>
+            <Link className="ghost btn-link-ghost" to={cancelTo}>
               Cancel
             </Link>
           </div>

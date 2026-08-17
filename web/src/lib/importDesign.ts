@@ -74,7 +74,7 @@ export async function scanCanvaZipPlaceholders(zipFile: File): Promise<{
  * detect {{placeholders}}, and rasterize a PNG snapshot for Outlook paste.
  *
  * Snapshot is built from local ZIP blob: URLs first (no cross-origin fetch),
- * so Render / CORS cannot block the PNG thumbnail.
+ * so CORS cannot block the PNG thumbnail.
  */
 export async function importCanvaZipToTemplate(
   token: string,
