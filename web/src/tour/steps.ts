@@ -30,27 +30,11 @@ const USER_STEPS: TourStep[] = [
     path: () => "/",
   },
   {
-    id: "hub-browse",
-    target: "hub-browse",
-    title: "Browse cards",
-    body: "Start here to find shared thank-you cards ready to send.",
-    path: () => "/emails",
-  },
-  {
     id: "marketplace",
     target: "marketplace-browse",
     title: "Choose a design",
-    body: "Search or filter cards, then open one to preview it before sending.",
+    body: "Search or filter cards, then click one to send it.",
     path: () => "/marketplace",
-  },
-  {
-    id: "card-detail",
-    target: "send-card",
-    title: "Send this card",
-    body: "Press Send this card to open compose and prepare the email.",
-    path: (ctx) =>
-      ctx.templateId ? `/marketplace/${ctx.templateId}` : "/marketplace",
-    needsTemplate: true,
   },
   {
     id: "compose-recipients",
@@ -96,7 +80,7 @@ const USER_STEPS: TourStep[] = [
     id: "sent",
     target: "sent-list",
     title: "Check what you sent",
-    body: "Your sent emails appear here — subject, recipient, and when.",
+    body: "Open Sent in the top bar next to your profile to review subject, recipient, and when.",
     path: () => "/sent",
     needsCompose: true,
   },

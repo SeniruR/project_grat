@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, type MarketplaceCard } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { CanvasPreview } from "../components/CanvasPreview";
@@ -9,10 +9,11 @@ import {
   resolveMediaUrl,
   rewriteMediaUrlsInHtml,
 } from "../lib/mediaUrl";
+import { canManageDesigns } from "../lib/roles";
 
 export function MarketplaceDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const [card, setCard] = useState<MarketplaceCard | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -45,6 +46,10 @@ export function MarketplaceDetailPage() {
     const h = card?.versions[0]?.designJson?.height;
     return typeof h === "number" && h >= 200 ? h : 800;
   }, [card]);
+
+  if (id && !canManageDesigns(user) && COMPOSE_ENABLED) {
+    return <Navigate to={`/cards/${id}/compose`} replace />;
+  }
 
   async function toggleFavorite() {
     if (!token || !card) return;

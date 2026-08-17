@@ -8,8 +8,8 @@ export function apiBaseUrl() {
 
 /**
  * Point any upload URL at the live API host.
- * Fixes Render (and local) when the API stored PUBLIC_API_URL as localhost
- * or a bare /uploads/... path while the UI is on another origin.
+ * Rewrites localhost PUBLIC_API_URL or a bare /uploads/... path when the UI
+ * is served from another origin.
  */
 export function resolveMediaUrl(url: string | null | undefined): string | null {
   const raw = (url ?? "").trim();

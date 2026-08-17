@@ -5,14 +5,17 @@ import { useAuth } from "../auth/AuthContext";
 import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import { resolveMediaUrl } from "../lib/mediaUrl";
+import { canManageDesigns } from "../lib/roles";
+import { COMPOSE_ENABLED } from "../features";
 
 function previewSrc(card: MarketplaceCard) {
   return resolveMediaUrl(card.versions[0]?.previewUrl);
 }
 
 export function MarketplacePage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
+  const skipPreview = !canManageDesigns(user) && COMPOSE_ENABLED;
   const [cards, setCards] = useState<MarketplaceCard[]>([]);
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -48,6 +51,14 @@ export function MarketplacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  function openCard(card: MarketplaceCard) {
+    if (skipPreview) {
+      navigate(`/cards/${card.id}/compose`);
+      return;
+    }
+    navigate(`/marketplace/${card.id}`);
+  }
+
   async function toggleFavorite(card: MarketplaceCard) {
     if (!token) return;
     setBusyId(card.id);
@@ -69,19 +80,24 @@ export function MarketplacePage() {
   return (
     <div className="page">
       <Breadcrumbs
-        items={[
-          { label: "Home", to: "/" },
-          emailsCrumb,
-          { label: "Browse cards" },
-        ]}
+        items={
+          skipPreview
+            ? [{ label: "Home", to: "/" }, { label: "Browse cards" }]
+            : [
+                { label: "Home", to: "/" },
+                emailsCrumb,
+                { label: "Browse cards" },
+              ]
+        }
       />
       <header className="page-header">
         <div>
           <p className="eyebrow">Cards</p>
           <h1>Browse cards</h1>
           <p className="lede">
-            Pick a card to preview, save as a favorite, then personalize and
-            send.
+            {skipPreview
+              ? "Pick a card to send. Save favorites with the star."
+              : "Pick a card to preview, save as a favorite, then personalize and send."}
           </p>
         </div>
       </header>
@@ -159,7 +175,7 @@ export function MarketplacePage() {
                   <button
                     type="button"
                     className="marketplace-card-preview"
-                    onClick={() => navigate(`/marketplace/${card.id}`)}
+                    onClick={() => openCard(card)}
                   >
                     {thumb ? (
                       <img src={thumb} alt="" />
@@ -191,7 +207,11 @@ export function MarketplacePage() {
                     by {card.owner.displayName}
                   </p>
                   <div className="marketplace-card-actions">
-                    <Link to={`/marketplace/${card.id}`}>Preview</Link>
+                    {skipPreview ? (
+                      <Link to={`/cards/${card.id}/compose`}>Send</Link>
+                    ) : (
+                      <Link to={`/marketplace/${card.id}`}>Preview</Link>
+                    )}
                   </div>
                 </div>
               </article>

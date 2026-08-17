@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type SentItem } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { isAdmin } from "../lib/roles";
+import { canManageDesigns, isAdmin } from "../lib/roles";
 import { SentPreviewModal } from "../components/SentPreviewModal";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
@@ -36,11 +36,15 @@ export function SentPage() {
   return (
     <div className="page">
       <Breadcrumbs
-        items={[
-          { label: "Home", to: "/" },
-          emailsCrumb,
-          { label: "Sent" },
-        ]}
+        items={
+          canManageDesigns(user)
+            ? [
+                { label: "Home", to: "/" },
+                emailsCrumb,
+                { label: "Sent" },
+              ]
+            : [{ label: "Home", to: "/" }, { label: "Sent" }]
+        }
       />
       <header className="page-header">
         <div>

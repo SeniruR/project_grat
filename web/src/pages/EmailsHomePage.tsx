@@ -1,12 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canManageDesigns, isAdmin, roleLabel } from "../lib/roles";
-import { COMPOSE_ENABLED } from "../features";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 
 /** Cards hub - tools filtered by role. */
 export function EmailsHomePage() {
   const { user } = useAuth();
+
+  if (!canManageDesigns(user)) {
+    return <Navigate to="/marketplace" replace />;
+  }
 
   return (
     <div className="page">
@@ -39,16 +42,6 @@ export function EmailsHomePage() {
             </span>
             <h2>My cards</h2>
             <p>Create and share cards for others to send.</p>
-          </Link>
-        ) : null}
-
-        {COMPOSE_ENABLED ? (
-          <Link to="/sent" className="action-tile">
-            <span className="action-tile-icon" aria-hidden>
-              ↗
-            </span>
-            <h2>Sent</h2>
-            <p>Review what you have already sent.</p>
           </Link>
         ) : null}
 
