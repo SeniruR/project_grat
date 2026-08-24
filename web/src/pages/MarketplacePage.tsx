@@ -4,13 +4,9 @@ import { api, type MarketplaceCard } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
-import { resolveMediaUrl } from "../lib/mediaUrl";
+import { EmailCardThumb } from "../components/EmailCardThumb";
 import { canManageDesigns } from "../lib/roles";
 import { COMPOSE_ENABLED } from "../features";
-
-function previewSrc(card: MarketplaceCard) {
-  return resolveMediaUrl(card.versions[0]?.previewUrl);
-}
 
 export function MarketplacePage() {
   const { token, user } = useAuth();
@@ -167,7 +163,7 @@ export function MarketplacePage() {
       ) : (
         <div className="marketplace-grid">
           {cards.map((card) => {
-            const thumb = previewSrc(card);
+            const latest = card.versions[0];
             const favorited = Boolean(card.isFavorite);
             return (
               <article key={card.id} className="marketplace-card">
@@ -177,13 +173,10 @@ export function MarketplacePage() {
                     className="marketplace-card-preview"
                     onClick={() => openCard(card)}
                   >
-                    {thumb ? (
-                      <img src={thumb} alt="" />
-                    ) : (
-                      <span className="marketplace-card-fallback">
-                        {card.name.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
+                    <EmailCardThumb
+                      previewUrl={latest?.previewUrl}
+                      fallbackLabel={card.name}
+                    />
                   </button>
                   <button
                     type="button"

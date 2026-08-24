@@ -91,7 +91,16 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         include: {
           owner: { select: { id: true, displayName: true, email: true } },
           category: { select: { id: true, name: true } },
-          versions: { orderBy: { version: "desc" }, take: 1 },
+          versions: {
+            orderBy: { version: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              version: true,
+              previewUrl: true,
+              createdAt: true,
+            },
+          },
           _count: { select: { assets: true } },
         },
       });
@@ -549,7 +558,8 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ error: "Template not found" });
       }
 
-      const maxBytes = 5 * 1024 * 1024;
+      const maxBytes =
+        kind === "compiled" ? 12 * 1024 * 1024 : 5 * 1024 * 1024;
       const fileStat = await stat(saved.absPath);
       if (fileStat.size > maxBytes) {
         await unlink(saved.absPath);

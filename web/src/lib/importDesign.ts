@@ -308,6 +308,7 @@ export async function regenerateCanvaSnapshot(
       mode: "canva_html",
       width: emailWidth,
       height,
+      snapshotError: null,
     },
     compiledHtml: htmlForRaster,
     previewUrl,
