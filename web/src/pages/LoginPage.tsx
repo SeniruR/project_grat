@@ -2,8 +2,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import type { AppRole } from "../lib/roles";
+import { homePath, type AppRole } from "../lib/roles";
 import { setTourPending } from "../tour/storage";
+import { SiteFooter } from "../components/SiteFooter";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
@@ -26,7 +27,11 @@ export function LoginPage() {
       .catch(() => setModes("API offline"));
   }, []);
 
-  if (!loading && user) return <Navigate to="/" replace />;
+  if (!loading && user) {
+    return (
+      <Navigate to={homePath(user)} replace />
+    );
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,18 +56,17 @@ export function LoginPage() {
     <div className="login-shell">
       <div className="login-stage">
         <section className="login-hero" aria-label="Gratitude">
-          <p className="login-kicker">Internal recognition</p>
+          <p className="login-kicker">A small gesture, done well</p>
           <h1 className="login-brand">Gratitude</h1>
           <p className="login-tagline">
-            Send thank-you cards to colleagues across the organization.
+            When someone made your day, send it back.
           </p>
         </section>
 
         <section className="login-panel">
           <h2>Sign in</h2>
           <p className="lede">
-            Use your work details. Pick a role to preview how each experience
-            looks.
+            Use your work details. Choose a role to see how it looks for you.
           </p>
 
           <form className="login-form" onSubmit={onSubmit}>
@@ -136,6 +140,7 @@ export function LoginPage() {
           <p className="mode-line">{modes}</p>
         </section>
       </div>
+      <SiteFooter />
     </div>
   );
 }

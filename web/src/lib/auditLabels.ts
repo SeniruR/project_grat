@@ -39,6 +39,10 @@ const ACTION_META: Record<string, ActionMeta> = {
     label: "Purged compiled preview",
     category: "templates",
   },
+  "template.preview_refreshed": {
+    label: "Refreshed card preview",
+    category: "templates",
+  },
   "template.deleted": { label: "Deleted template", category: "templates" },
   "category.created": { label: "Created category", category: "categories" },
   "category.renamed": { label: "Renamed category", category: "categories" },
@@ -138,6 +142,8 @@ export function auditSummary(event: AdminAuditEvent): string {
         ? `${who} purged ${removed} compiled file(s)`
         : `${who} purged compiled preview files`;
     }
+    case "template.preview_refreshed":
+      return `${who} refreshed the card preview PNG`;
     case "template.deleted": {
       const name = str(p.name);
       return name ? `${who} deleted template “${name}”` : `${who} deleted a template`;
@@ -167,43 +173,111 @@ export function auditSummary(event: AdminAuditEvent): string {
   }
 }
 
+const DETAIL_SKIP = new Set([
+  "templateId",
+  "assetId",
+  "categoryId",
+  "id",
+  "entityId",
+  "compiledHtml",
+  "headerHtml",
+  "footerHtml",
+  "designJson",
+  "html",
+  "sourceHtml",
+  "invalidateCompiled",
+]);
+
 const DETAIL_LABELS: Record<string, string> = {
-  mode: "Mode",
+  mode: "Design type",
   email: "Email",
   from: "From",
   to: "To",
   name: "Name",
-  displayName: "Display name",
+  displayName: "Name",
   role: "Role",
   visibility: "Visibility",
   status: "Status",
-  categoryId: "Category id",
-  version: "Version",
-  assetId: "Asset id",
-  byteSize: "Size (bytes)",
-  mimeType: "MIME type",
-  fileName: "File name",
-  invalidateCompiled: "Invalidate compiled",
+  version: "Card version",
+  fileName: "File",
   removed: "Files removed",
-  templateId: "Template id",
   total: "Recipients",
+  failed: "Failed",
+  mailMode: "Sent with",
+  kind: "File kind",
+  mimeType: "File type",
+  byteSize: "File size",
 };
 
-/** Friendly key/value rows for the expand panel. */
+function looksLikeId(value: string): boolean {
+  if (/^c[a-z0-9]{20,}$/i.test(value)) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+    return true;
+  }
+  return false;
+}
+
+function friendlyValue(key: string, raw: unknown): string | null {
+  if (typeof raw === "boolean") return raw ? "Yes" : "No";
+  if (typeof raw === "number") {
+    if (key === "byteSize") {
+      if (raw < 1024) return `${raw} bytes`;
+      if (raw < 1024 * 1024) return `${Math.round(raw / 1024)} KB`;
+      return `${(raw / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return String(raw);
+  }
+  if (typeof raw !== "string") return null;
+  const v = raw.trim();
+  if (!v || looksLikeId(v)) return null;
+
+  if (key === "visibility") {
+    if (v === "PRIVATE") return "Only me";
+    if (v === "SHARED") return "Shared";
+  }
+  if (key === "mode") {
+    const modes: Record<string, string> = {
+      canva_html: "Canva",
+      html_import: "HTML",
+      image_import: "Image",
+      blank: "Blank",
+    };
+    return modes[v] ?? humanizeActionCode(v);
+  }
+  if (key === "mailMode") {
+    const modes: Record<string, string> = {
+      smtp: "Company email",
+      graph: "Microsoft 365",
+      console: "Test mode",
+      dev: "Test mode",
+    };
+    return modes[v] ?? humanizeActionCode(v);
+  }
+  if (key === "mimeType") {
+    if (v.includes("png")) return "PNG image";
+    if (v.includes("jpeg") || v.includes("jpg")) return "JPEG image";
+    if (v.includes("pdf")) return "PDF";
+    if (v.includes("html")) return "HTML";
+    return v;
+  }
+  if (key === "kind") {
+    if (v === "compiled") return "Preview image";
+    if (v === "source") return "Source file";
+    if (v === "override") return "Replacement image";
+  }
+  return v;
+}
+
+/** Friendly key/value rows for the expand panel. Skips IDs and system codes. */
 export function auditDetailRows(
   payload: unknown,
 ): Array<{ label: string; value: string }> {
   const p = asRecord(payload);
   const rows: Array<{ label: string; value: string }> = [];
   for (const [key, raw] of Object.entries(p)) {
-    if (raw == null) continue;
-    const value =
-      typeof raw === "string" ||
-      typeof raw === "number" ||
-      typeof raw === "boolean"
-        ? String(raw)
-        : JSON.stringify(raw);
-    if (!value.trim()) continue;
+    if (raw == null || DETAIL_SKIP.has(key)) continue;
+    const value = friendlyValue(key, raw);
+    if (!value) continue;
     rows.push({
       label: DETAIL_LABELS[key] ?? humanizeActionCode(key),
       value,

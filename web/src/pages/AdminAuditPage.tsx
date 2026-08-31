@@ -6,7 +6,6 @@ import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
 import {
   AUDIT_CATEGORIES,
-  auditActionLabel,
   auditCategory,
   auditDetailRows,
   auditSummary,
@@ -91,7 +90,7 @@ export function AdminAuditPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") void reload(q);
             }}
-            placeholder="Search actor, action, or entity…"
+            placeholder="Search by person or what happened…"
           />
         </label>
         <label className="studio-select">
@@ -220,41 +219,24 @@ function AuditRow({
         </td>
         <td>
           <div className="audit-summary">{auditSummary(event)}</div>
-          <div className="muted small">{auditActionLabel(event.action)}</div>
         </td>
       </tr>
       {open ? (
         <tr className="admin-expand-detail">
           <td colSpan={4}>
             <div className="admin-audit-detail">
-              <dl className="admin-audit-kv">
-                <div>
-                  <dt>Action code</dt>
-                  <dd>
-                    <code>{event.action}</code>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Entity</dt>
-                  <dd>
-                    {event.entityType}
-                    {event.entityId ? (
-                      <>
-                        {" · "}
-                        <code className="admin-entity-id">
-                          {event.entityId}
-                        </code>
-                      </>
-                    ) : null}
-                  </dd>
-                </div>
-                {details.map((row) => (
-                  <div key={row.label}>
-                    <dt>{row.label}</dt>
-                    <dd>{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              {details.length > 0 ? (
+                <dl className="admin-audit-kv">
+                  {details.map((row) => (
+                    <div key={row.label}>
+                      <dt>{row.label}</dt>
+                      <dd>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="muted">No extra details for this event.</p>
+              )}
 
               <button
                 type="button"
@@ -264,11 +246,16 @@ function AuditRow({
                   onToggleRaw();
                 }}
               >
-                {showRaw ? "Hide raw JSON" : "Show raw JSON"}
+                {showRaw ? "Hide technical details" : "Show technical details"}
               </button>
               {showRaw ? (
                 <pre className="admin-audit-payload">
-                  {formatPayload(event.payload)}
+                  {formatPayload({
+                    action: event.action,
+                    entityType: event.entityType,
+                    entityId: event.entityId,
+                    payload: event.payload,
+                  })}
                 </pre>
               ) : null}
             </div>

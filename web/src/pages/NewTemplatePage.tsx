@@ -219,8 +219,8 @@ export function NewTemplatePage() {
         <p className="eyebrow">My cards</p>
         <h1>New card</h1>
         <p className="lede">
-          Upload a Canva design or image, set fill-in fields if needed, then
-          save. You can send it afterward from the card page.
+          Bring in a design, give it a name, and save. Others can then choose it
+          and send it.
         </p>
       </header>
 

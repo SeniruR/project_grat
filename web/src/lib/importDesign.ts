@@ -316,6 +316,41 @@ export async function regenerateCanvaSnapshot(
   return { previewUrl, width: emailWidth, height };
 }
 
+function isBlankCompiledHtml(html: string | null | undefined) {
+  const t = (html ?? "").replace(/\s+/g, "").toLowerCase();
+  return !t || t === "<div></div>" || t === "<div/>";
+}
+
+/**
+ * Rasterize stored HTML to a PNG thumb and store it on the current version.
+ * Does not create a new version or change Template.updatedAt / Edited time.
+ */
+export async function refreshPreviewPngInPlace(
+  token: string,
+  templateId: string,
+  compiledHtml: string,
+  designJson: Record<string, unknown> = {},
+) {
+  if (isBlankCompiledHtml(compiledHtml)) {
+    throw new Error("This card has no email HTML to snapshot");
+  }
+  const emailWidth =
+    typeof designJson.width === "number"
+      ? designJson.width
+      : inferEmailWidth(compiledHtml);
+  const htmlForRaster = rewriteMediaUrlsInHtml(compiledHtml);
+  const { file } = await rasterizeEmailHtmlToFile(htmlForRaster, emailWidth);
+  const { asset } = await api.uploadTemplateAsset(
+    token,
+    templateId,
+    file,
+    "compiled",
+  );
+  const previewUrl = resolveMediaUrl(asset.url) ?? asset.url;
+  await api.patchTemplatePreview(token, templateId, previewUrl);
+  return { previewUrl };
+}
+
 /**
  * Import a PNG/JPEG/PDF as a single-image email (not selectable text).
  */

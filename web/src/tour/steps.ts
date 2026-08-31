@@ -23,34 +23,17 @@ export type TourStep = {
 /** Normal user: how to send a thank-you email. */
 const USER_STEPS: TourStep[] = [
   {
-    id: "home-cards",
-    target: "home-cards",
-    title: "Send a thank-you email",
-    body: "Open Cards to pick a design and send it to colleagues by email.",
-    path: () => "/",
-  },
-  {
     id: "marketplace",
     target: "marketplace-browse",
-    title: "Choose a design",
-    body: "Search or filter cards, then click one to send it.",
+    title: "Choose a card",
+    body: "These are ready to give. Click one that says what you mean.",
     path: () => "/marketplace",
   },
   {
     id: "compose-recipients",
     target: "compose-recipients",
-    title: "Add recipients",
-    body: "Search for colleagues or type an email, then add who should receive the message.",
-    path: (ctx) =>
-      ctx.templateId ? `/cards/${ctx.templateId}/compose` : "/marketplace",
-    needsTemplate: true,
-    needsCompose: true,
-  },
-  {
-    id: "compose-from",
-    target: "compose-from",
-    title: "Sender is set for you",
-    body: "Who the email is from comes from your login. You do not need to type it.",
+    title: "Who is this for?",
+    body: "Search for a colleague or type an email, then add who should receive it.",
     path: (ctx) =>
       ctx.templateId ? `/cards/${ctx.templateId}/compose` : "/marketplace",
     needsTemplate: true,
@@ -59,8 +42,8 @@ const USER_STEPS: TourStep[] = [
   {
     id: "compose-subject",
     target: "compose-subject",
-    title: "Email subject",
-    body: "The subject comes from the card. Names fill in after you pick recipients.",
+    title: "The subject is ready",
+    body: "It comes with the card. Names fill in after you choose people.",
     path: (ctx) =>
       ctx.templateId ? `/cards/${ctx.templateId}/compose` : "/marketplace",
     needsTemplate: true,
@@ -69,8 +52,8 @@ const USER_STEPS: TourStep[] = [
   {
     id: "compose-send",
     target: "compose-send",
-    title: "Send the email",
-    body: "When at least one recipient is selected, send (or create drafts). This tour will not send anything for you.",
+    title: "Send it",
+    body: "When at least one person is chosen, send. This tour will not send anything for you.",
     path: (ctx) =>
       ctx.templateId ? `/cards/${ctx.templateId}/compose` : "/marketplace",
     needsTemplate: true,
@@ -79,8 +62,8 @@ const USER_STEPS: TourStep[] = [
   {
     id: "sent",
     target: "sent-list",
-    title: "Check what you sent",
-    body: "Open Sent in the top bar next to your profile to review subject, recipient, and when.",
+    title: "Cards you’ve given",
+    body: "Open Sent in the top bar to see who received it, and when.",
     path: () => "/sent",
     needsCompose: true,
   },
@@ -89,32 +72,11 @@ const USER_STEPS: TourStep[] = [
 /** Designer: add a design, create categories, share cards. */
 const DESIGNER_STEPS: TourStep[] = [
   {
-    id: "home-cards",
-    target: "home-cards",
-    title: "Design cards for others",
-    body: "Open Cards to create designs and categories colleagues can use when sending.",
-    path: () => "/",
-  },
-  {
     id: "hub-mycards",
     target: "hub-mycards",
     title: "My cards studio",
-    body: "This is where you manage designs, categories, and sharing.",
+    body: "This is where you create the cards others will give.",
     path: () => "/emails",
-  },
-  {
-    id: "mycards-categories",
-    target: "mycards-categories",
-    title: "Categories",
-    body: "Open Categories to group cards (for example by team or occasion).",
-    path: () => "/cards",
-  },
-  {
-    id: "categories-create",
-    target: "categories-create",
-    title: "Create a category",
-    body: "Type a name and press Add. You can rename or delete categories later if unused.",
-    path: () => "/cards?tourCategories=1",
   },
   {
     id: "mycards-new",
@@ -141,7 +103,7 @@ const DESIGNER_STEPS: TourStep[] = [
     id: "mycards-list",
     target: "mycards-list",
     title: "Your card library",
-    body: "Saved designs appear here. Open one to edit placeholders, category, and visibility.",
+    body: "Saved designs appear here. Open one to edit placeholders and sharing.",
     path: () => "/cards",
   },
   {
@@ -166,13 +128,6 @@ const DESIGNER_STEPS: TourStep[] = [
 ];
 
 const ADMIN_STEPS: TourStep[] = [
-  {
-    id: "home-cards",
-    target: "home-cards",
-    title: "Start with Cards",
-    body: "Admins manage people and activity, and can design or send cards like other roles.",
-    path: () => "/",
-  },
   {
     id: "hub-admin",
     target: "hub-admin",
@@ -226,7 +181,7 @@ const ADMIN_STEPS: TourStep[] = [
     id: "hub-mycards",
     target: "hub-mycards",
     title: "You can design too",
-    body: "Admins also get My cards — create designs and categories the same way designers do.",
+    body: "Admins also get My cards — create the designs others will give.",
     path: () => "/emails",
   },
 ];

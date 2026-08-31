@@ -1,9 +1,10 @@
 import { Navigate, Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
-import { canManageDesigns, roleLabel } from "./lib/roles";
+import { canManageDesigns, homePath, roleLabel } from "./lib/roles";
 import { COMPOSE_ENABLED } from "./features";
 import { TourProvider } from "./tour/TourContext";
 import { ProductTour } from "./tour/ProductTour";
+import { SiteFooter } from "./components/SiteFooter";
 
 function pathInCards(pathname: string, simpleUser: boolean) {
   if (simpleUser) {
@@ -47,8 +48,7 @@ export function AppShell() {
     <TourProvider>
       <div className="app-shell">
         <nav className="topnav">
-          <Link to="/" className="brand">
-            <span className="brand-mark" aria-hidden />
+          <Link to={homePath(user)} className="brand">
             Gratitude
           </Link>
 
@@ -61,7 +61,7 @@ export function AppShell() {
             </NavLink>
             <span className="nav-link-disabled" title="Coming soon">
               Gifts
-              <em className="nav-soon">Soon</em>
+              <em className="coming-soon-badge">Coming soon</em>
             </span>
           </div>
 
@@ -107,6 +107,7 @@ export function AppShell() {
         <main>
           <Outlet />
         </main>
+        <SiteFooter />
         <ProductTour />
       </div>
     </TourProvider>

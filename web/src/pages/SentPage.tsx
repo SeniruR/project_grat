@@ -43,7 +43,7 @@ export function SentPage() {
                 emailsCrumb,
                 { label: "Sent" },
               ]
-            : [{ label: "Home", to: "/" }, { label: "Sent" }]
+            : [{ label: "Sent" }]
         }
       />
       <header className="page-header">
@@ -51,9 +51,9 @@ export function SentPage() {
           <p className="eyebrow">Cards</p>
           <h1>Sent</h1>
           <p className="lede">
-            What you sent, to whom, and when
-            {isAdmin(user) ? " (admins see everyone’s sends)" : ""}. Click a
-            row to open a full preview.
+            Cards you’ve already given
+            {isAdmin(user) ? " — including everyone’s, as an admin" : ""}.
+            Open a row to see how it arrived.
           </p>
         </div>
       </header>
@@ -85,7 +85,7 @@ export function SentPage() {
 
         {!loading && items.length === 0 ? (
           <p className="muted">
-            No sends yet. Pick a card from Browse cards and send it.
+            No cards given yet. Choose one and send it — someone will feel it.
           </p>
         ) : null}
 

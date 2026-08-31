@@ -333,6 +333,21 @@ export const api = {
       },
     ),
 
+  /** Update PNG thumb on the current version without bumping edited time. */
+  patchTemplatePreview: (token: string, id: string, previewUrl: string) =>
+    request<{
+      version: {
+        id: string;
+        version: number;
+        previewUrl: string | null;
+        createdAt: string;
+      };
+    }>(`/templates/${id}/preview`, {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ previewUrl }),
+    }),
+
   deleteTemplate: (token: string, id: string) =>
     request<void>(`/templates/${id}`, { method: "DELETE", token }),
 

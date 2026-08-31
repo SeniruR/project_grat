@@ -833,14 +833,6 @@ export function ComposePage() {
     return detectMergeFields(subject).some((k) => isRecipientNameToken(k));
   }, [placeholders, subject]);
 
-  const usesSenderName = useMemo(() => {
-    if (placeholders.some((p) => p.source === "senderName")) return true;
-    return detectMergeFields(subject).some((k) => {
-      const n = k.toLowerCase().replace(/[_.-]/g, "");
-      return n === "sendername" || n === "fromname" || n === "sender";
-    });
-  }, [placeholders, subject]);
-
   if (!template && !error) {
     return (
       <div className="page">
@@ -875,11 +867,7 @@ export function ComposePage() {
         { label: template.name, to: parentDetailTo },
         { label: "Send" },
       ]
-    : [
-        { label: "Home", to: "/" },
-        parentCrumb,
-        { label: "Send" },
-      ];
+    : [parentCrumb, { label: "Send" }];
 
   return (
     <div className="page">
@@ -892,11 +880,11 @@ export function ComposePage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Cards</p>
-          <h1>Send card</h1>
+          <h1>Send this</h1>
           <p className="lede">
             {advancedCompose
-              ? "Choose people, fill in details, preview, then send."
-              : "Three steps on the left - preview updates on the right."}
+              ? "Who it’s for, a few details, then a look at how it will arrive."
+              : "Who it’s for, then a look at how it will arrive."}
           </p>
         </div>
       </header>
@@ -919,11 +907,11 @@ export function ComposePage() {
                 1
               </span>
               <div className="compose-section-titles">
-                <h2 className="compose-section-title">Who receives this?</h2>
+                <h2 className="compose-section-title">Who is this for?</h2>
                 <p className="compose-section-hint">
                   {usesRecipientName
-                    ? "Default box = name only (no Mr./Mrs.). Use Add prefix for titled groups."
-                    : "Search the directory or type an email and press Enter."}
+                    ? "Search for the person. Add a title if you want Mr. or Mrs. on the card."
+                    : "Search for a colleague or type an email and press Enter."}
                 </p>
               </div>
             </header>
@@ -1027,85 +1015,17 @@ export function ComposePage() {
             </div>
           </section>
 
-          <section className="compose-section" data-tour="compose-from">
+          <section className="compose-section" data-tour="compose-subject">
             <header className="compose-section-head">
               <span className="compose-section-step" aria-hidden>
                 2
               </span>
               <div className="compose-section-titles">
-                <h2 className="compose-section-title">Who is it from?</h2>
-                <p className="compose-section-hint">
-                  {mailMode === "smtp"
-                    ? "Shown as the sender on the email."
-                    : "Taken from your login."}
-                </p>
-              </div>
-            </header>
-            <div className="compose-section-body">
-              <p className="compose-from-line">
-                {mailMode === "smtp" ? (
-                  <>
-                    <span className="muted">Sent as</span>{" "}
-                    <strong>{smtpFromName || "Gratitude cards"}</strong>
-                    {smtpFrom ? (
-                      <span className="muted"> ({smtpFrom})</span>
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <strong>
-                      {senderName.trim() ||
-                        user?.displayName ||
-                        "Your account"}
-                    </strong>
-                    {senderEmail.trim() || user?.email ? (
-                      <span className="muted">
-                        {" "}
-                        ({senderEmail.trim() || user?.email})
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </p>
-              {usesSenderName ? (
-                <label className="compose-honorific-row">
-                  <input
-                    type="checkbox"
-                    checked={senderTitleEnabled}
-                    disabled={busy}
-                    onChange={(e) => setSenderTitleEnabled(e.target.checked)}
-                  />
-                  <span>Add title to sender name</span>
-                  {senderTitleEnabled ? (
-                    <select
-                      value={senderTitle}
-                      disabled={busy}
-                      onChange={(e) => setSenderTitle(e.target.value)}
-                      aria-label="Sender title"
-                    >
-                      {nameHonorifics.map((h) => (
-                        <option key={h.value} value={h.value}>
-                          {h.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                </label>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="compose-section" data-tour="compose-subject">
-            <header className="compose-section-head">
-              <span className="compose-section-step" aria-hidden>
-                3
-              </span>
-              <div className="compose-section-titles">
                 <h2 className="compose-section-title">Subject</h2>
                 <p className="compose-section-hint">
                   {advancedCompose
-                    ? "Edit if needed. Tags from the card fill in automatically."
-                    : "Set by the card. Names fill in automatically."}
+                    ? "Edit if you like. Names from the card fill in on their own."
+                    : "Comes with the card. Names fill in after you choose people."}
                 </p>
               </div>
             </header>
@@ -1480,7 +1400,7 @@ export function ComposePage() {
                   ? "Sending…"
                   : "Creating drafts…"
                 : mailMode === "smtp"
-                  ? `Send to ${selected.length} recipient${selected.length === 1 ? "" : "s"}`
+                  ? `Send to ${selected.length} ${selected.length === 1 ? "person" : "people"}`
                   : `Create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}`}
             </button>
             <Link className="ghost btn-link-ghost" to={cancelTo}>
