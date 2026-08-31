@@ -110,8 +110,6 @@ export function ComposePage() {
   const [prefixToAdd, setPrefixToAdd] = useState("");
   /** Which prefix group the current search belongs to ("" = no title). */
   const [searchScope, setSearchScope] = useState("");
-  const [senderTitleEnabled, setSenderTitleEnabled] = useState(false);
-  const [senderTitle, setSenderTitle] = useState("Mr.");
   const [nameHonorifics, setNameHonorifics] = useState<NameHonorific[]>([
     ...DEFAULT_NAME_HONORIFICS,
   ]);
@@ -148,10 +146,6 @@ export function ComposePage() {
       .then((res) => {
         if (res.honorifics?.length) {
           setNameHonorifics(res.honorifics);
-          setSenderTitle((prev) => {
-            if (res.honorifics.some((h) => h.value === prev)) return prev;
-            return res.honorifics[0]?.value ?? prev;
-          });
         }
       })
       .catch(() => undefined);
@@ -316,7 +310,7 @@ export function ComposePage() {
         recipientLabel,
       );
       const titledSender = withHonorific(
-        senderTitleEnabled ? senderTitle : "",
+        "",
         senderName.trim() || user?.displayName || "You",
       );
       return {
@@ -338,8 +332,6 @@ export function ComposePage() {
       perRecipientFields,
       user,
       recipientTitles,
-      senderTitleEnabled,
-      senderTitle,
     ],
   );
 
@@ -471,7 +463,7 @@ export function ComposePage() {
 
   function titledSenderName(): string {
     return withHonorific(
-      senderTitleEnabled ? senderTitle : "",
+      "",
       senderName.trim() || user?.displayName || "",
     );
   }
