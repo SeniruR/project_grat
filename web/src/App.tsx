@@ -8,7 +8,6 @@ import {
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { AppShell } from "./AppShell";
 import { LoginPage } from "./pages/LoginPage";
-import { HomePage } from "./pages/HomePage";
 import { CardsPage } from "./pages/CardsPage";
 import { NewTemplatePage } from "./pages/NewTemplatePage";
 import { TemplateDetailPage } from "./pages/TemplateDetailPage";
@@ -25,8 +24,13 @@ import { AdminAuditPage } from "./pages/AdminAuditPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { EmailsHomePage } from "./pages/EmailsHomePage";
 import { COMPOSE_ENABLED } from "./features";
-import { canManageDesigns, isAdmin } from "./lib/roles";
+import { canManageDesigns, homePath, isAdmin } from "./lib/roles";
 import type { ReactNode } from "react";
+
+function HomeRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={homePath(user)} replace />;
+}
 
 function DesignerRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -36,7 +40,7 @@ function DesignerRoute({ children }: { children: ReactNode }) {
 
 function AdminRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  if (!isAdmin(user)) return <Navigate to="/" replace />;
+  if (!isAdmin(user)) return <Navigate to={homePath(user)} replace />;
   return children;
 }
 
@@ -45,7 +49,7 @@ const router = createBrowserRouter(
     <>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<AppShell />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomeRedirect />} />
         <Route path="/emails" element={<EmailsHomePage />} />
         <Route path="/gifts" element={<Navigate to="/emails" replace />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
@@ -87,13 +91,17 @@ const router = createBrowserRouter(
         <Route
           path="/sent"
           element={
-            COMPOSE_ENABLED ? <SentPage /> : <Navigate to="/" replace />
+            COMPOSE_ENABLED ? <SentPage /> : <Navigate to="/marketplace" replace />
           }
         />
         <Route
           path="/drafts"
           element={
-            COMPOSE_ENABLED ? <DraftsPage /> : <Navigate to="/" replace />
+            COMPOSE_ENABLED ? (
+              <DraftsPage />
+            ) : (
+              <Navigate to="/marketplace" replace />
+            )
           }
         />
         <Route
@@ -102,7 +110,7 @@ const router = createBrowserRouter(
             COMPOSE_ENABLED ? (
               <DraftJobPage />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/marketplace" replace />
             )
           }
         />

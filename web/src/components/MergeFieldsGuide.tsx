@@ -16,7 +16,7 @@ export function MergeFieldsGuide({ compact = false }: { compact?: boolean }) {
             <strong>Recipient name / email</strong> - from selected people
           </li>
           <li>
-            <strong>Sender name / email</strong> - from Compose sender fields
+            <strong>Sender name / email</strong> - from the signed-in account
           </li>
           <li>
             <strong>Shared</strong> - one value for everyone

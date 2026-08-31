@@ -1,39 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { wrapWithHeaderFooter } from "../lib/emailHtml";
-import { CategoryCombobox } from "../components/CategoryCombobox";
-import { CategoryManagePanel } from "../components/CategoryManagePanel";
+import { EmailCardThumb } from "../components/EmailCardThumb";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
-import {
-  resolveMediaUrl,
-  rewriteMediaUrlsInHtml,
-} from "../lib/mediaUrl";
+import { refreshPreviewPngInPlace } from "../lib/importDesign";
 
 type VisibilityFilter = "all" | "private" | "published";
 
 export function CardsPage() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>("all");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [manageCategories, setManageCategories] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TemplateSummary | null>(
     null,
   );
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    setManageCategories(searchParams.get("tourCategories") === "1");
-  }, [searchParams]);
+  const [refreshingPreviews, setRefreshingPreviews] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState<string | null>(null);
 
   async function reload() {
     if (!token) return;
@@ -54,7 +43,6 @@ export function CardsPage() {
   }, [token]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
     return templates.filter((t) => {
       if (visibilityFilter === "private" && t.visibility !== "PRIVATE") {
         return false;
@@ -62,17 +50,9 @@ export function CardsPage() {
       if (visibilityFilter === "published" && t.visibility !== "SHARED") {
         return false;
       }
-      if (categoryId && t.category?.id !== categoryId) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        t.name.toLowerCase().includes(q) ||
-        t.owner.displayName.toLowerCase().includes(q) ||
-        (t.category?.name ?? "").toLowerCase().includes(q)
-      );
+      return true;
     });
-  }, [templates, query, visibilityFilter, categoryId]);
+  }, [templates, visibilityFilter]);
 
   async function confirmDelete() {
     if (!token || !deleteTarget) return;
@@ -89,6 +69,67 @@ export function CardsPage() {
     }
   }
 
+  async function refreshAllPreviews() {
+    if (!token || refreshingPreviews || templates.length === 0) return;
+    setRefreshingPreviews(true);
+    setError(null);
+    setPreviewProgress(null);
+    let updated = 0;
+    let skipped = 0;
+    const failures: string[] = [];
+    try {
+      for (let i = 0; i < templates.length; i++) {
+        const card = templates[i];
+        setPreviewProgress(
+          `Creating preview ${i + 1} of ${templates.length}…`,
+        );
+        try {
+          const { template: full } = await api.template(token, card.id);
+          const latest = full.versions[0];
+          const html = latest?.compiledHtml ?? "";
+          const { previewUrl } = await refreshPreviewPngInPlace(
+            token,
+            card.id,
+            html,
+            latest?.designJson ?? {},
+          );
+          updated += 1;
+          setTemplates((prev) =>
+            prev.map((t) => {
+              if (t.id !== card.id) return t;
+              const versions = t.versions[0]
+                ? [
+                    { ...t.versions[0], previewUrl },
+                    ...t.versions.slice(1),
+                  ]
+                : t.versions;
+              return { ...t, versions };
+            }),
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Preview failed";
+          if (msg.includes("no email HTML")) skipped += 1;
+          else failures.push(`${card.name}: ${msg}`);
+        }
+      }
+      if (failures.length) {
+        setError(
+          `Updated ${updated} preview${updated === 1 ? "" : "s"}. ${failures.length} failed. ${failures.slice(0, 3).join(" ")}`,
+        );
+      } else {
+        const skipNote =
+          skipped > 0
+            ? ` Skipped ${skipped} with no design HTML.`
+            : "";
+        setPreviewProgress(
+          `Updated ${updated} preview${updated === 1 ? "" : "s"}.${skipNote}`,
+        );
+      }
+    } finally {
+      setRefreshingPreviews(false);
+    }
+  }
+
   return (
     <div className="page">
       <Breadcrumbs
@@ -101,21 +142,24 @@ export function CardsPage() {
       <header className="page-header page-header-row">
         <div>
           <p className="eyebrow">Cards</p>
-          <h1>My cards</h1>
+          <h1>
+            My <span className="title-accent">cards</span>
+          </h1>
           <p className="lede">
-            Your cards only. Share a card so everyone can find it under Browse
-            cards.
+            Arrange the cards everyone else will give. Share one so it appears
+            when colleagues choose a card.
           </p>
         </div>
         <div className="header-actions">
-          {token && user ? (
+          {token && templates.length > 0 ? (
             <button
               type="button"
               className="ghost"
-              data-tour="mycards-categories"
-              onClick={() => setManageCategories(true)}
+              disabled={refreshingPreviews}
+              title="Rebuild PNG thumbnails without changing Edited time"
+              onClick={() => void refreshAllPreviews()}
             >
-              Categories
+              {refreshingPreviews ? "Creating…" : "Create preview PNG"}
             </button>
           ) : null}
           <Link className="btn-link" to="/cards/new" data-tour="mycards-new">
@@ -123,29 +167,9 @@ export function CardsPage() {
           </Link>
         </div>
       </header>
+      {previewProgress ? <p className="muted">{previewProgress}</p> : null}
 
-      <div className="studio-toolbar" data-tour="mycards-list">
-        {token ? (
-          <div className="studio-category-filter">
-            <CategoryCombobox
-              token={token}
-              value={categoryId}
-              onChange={(id) => setCategoryId(id)}
-              allowClear
-              allowCreate={false}
-              label=""
-              placeholder="Category…"
-            />
-          </div>
-        ) : null}
-        <label className="studio-search">
-          <span className="visually-hidden">Search</span>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search my cards…"
-          />
-        </label>
+      <div className="studio-toolbar">
         <label className="studio-select">
           <span className="visually-hidden">Visibility</span>
           <select
@@ -165,13 +189,13 @@ export function CardsPage() {
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Loading cards…</p> : null}
 
-      <section className="panel">
+      <section className="panel" data-tour="mycards-list">
         <h2>My cards</h2>
         {!loading && filtered.length === 0 ? (
           <p className="muted">
             {templates.length === 0
-              ? "No cards yet - create one."
-              : "No cards match this search or filter."}
+              ? "No cards yet — create one for others to send."
+              : "No cards match this filter."}
           </p>
         ) : (
           <div className="template-card-grid">
@@ -187,31 +211,6 @@ export function CardsPage() {
           </div>
         )}
       </section>
-
-      {manageCategories && token && user
-        ? createPortal(
-            <div
-              className="app-modal-backdrop"
-              role="presentation"
-              onClick={() => setManageCategories(false)}
-            >
-              <div
-                className="app-modal category-manage-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="category-manage-title"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <CategoryManagePanel
-                  token={token}
-                  currentUserId={user.id}
-                  onClose={() => setManageCategories(false)}
-                />
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
 
       {deleteTarget
         ? createPortal(
@@ -272,21 +271,6 @@ function TemplateCard({
 }) {
   const latest = template.versions[0];
   const editedAt = latest?.createdAt ?? template.updatedAt;
-  const previewHtml = useMemo(() => {
-    const body = (latest?.compiledHtml ?? "").trim();
-    if (!body) {
-      return `<div style="padding:24px;font-family:Segoe UI,Arial,sans-serif;color:#6b7280;text-align:center;">No preview yet</div>`;
-    }
-    return rewriteMediaUrlsInHtml(
-      wrapWithHeaderFooter(
-        body,
-        template.headerHtml,
-        template.footerHtml,
-      ),
-    );
-  }, [latest?.compiledHtml, template.headerHtml, template.footerHtml]);
-
-  const thumbSrc = resolveMediaUrl(latest?.previewUrl);
   const isPrivate = template.visibility === "PRIVATE";
   const totalUsers = template.usageTotalUsers ?? 0;
   const sinceEdit = template.usageSinceLastEdit ?? 0;
@@ -300,16 +284,10 @@ function TemplateCard({
         aria-label={`Open ${template.name}`}
       >
         <div className="template-card-preview" aria-hidden>
-          {thumbSrc ? (
-            <img className="template-card-png" src={thumbSrc} alt="" />
-          ) : (
-            <iframe
-              title=""
-              className="template-card-frame"
-              sandbox=""
-              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{margin:0;background:#fff;}</style></head><body>${previewHtml}</body></html>`}
-            />
-          )}
+          <EmailCardThumb
+            previewUrl={latest?.previewUrl}
+            fallbackLabel={template.name}
+          />
         </div>
         <div className="template-card-body">
           <div className="template-card-title-row">
@@ -358,6 +336,9 @@ function TemplateCard({
           </button>
         </div>
       ) : null}
+      <div className="card-accent-bar" aria-hidden>
+        <span className="card-accent-bar-fill" />
+      </div>
     </article>
   );
 }

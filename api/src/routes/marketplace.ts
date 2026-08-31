@@ -3,7 +3,7 @@ import { prisma } from "../db.js";
 import { resolveHtmlImageSrcs } from "../lib/htmlAssets.js";
 import { config } from "../config.js";
 
-const marketplaceInclude = {
+const marketplaceListInclude = {
   owner: { select: { id: true, displayName: true, email: true } },
   category: { select: { id: true, name: true } },
   versions: {
@@ -13,14 +13,8 @@ const marketplaceInclude = {
       id: true,
       version: true,
       previewUrl: true,
-      compiledHtml: true,
-      designJson: true,
       createdAt: true,
     },
-  },
-  assets: {
-    where: { kind: "source" as const },
-    select: { fileName: true, storageKey: true },
   },
 } as const;
 
@@ -75,27 +69,14 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
             : {}),
         },
         orderBy: { updatedAt: "desc" },
-        include: marketplaceInclude,
+        include: marketplaceListInclude,
       });
 
       return {
-        templates: templates.map((t) => {
-          const { assets, ...rest } = t;
-          return {
-            ...rest,
-            isFavorite: favoriteIds.has(t.id),
-            versions: t.versions.map((v) => ({
-              ...v,
-              compiledHtml: v.compiledHtml
-                ? resolveHtmlImageSrcs(
-                    v.compiledHtml,
-                    assets,
-                    config.publicApiUrl,
-                  )
-                : null,
-            })),
-          };
-        }),
+        templates: templates.map((t) => ({
+          ...t,
+          isFavorite: favoriteIds.has(t.id),
+        })),
       };
     },
   );
@@ -113,8 +94,8 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
           visibility: "SHARED",
         },
         include: {
-          owner: marketplaceInclude.owner,
-          category: marketplaceInclude.category,
+          owner: marketplaceListInclude.owner,
+          category: marketplaceListInclude.category,
           versions: {
             orderBy: { version: "desc" },
             take: 1,
@@ -180,28 +161,15 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
         },
         orderBy: { createdAt: "desc" },
         include: {
-          template: { include: marketplaceInclude },
+          template: { include: marketplaceListInclude },
         },
       });
       return {
-        templates: rows.map((r) => {
-          const { assets, ...rest } = r.template;
-          return {
-            ...rest,
-            isFavorite: true,
-            favoritedAt: r.createdAt,
-            versions: r.template.versions.map((v) => ({
-              ...v,
-              compiledHtml: v.compiledHtml
-                ? resolveHtmlImageSrcs(
-                    v.compiledHtml,
-                    assets,
-                    config.publicApiUrl,
-                  )
-                : null,
-            })),
-          };
-        }),
+        templates: rows.map((r) => ({
+          ...r.template,
+          isFavorite: true,
+          favoritedAt: r.createdAt,
+        })),
       };
     },
   );

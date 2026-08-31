@@ -2,41 +2,28 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, type MarketplaceCard } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
-import { resolveMediaUrl } from "../lib/mediaUrl";
+import { EmailCardThumb } from "../components/EmailCardThumb";
 import { canManageDesigns } from "../lib/roles";
 import { COMPOSE_ENABLED } from "../features";
-
-function previewSrc(card: MarketplaceCard) {
-  return resolveMediaUrl(card.versions[0]?.previewUrl);
-}
 
 export function MarketplacePage() {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const skipPreview = !canManageDesigns(user) && COMPOSE_ENABLED;
   const [cards, setCards] = useState<MarketplaceCard[]>([]);
-  const [q, setQ] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function reload(
-    search = q,
-    fav = favoritesOnly,
-    cat = categoryId,
-  ) {
+  async function reload(fav = favoritesOnly) {
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
       const res = await api.marketplace(token, {
-        q: search,
         favorites: fav,
-        categoryId: cat,
       });
       setCards(res.templates);
     } catch (err) {
@@ -82,76 +69,39 @@ export function MarketplacePage() {
       <Breadcrumbs
         items={
           skipPreview
-            ? [{ label: "Home", to: "/" }, { label: "Browse cards" }]
-            : [
-                { label: "Home", to: "/" },
-                emailsCrumb,
-                { label: "Browse cards" },
-              ]
+            ? [{ label: "Browse cards" }]
+            : [emailsCrumb, { label: "Browse cards" }]
         }
       />
-      <header className="page-header">
+      <header className="page-header page-header-row" data-tour="marketplace-browse">
         <div>
           <p className="eyebrow">Cards</p>
-          <h1>Browse cards</h1>
+          <h1>
+            Choose a <span className="title-accent">card</span>
+          </h1>
           <p className="lede">
             {skipPreview
-              ? "Pick a card to send. Save favorites with the star."
-              : "Pick a card to preview, save as a favorite, then personalize and send."}
+              ? "Find the one that says what you mean. Then send it."
+              : "Find the one that says what you mean. Preview it, then send it."}
           </p>
         </div>
-      </header>
-
-      <div className="marketplace-toolbar" data-tour="marketplace-browse">
-        {token ? (
-          <div className="marketplace-category-filter">
-            <CategoryCombobox
-              token={token}
-              value={categoryId}
-              onChange={(id) => {
-                setCategoryId(id);
-                void reload(q, favoritesOnly, id);
-              }}
-              allowClear
-              allowCreate={false}
-              countMode="shared"
-              label=""
-              placeholder="Category…"
-            />
-          </div>
-        ) : null}
-        <label className="marketplace-search">
-          <span className="visually-hidden">Search</span>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void reload(q, favoritesOnly, categoryId);
+        <div className="header-actions">
+          <button
+            type="button"
+            className={`marketplace-fav-toggle ${favoritesOnly ? "is-on" : ""}`}
+            aria-pressed={favoritesOnly}
+            aria-label={favoritesOnly ? "Show all cards" : "Show favorites only"}
+            title={favoritesOnly ? "Showing favorites" : "Favorites"}
+            onClick={() => {
+              const next = !favoritesOnly;
+              setFavoritesOnly(next);
+              void reload(next);
             }}
-            placeholder="Search by name or designer…"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => void reload(q, favoritesOnly, categoryId)}
-        >
-          Search
-        </button>
-        <button
-          type="button"
-          className={`marketplace-fav-toggle ${favoritesOnly ? "is-on" : ""}`}
-          aria-pressed={favoritesOnly}
-          aria-label={favoritesOnly ? "Show all cards" : "Show favorites only"}
-          title={favoritesOnly ? "Showing favorites" : "Favorites"}
-          onClick={() => {
-            const next = !favoritesOnly;
-            setFavoritesOnly(next);
-            void reload(q, next, categoryId);
-          }}
-        >
-          <StarIcon filled={favoritesOnly} />
-        </button>
-      </div>
+          >
+            <StarIcon filled={favoritesOnly} />
+          </button>
+        </div>
+      </header>
 
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Loading cards…</p> : null}
@@ -159,15 +109,13 @@ export function MarketplacePage() {
       {!loading && cards.length === 0 ? (
         <p className="muted">
           {favoritesOnly
-            ? "No favorites yet - tap the star on a card."
-            : categoryId
-              ? "No published cards in this category."
-              : "No shared cards yet. Set a card to Shared in My cards to list it here."}
+            ? "No favorites yet — tap the star on a card you want to find again."
+            : "No cards to send yet. When a design is shared, it will appear here."}
         </p>
       ) : (
         <div className="marketplace-grid">
           {cards.map((card) => {
-            const thumb = previewSrc(card);
+            const latest = card.versions[0];
             const favorited = Boolean(card.isFavorite);
             return (
               <article key={card.id} className="marketplace-card">
@@ -177,13 +125,10 @@ export function MarketplacePage() {
                     className="marketplace-card-preview"
                     onClick={() => openCard(card)}
                   >
-                    {thumb ? (
-                      <img src={thumb} alt="" />
-                    ) : (
-                      <span className="marketplace-card-fallback">
-                        {card.name.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
+                    <EmailCardThumb
+                      previewUrl={latest?.previewUrl}
+                      fallbackLabel={card.name}
+                    />
                   </button>
                   <button
                     type="button"
@@ -213,6 +158,9 @@ export function MarketplacePage() {
                       <Link to={`/marketplace/${card.id}`}>Preview</Link>
                     )}
                   </div>
+                </div>
+                <div className="card-accent-bar" aria-hidden>
+                  <span className="card-accent-bar-fill" />
                 </div>
               </article>
             );

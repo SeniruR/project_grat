@@ -10,6 +10,11 @@ export function canManageDesigns(user: ApiUser | null | undefined) {
   return user?.role === "DESIGNER" || user?.role === "ADMIN";
 }
 
+/** Users go to Browse cards; designers and admins go to the Cards hub. */
+export function homePath(user: ApiUser | null | undefined) {
+  return canManageDesigns(user) ? "/emails" : "/marketplace";
+}
+
 /** Shared/per-person placeholders and image overrides during Compose. */
 export function canUseAdvancedCompose(user: ApiUser | null | undefined) {
   return canManageDesigns(user);

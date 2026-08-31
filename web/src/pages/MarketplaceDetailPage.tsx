@@ -128,7 +128,7 @@ export function MarketplaceDetailPage() {
               type="button"
               onClick={() => navigate(`/cards/${card.id}/compose`)}
             >
-              Send this card
+              Send this
             </button>
           ) : (
             <span className="muted small">Sending is not available yet</span>

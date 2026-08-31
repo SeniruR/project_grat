@@ -39,6 +39,12 @@ const colleagues = [
     aadOid: "dev-elena.wickramasinghe@slt.lk",
     role: "USER" as const,
   },
+  {
+    email: "seniruranasinghe@gmail.com",
+    displayName: "Seniru Ranasinghe",
+    aadOid: "dev-seniruranasinghe@gmail.com",
+    role: "USER" as const, // or "DESIGNER" / "ADMIN"
+  }
 ];
 
 async function main() {

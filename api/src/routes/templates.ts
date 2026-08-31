@@ -91,7 +91,16 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         include: {
           owner: { select: { id: true, displayName: true, email: true } },
           category: { select: { id: true, name: true } },
-          versions: { orderBy: { version: "desc" }, take: 1 },
+          versions: {
+            orderBy: { version: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              version: true,
+              previewUrl: true,
+              createdAt: true,
+            },
+          },
           _count: { select: { assets: true } },
         },
       });
@@ -238,6 +247,52 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return { template };
+    },
+  );
+
+  app.patch(
+    "/templates/:id/preview",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const user = request.appUser!;
+      const { id } = request.params as { id: string };
+      const parsed = z
+        .object({ previewUrl: z.string().min(1).max(2000) })
+        .safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: "Invalid preview payload" });
+      }
+
+      const existing = await prisma.template.findUnique({
+        where: { id },
+        include: { versions: { orderBy: { version: "desc" }, take: 1 } },
+      });
+      if (!existing || !canEdit(existing, user)) {
+        return reply.code(404).send({ error: "Template not found" });
+      }
+
+      const latest = existing.versions[0];
+      if (!latest) {
+        return reply.code(400).send({ error: "Template has no version yet" });
+      }
+
+      // In-place URL only — do not create a version or touch Template.updatedAt
+      // (Prisma @updatedAt would otherwise reset "Edited" on My cards).
+      const version = await prisma.templateVersion.update({
+        where: { id: latest.id },
+        data: { previewUrl: parsed.data.previewUrl },
+        select: { id: true, version: true, previewUrl: true, createdAt: true },
+      });
+
+      await writeAudit({
+        actorId: user.id,
+        action: "template.preview_refreshed",
+        entityType: "template",
+        entityId: id,
+        payload: { version: version.version },
+      });
+
+      return { version };
     },
   );
 
@@ -549,7 +604,8 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ error: "Template not found" });
       }
 
-      const maxBytes = 5 * 1024 * 1024;
+      const maxBytes =
+        kind === "compiled" ? 12 * 1024 * 1024 : 5 * 1024 * 1024;
       const fileStat = await stat(saved.absPath);
       if (fileStat.size > maxBytes) {
         await unlink(saved.absPath);

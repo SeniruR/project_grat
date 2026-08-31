@@ -58,12 +58,31 @@ const PLACEHOLDER_SOURCES = new Set<string>([
   "perRecipient",
 ]);
 
+/** Leading title tokens (Mr., Dr., …) so firstname is not taken from the prefix. */
+const HONORIFIC_PREFIX_RE =
+  /^(mr|mrs|ms|miss|dr|sir|madam|mx|prof|professor)\.?$/i;
+
+function givenNameFromDisplayName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  let i = 0;
+  while (
+    i < parts.length - 1 &&
+    HONORIFIC_PREFIX_RE.test(parts[i].replace(/,/g, ""))
+  ) {
+    i += 1;
+  }
+  return parts[i] ?? fullName.trim();
+}
+
 function recipientNameValueForKey(key: string, fullName: string): string {
   const name = fullName.trim();
   if (!name) return "";
   const k = key.toLowerCase().replace(/[_.-]/g, "");
-  if (k === "firstname" || k === "fname") {
-    return name.split(/\s+/)[0] ?? name;
+  // fname / fullname / recipientName stay the full titled name (Mr. Senirurandiv).
+  // firstname is the given name after skipping a leading honorific.
+  if (k === "firstname") {
+    return givenNameFromDisplayName(name);
   }
   return name;
 }

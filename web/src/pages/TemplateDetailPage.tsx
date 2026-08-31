@@ -13,6 +13,7 @@ import { COMPOSE_ENABLED, COMPOSE_UNAVAILABLE_REASON } from "../features";
 import {
   importCanvaZipToTemplate,
   importDesignImageToTemplate,
+  regenerateCanvaSnapshot,
 } from "../lib/importDesign";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
@@ -445,10 +446,35 @@ export function TemplateDetailPage() {
       setNotice(
         importedPreview
           ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${trimNote}${phNote}`
-          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} - re-import to retry.${trimNote}${phNote}`,
+          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} - use Create preview PNG to retry.${trimNote}${phNote}`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Canva import failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onCreatePreviewPng() {
+    if (!token || !id || !canEdit) return;
+    const body = html.trim();
+    if (!body) {
+      setError("Import a Canva ZIP first, then create the preview PNG.");
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      await regenerateCanvaSnapshot(token, id, body, latestDesignJson);
+      await reload();
+      setNotice("Preview PNG created. My cards and Browse cards will use it.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Preview PNG failed: ${err.message}`
+          : "Preview PNG failed",
+      );
     } finally {
       setSaving(false);
     }
@@ -828,6 +854,7 @@ export function TemplateDetailPage() {
                 <li>Import that ZIP below. Define tags under Placeholders.</li>
               </ol>
               {canEdit ? (
+                <>
                 <div className="surface-actions import-actions">
                   <label className="check import-trim-option">
                     <input
@@ -858,7 +885,26 @@ export function TemplateDetailPage() {
                       {saving ? "Importing…" : "Replace Canva ZIP"}
                     </span>
                   </label>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={saving || !html.trim()}
+                    onClick={() => void onCreatePreviewPng()}
+                  >
+                    {saving ? "Working…" : "Create preview PNG"}
+                  </button>
                 </div>
+                {!previewImageUrl ? (
+                  <p className="muted small">
+                    Grid thumbnails need this PNG. If import skipped it, press
+                    Create preview PNG (no ZIP required).
+                    {typeof latestDesignJson.snapshotError === "string" &&
+                    latestDesignJson.snapshotError.trim()
+                      ? ` Last error: ${latestDesignJson.snapshotError}`
+                      : ""}
+                  </p>
+                ) : null}
+                </>
               ) : (
                 <p className="muted">View only - you don’t own this template.</p>
               )}
