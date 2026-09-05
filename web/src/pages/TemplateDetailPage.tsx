@@ -18,7 +18,7 @@ import {
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, myCardsCrumb } from "../components/Breadcrumbs";
 import {
   FALLBACK_DEFAULT_SUBJECT,
   parseDefaultSubjectFromDesignJson,
@@ -651,9 +651,8 @@ export function TemplateDetailPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "My cards", to: "/cards" },
+          myCardsCrumb,
           { label: template.name },
         ]}
       />

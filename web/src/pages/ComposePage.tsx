@@ -496,7 +496,7 @@ export function ComposePage() {
         </div>
         {isStandaloneHonorific(addPrefix) ? (
           <p className="muted small recipient-standalone-hint">
-            {addPrefix} is used on its own — the card will say Dear {addPrefix},
+            {addPrefix} is used on its own - the card will say Dear {addPrefix},
             without their name.
           </p>
         ) : null}
@@ -853,19 +853,17 @@ export function ComposePage() {
     canManageDesigns(user) && template.owner.id === user?.id;
   const parentCrumb = fromDesigns
     ? { label: "My cards", to: "/cards" }
-    : { label: "Browse cards", to: "/marketplace" };
+    : { label: "Choose a card", to: "/marketplace" };
   const parentDetailTo = fromDesigns
     ? `/cards/${template.id}`
-    : `/marketplace/${template.id}`;
+    : "/marketplace";
   const cancelTo = fromDesigns ? `/cards/${template.id}` : "/marketplace";
-  const composeCrumbs = fromDesigns
-    ? [
-        emailsCrumb,
-        parentCrumb,
-        { label: template.name, to: parentDetailTo },
-        { label: "Send" },
-      ]
-    : [];
+  const composeCrumbs = [
+    emailsCrumb,
+    parentCrumb,
+    { label: template.name, to: parentDetailTo },
+    { label: "Send" },
+  ];
 
   return (
     <div className="page">
@@ -1284,9 +1282,7 @@ export function ComposePage() {
               disabled={busy || !compiled || selected.length === 0}
               onClick={requestSend}
             >
-              {mailMode === "smtp"
-                ? `Send to ${selected.length} ${selected.length === 1 ? "person" : "people"}`
-                : `Create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}`}
+              Send
             </button>
             <Link className="ghost btn-link-ghost" to={cancelTo}>
               Cancel
@@ -1319,7 +1315,7 @@ export function ComposePage() {
             <strong>{previewPerson?.displayName ?? "the recipient"}</strong>.
           </p>
           {previewHtml ? (
-            <OutlookDualPreview html={previewHtml} embedded />
+            <OutlookDualPreview html={previewHtml} embedded showCopyActions={false} />
           ) : (
             <p className="muted">Nothing to preview yet.</p>
           )}
@@ -1340,14 +1336,8 @@ export function ComposePage() {
                 aria-labelledby="send-confirm-title"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h2 id="send-confirm-title">
-                  {mailMode === "smtp" ? "Send this card?" : "Create these drafts?"}
-                </h2>
-                <p>
-                  {mailMode === "smtp"
-                    ? `It will go to ${selected.length} ${selected.length === 1 ? "person" : "people"} now.`
-                    : `This will create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}.`}
-                </p>
+                <h2 id="send-confirm-title">Send this card?</h2>
+                <p>This will send the card.</p>
                 <ul className="send-confirm-list">
                   {selected.map((p) => {
                     const personSubject = resolvedSubjectFor(p);
@@ -1380,13 +1370,7 @@ export function ComposePage() {
                     disabled={busy}
                     onClick={() => void createDrafts()}
                   >
-                    {busy
-                      ? mailMode === "smtp"
-                        ? "Sending…"
-                        : "Creating drafts…"
-                      : mailMode === "smtp"
-                        ? "Send now"
-                        : "Create drafts"}
+                    {busy ? "Sending…" : "Send"}
                   </button>
                 </div>
               </div>

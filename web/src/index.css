@@ -4442,7 +4442,7 @@ button.danger-text {
 .marketplace-toolbar {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.75rem;
   align-items: center;
   margin-bottom: 1rem;
@@ -4476,7 +4476,7 @@ button.danger-text {
   flex: 1 1 14rem;
   min-width: 0;
   max-width: 28rem;
-  margin: 0 0 0 auto;
+  margin: 0;
 }
 
 .marketplace-search input {
@@ -4574,11 +4574,12 @@ button.danger-text {
   height: 100%;
   object-fit: cover;
   object-position: top center;
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.marketplace-card:hover .marketplace-card-preview img {
-  transform: scale(1.06);
+.gift-shelf-card .marketplace-card-preview img {
+  object-fit: contain;
+  object-position: center top;
+  background: #fff;
 }
 
 .marketplace-card-fallback {
@@ -4740,8 +4741,44 @@ button.danger-text {
   overflow: hidden;
 }
 
-.sent-preview-meta {
+.sent-preview-details {
+  display: grid;
+  gap: 0.45rem 1.5rem;
   margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--page-wash) 70%, #fff);
+}
+
+.sent-preview-details > div {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.sent-preview-details dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sent-preview-details dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.sent-preview-email {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.sent-preview-job {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 /* —— Home / shell polish —— */
@@ -5001,6 +5038,15 @@ button.danger-text {
   border: 1px solid var(--line);
   border-radius: 14px;
   height: 320px;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.gift-shelf-card:hover .marketplace-card-preview {
+  border-color: color-mix(in srgb, var(--brand-sky) 42%, var(--line));
+  box-shadow: var(--shadow-soft);
 }
 
 .gift-shelf-card .marketplace-card-body {
@@ -5015,18 +5061,28 @@ button.danger-text {
 
 .gift-give-overlay {
   position: absolute;
-  inset: auto 0 0;
-  padding: 0.7rem 1rem;
-  background: linear-gradient(transparent, rgba(23, 24, 28, 0.62));
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.92rem;
+  left: 50%;
+  bottom: 0.8rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 94%, #fff);
+  color: var(--ink);
+  font-weight: 650;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-soft);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transform: translateX(-50%) translateY(4px);
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
 .gift-shelf-card:hover .gift-give-overlay {
   opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .sent-keepsake {

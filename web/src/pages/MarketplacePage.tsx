@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { api, type MarketplaceCard } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { EmailCardThumb } from "../components/EmailCardThumb";
-import { canManageDesigns } from "../lib/roles";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import { COMPOSE_ENABLED } from "../features";
 
 export function MarketplacePage() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
-  const skipPreview = !canManageDesigns(user) && COMPOSE_ENABLED;
+  const skipPreview = COMPOSE_ENABLED;
   const [cards, setCards] = useState<MarketplaceCard[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,7 @@ export function MarketplacePage() {
 
   return (
     <div className="page gift-page">
+      <Breadcrumbs items={[emailsCrumb, { label: "Choose a card" }]} />
       <header className="gift-hero" data-tour="marketplace-browse">
         <div className="gift-hero-cover">
           <img
@@ -56,8 +57,8 @@ export function MarketplacePage() {
             <p className="gift-kicker">It lands like a note on their desk</p>
             <h1>Someone made your day. Send it back.</h1>
             <p className="lede">
-              Choose a card the way you would a bouquet — the one that says
-              what you mean. It arrives as email; it still feels handwritten.
+              Choose a card the way you would a bouquet, the one that says
+              what you mean. It arrives as email, and it still feels handwritten.
             </p>
           </div>
         </div>

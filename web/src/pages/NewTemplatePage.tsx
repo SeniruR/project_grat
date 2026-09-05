@@ -10,7 +10,7 @@ import {
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, myCardsCrumb } from "../components/Breadcrumbs";
 import type { PlaceholderDef } from "../lib/mergeFields";
 import { FALLBACK_DEFAULT_SUBJECT } from "../lib/mergeFields";
 import type { ImageSlotDef } from "../lib/imageSlots";
@@ -216,9 +216,8 @@ export function NewTemplatePage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "My cards", to: "/cards" },
+          myCardsCrumb,
           { label: "New card" },
         ]}
       />
@@ -312,8 +311,8 @@ export function NewTemplatePage() {
               </li>
               <li>
                 {zipFile && !scanning
-                  ? "ZIP added — tags and images are listed below."
-                  : "Choose that ZIP below – tags and images are scanned right away."}
+                  ? "ZIP added - tags and images are listed below."
+                  : "Choose that ZIP below - tags and images are scanned right away."}
               </li>
             </ol>
             {scanning ? (

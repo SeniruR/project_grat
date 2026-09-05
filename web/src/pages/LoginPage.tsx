@@ -9,7 +9,7 @@ import { SiteFooter } from "../components/SiteFooter";
 export function LoginPage() {
   const { user, login, loading } = useAuth();
   const [displayName, setDisplayName] = useState("Seniru");
-  const [email, setEmail] = useState("seniru@slt.com.lk");
+  const [email, setEmail] = useState("seniru@example.com");
   const [role, setRole] = useState<AppRole>("USER");
   const [startTutorial, setStartTutorial] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
@@ -145,7 +145,7 @@ export function LoginPage() {
           >
             {showDemo
               ? "Hide demonstration options"
-              : "Demonstration — show extra options"}
+              : "Demonstration - show extra options"}
           </button>
           {showDemo && modes ? <p className="mode-line">{modes}</p> : null}
         </section>

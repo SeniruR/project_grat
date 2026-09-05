@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type SentItem } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { canManageDesigns, isAdmin } from "../lib/roles";
+import { isAdmin } from "../lib/roles";
 import { SentPreviewModal } from "../components/SentPreviewModal";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
@@ -35,17 +35,13 @@ export function SentPage() {
 
   return (
     <div className="page">
-      {canManageDesigns(user) ? (
-        <Breadcrumbs
-          items={[emailsCrumb, { label: "History" }]}
-        />
-      ) : null}
+      <Breadcrumbs items={[emailsCrumb, { label: "History" }]} />
       <header className="page-header">
         <div>
           <h1>History</h1>
           <p className="lede">
             Cards you’ve already given
-            {isAdmin(user) ? " — including everyone’s, as an admin" : ""}.
+            {isAdmin(user) ? " - including everyone’s, as an admin" : ""}.
             Open one to see how it arrived.
           </p>
         </div>
@@ -78,7 +74,7 @@ export function SentPage() {
 
         {!loading && items.length === 0 ? (
           <p className="muted">
-            No cards given yet. Choose one and send it — someone will feel it.
+            No cards given yet. Choose one and send it - someone will feel it.
           </p>
         ) : null}
 

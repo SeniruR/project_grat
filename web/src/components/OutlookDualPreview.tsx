@@ -95,6 +95,7 @@ export function OutlookDualPreview({
 
   return (
     <Wrapper className={wrapperClass}>
+      {embedded && !showCopyActions ? null : (
       <div className="outlook-preview-toolbar">
         {embedded ? null : <h2>Preview</h2>}
         {showCopyActions ? (
@@ -107,6 +108,7 @@ export function OutlookDualPreview({
           </div>
         ) : null}
       </div>
+      )}
       <div className="outlook-dual-scroll">
         <div className="outlook-measure-probe full" ref={measureRef} aria-hidden />
         <div className="outlook-dual single">

@@ -146,7 +146,7 @@ const ADMIN_STEPS: TourStep[] = [
     id: "admin-summary",
     target: "admin-summary",
     title: "Send summary",
-    body: "See what each person has sent — jobs, message counts, and recent cards.",
+    body: "See what each person has sent - jobs, message counts, and recent cards.",
     path: () => "/admin/summary",
   },
   {
@@ -167,7 +167,7 @@ const ADMIN_STEPS: TourStep[] = [
     id: "mycards-list",
     target: "mycards-list",
     title: "You can design too",
-    body: "Open your name in the top right, then My cards — create the designs others will give.",
+    body: "Open your name in the top right, then My cards - create the designs others will give.",
     path: () => "/cards",
   },
 ];

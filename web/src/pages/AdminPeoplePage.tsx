@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { roleLabel } from "../lib/roles";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
 
 type AdminUser = {
@@ -102,9 +102,8 @@ export function AdminPeoplePage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin", to: "/admin" },
+          adminCrumb,
           { label: "People" },
         ]}
       />

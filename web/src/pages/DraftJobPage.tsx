@@ -4,7 +4,7 @@ import { api, type DraftJobDetail } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { COMPOSE_ENABLED } from "../features";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, historyCrumb } from "../components/Breadcrumbs";
 
 export function DraftJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -65,7 +65,7 @@ export function DraftJobPage() {
       <Breadcrumbs
         items={[
           emailsCrumb,
-          { label: "History", to: "/sent" },
+          historyCrumb,
           { label: job.template.name },
         ]}
       />
