@@ -19,7 +19,6 @@ export function MarketplaceDetailPage() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -51,21 +50,6 @@ export function MarketplaceDetailPage() {
     return <Navigate to={`/cards/${id}/compose`} replace />;
   }
 
-  async function toggleFavorite() {
-    if (!token || !card) return;
-    setBusy(true);
-    setError(null);
-    try {
-      if (card.isFavorite) await api.removeFavorite(token, card.id);
-      else await api.addFavorite(token, card.id);
-      setCard({ ...card, isFavorite: !card.isFavorite });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Favorite update failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (error && !card) {
     return (
       <div className="page">
@@ -87,48 +71,23 @@ export function MarketplaceDetailPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Browse cards", to: "/marketplace" },
+          { label: "Choose a card", to: "/marketplace" },
           { label: card.name },
         ]}
       />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">Browse cards</p>
           <h1>{card.name}</h1>
-          <p className="lede">
-            {card.category?.name ?? "Uncategorized"}
-            {" · "}
-            by {card.owner.displayName}
-          </p>
+          <p className="lede">A card ready to give.</p>
         </div>
         <div className="header-actions" data-tour="send-card">
-          <button
-            type="button"
-            className={`marketplace-fav-toggle ${card.isFavorite ? "is-on" : ""}`}
-            disabled={busy}
-            onClick={() => void toggleFavorite()}
-            aria-pressed={Boolean(card.isFavorite)}
-            aria-label={card.isFavorite ? "Remove from favorites" : "Add to favorites"}
-            title={card.isFavorite ? "Favorited" : "Favorite"}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-              <path
-                fill={card.isFavorite ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinejoin="round"
-                d="M12 3.6 14.7 9l5.9.5-4.5 3.9 1.4 5.7L12 16.8 6.5 19.1l1.4-5.7L3.4 9.5 9.3 9 12 3.6Z"
-              />
-            </svg>
-          </button>
           {COMPOSE_ENABLED ? (
             <button
               type="button"
               onClick={() => navigate(`/cards/${card.id}/compose`)}
             >
-              Send this
+              Give this
             </button>
           ) : (
             <span className="muted small">Sending is not available yet</span>

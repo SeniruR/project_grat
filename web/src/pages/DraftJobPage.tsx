@@ -48,14 +48,24 @@ export function DraftJobPage() {
 
   const okCount = job.drafts.filter((d) => d.status !== "failed").length;
   const failCount = job.drafts.length - okCount;
+  const names = job.drafts
+    .filter((d) => d.status !== "failed")
+    .map((d) => d.recipientName ?? d.recipientEmail);
+  const forLine =
+    names.length === 0
+      ? "Your card is on its way."
+      : names.length === 1
+        ? `On its way to ${names[0]}.`
+        : names.length === 2
+          ? `On its way to ${names[0]} and ${names[1]}.`
+          : `On its way to ${names[0]} and ${names.length - 1} others.`;
 
   return (
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Sent", to: "/sent" },
+          { label: "History", to: "/sent" },
           { label: job.template.name },
         ]}
       />
@@ -64,18 +74,12 @@ export function DraftJobPage() {
           <Link to={`/cards/${job.template.id}/compose`}>Send again</Link>
         </p>
       ) : null}
-      <header className="page-header">
+      <header className="page-header gift-on-way">
         <div>
-          <p className="eyebrow">Cards</p>
-          <h1>
-            {mailMode === "smtp"
-              ? `${okCount} message${okCount === 1 ? "" : "s"} sent`
-              : `${okCount} draft${okCount === 1 ? "" : "s"} ready`}
-            {failCount ? ` · ${failCount} failed` : ""}
-          </h1>
+          <h1>It’s on its way.</h1>
           <p className="lede">
-            {job.template.name} · v{job.templateVersion.version} · status{" "}
-            <code>{job.status}</code> · mail <code>{mailMode}</code>
+            {forLine} {job.template.name}
+            {failCount ? ` · ${failCount} could not be sent.` : ""}
           </p>
         </div>
       </header>

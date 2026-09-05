@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { config } from "../../config.js";
 import type { CreateDraftInput, CreateDraftResult, MailProvider } from "./types.js";
+import { hardenEmailAgainstDarkMode } from "../../lib/emailBody.js";
 
 function assertSmtpConfig() {
   const missing: string[] = [];
@@ -48,8 +49,8 @@ function isFullHtmlDocument(html: string) {
 function toMimeHtml(bodyHtml: string) {
   const trimmed = bodyHtml.trim();
   if (!trimmed) return "<!DOCTYPE html><html><body></body></html>";
-  if (isFullHtmlDocument(trimmed)) return trimmed;
-  return `<!DOCTYPE html>
+  if (isFullHtmlDocument(trimmed)) return hardenEmailAgainstDarkMode(trimmed);
+  return hardenEmailAgainstDarkMode(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -58,7 +59,7 @@ function toMimeHtml(bodyHtml: string) {
 <body style="margin:0;padding:0;">
 ${trimmed}
 </body>
-</html>`;
+</html>`);
 }
 
 /**

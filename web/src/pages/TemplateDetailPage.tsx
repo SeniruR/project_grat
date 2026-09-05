@@ -82,6 +82,7 @@ export function TemplateDetailPage() {
   const [ignoredPlaceholders, setIgnoredPlaceholders] = useState<string[]>([]);
   const [imageSlots, setImageSlots] = useState<ImageSlotDef[]>([]);
   const [trimWhiteMargins, setTrimWhiteMargins] = useState(false);
+  const [pendingZipFile, setPendingZipFile] = useState<File | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [savedSnap, setSavedSnap] = useState<EditSnapshot | null>(null);
   const skipLeaveGuard = useRef(false);
@@ -301,8 +302,8 @@ export function TemplateDetailPage() {
 
   const isDirty = Boolean(
     canEdit &&
-      savedSnap &&
-      snapshotKey(currentSnap) !== snapshotKey(savedSnap),
+      ((savedSnap && snapshotKey(currentSnap) !== snapshotKey(savedSnap)) ||
+        pendingZipFile),
   );
 
   /** Highlight changed fields whenever the card has unsaved edits. */
@@ -371,6 +372,11 @@ export function TemplateDetailPage() {
         status: visibility === "SHARED" ? "PUBLISHED" : "DRAFT",
         categoryId,
       });
+      if (pendingZipFile) {
+        await applyCanvaZip(pendingZipFile);
+        setPendingZipFile(null);
+        return true;
+      }
       const cleanedSubject = defaultSubject.trim().slice(0, 300);
       const cleanedPlaceholders = placeholders.map((p) => ({
         key: p.key,
@@ -403,56 +409,47 @@ export function TemplateDetailPage() {
     }
   }
 
-  async function onReimportCanvaZip(file: File | null) {
-    if (!token || !id || !file || !canEdit) return;
-    setError(null);
-    setNotice(null);
-    setSaving(true);
-    try {
-      const {
-        imageCount,
-        previewUrl: importedPreview,
-        placeholders: nextPh,
-        imageSlots: nextSlots,
-        trimmedWhiteMargins,
-        snapshotError,
-      } = await importCanvaZipToTemplate(token, id, file, {
-          previousPlaceholders: placeholders,
-          previousImageSlots: imageSlots,
-          previousDesignJson: latestDesignJson,
-          ignoredPlaceholders,
-          trimWhiteMargins,
-          defaultSubject,
-        });
-      await reload();
-      const notes: string[] = [];
-      if (nextPh.length > 0) {
-        notes.push(
-          `Define ${nextPh.length} placeholder${nextPh.length === 1 ? "" : "s"}`,
-        );
-      }
-      if (nextSlots.length > 0) {
-        notes.push(
-          `configure ${nextSlots.length} image slot${nextSlots.length === 1 ? "" : "s"}`,
-        );
-      }
-      const phNote = notes.length ? ` ${notes.join(" and ")} below.` : "";
-      const trimNote = trimmedWhiteMargins
-        ? " White top/bottom margins were trimmed."
-        : trimWhiteMargins
-          ? " (No solid white margins found to trim.)"
-          : "";
-      const failDetail = snapshotError ? ` (${snapshotError})` : "";
-      setNotice(
-        importedPreview
-          ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${trimNote}${phNote}`
-          : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} - use Create preview PNG to retry.${trimNote}${phNote}`,
+  async function applyCanvaZip(file: File) {
+    if (!token || !id) return;
+    const {
+      imageCount,
+      previewUrl: importedPreview,
+      placeholders: nextPh,
+      imageSlots: nextSlots,
+      trimmedWhiteMargins,
+      snapshotError,
+    } = await importCanvaZipToTemplate(token, id, file, {
+      previousPlaceholders: placeholders,
+      previousImageSlots: imageSlots,
+      previousDesignJson: latestDesignJson,
+      ignoredPlaceholders,
+      trimWhiteMargins,
+      defaultSubject,
+    });
+    await reload();
+    const notes: string[] = [];
+    if (nextPh.length > 0) {
+      notes.push(
+        `Define ${nextPh.length} placeholder${nextPh.length === 1 ? "" : "s"}`,
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Canva import failed");
-    } finally {
-      setSaving(false);
     }
+    if (nextSlots.length > 0) {
+      notes.push(
+        `configure ${nextSlots.length} image slot${nextSlots.length === 1 ? "" : "s"}`,
+      );
+    }
+    const phNote = notes.length ? ` ${notes.join(" and ")} below.` : "";
+    const trimNote = trimmedWhiteMargins
+      ? " White top/bottom margins were trimmed."
+      : trimWhiteMargins
+        ? " (No solid white margins found to trim.)"
+        : "";
+    const failDetail = snapshotError ? ` (${snapshotError})` : "";
+    setNotice(
+      importedPreview
+        ? `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}) with PNG snapshot.${trimNote}${phNote}`
+        : `Imported Canva ZIP (${imageCount} image${imageCount === 1 ? "" : "s"}). PNG snapshot failed${failDetail} - use Create preview PNG to retry.${trimNote}${phNote}`,
+    );
   }
 
   async function onCreatePreviewPng() {
@@ -573,6 +570,7 @@ export function TemplateDetailPage() {
     setPlaceholders(savedSnap.placeholders);
     setIgnoredPlaceholders(savedSnap.ignoredPlaceholders);
     setImageSlots(savedSnap.imageSlots);
+    setPendingZipFile(null);
     setError(null);
     setNotice(null);
     setPendingDeleteId(null);
@@ -586,6 +584,50 @@ export function TemplateDetailPage() {
       latestMode === "blank" ||
       latestMode === "designer" ||
       latestMode === "image_import");
+
+  function renderCanvaZipControl(chooseLabel: string) {
+    if (pendingZipFile) {
+      return (
+        <div className="import-file-added">
+          <strong>ZIP added</strong>
+          <span className="import-file-added-name">{pendingZipFile.name}</span>
+          <button
+            type="button"
+            className="linkish"
+            disabled={saving}
+            onClick={() => setPendingZipFile(null)}
+          >
+            Remove
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void saveAll()}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      );
+    }
+    return (
+      <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
+        <input
+          type="file"
+          accept=".zip,application/zip"
+          disabled={saving}
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            e.target.value = "";
+            if (!file) return;
+            setPendingZipFile(file);
+            setError(null);
+            setNotice(null);
+          }}
+        />
+        <span className="file-pick-btn">{chooseLabel}</span>
+      </label>
+    );
+  }
 
   if (!template && !error) {
     return (
@@ -871,20 +913,7 @@ export function TemplateDetailPage() {
                       </span>
                     </span>
                   </label>
-                  <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
-                    <input
-                      type="file"
-                      accept=".zip,application/zip"
-                      disabled={saving}
-                      onChange={(e) => {
-                        void onReimportCanvaZip(e.target.files?.[0] ?? null);
-                        e.target.value = "";
-                      }}
-                    />
-                    <span className="file-pick-btn">
-                      {saving ? "Importing…" : "Replace Canva ZIP"}
-                    </span>
-                  </label>
+                  {renderCanvaZipControl("Replace Canva ZIP")}
                   <button
                     type="button"
                     className="ghost"
@@ -977,20 +1006,7 @@ export function TemplateDetailPage() {
                       </span>
                     </span>
                   </label>
-                  <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
-                    <input
-                      type="file"
-                      accept=".zip,application/zip"
-                      disabled={saving}
-                      onChange={(e) => {
-                        void onReimportCanvaZip(e.target.files?.[0] ?? null);
-                        e.target.value = "";
-                      }}
-                    />
-                    <span className="file-pick-btn">
-                      {saving ? "Importing…" : "Import Canva ZIP"}
-                    </span>
-                  </label>
+                  {renderCanvaZipControl("Import Canva ZIP")}
                   <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
                     <input
                       type="file"

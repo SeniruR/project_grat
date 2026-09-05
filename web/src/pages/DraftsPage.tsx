@@ -29,7 +29,7 @@ export function DraftsPage() {
         items={[
           { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Sent", to: "/sent" },
+          { label: "History", to: "/sent" },
           { label: "Draft jobs" },
         ]}
       />

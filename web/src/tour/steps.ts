@@ -53,7 +53,7 @@ const USER_STEPS: TourStep[] = [
     id: "compose-send",
     target: "compose-send",
     title: "Send it",
-    body: "When at least one person is chosen, send. This tour will not send anything for you.",
+    body: "When at least one person is chosen, send. You’ll confirm names before anything goes out. This tour will not send anything for you.",
     path: (ctx) =>
       ctx.templateId ? `/cards/${ctx.templateId}/compose` : "/marketplace",
     needsTemplate: true,
@@ -63,7 +63,7 @@ const USER_STEPS: TourStep[] = [
     id: "sent",
     target: "sent-list",
     title: "Cards you’ve given",
-    body: "Open Sent in the top bar to see who received it, and when.",
+    body: "Open History in the top right to see who received a card and when.",
     path: () => "/sent",
     needsCompose: true,
   },
@@ -71,13 +71,6 @@ const USER_STEPS: TourStep[] = [
 
 /** Designer: add a design, create categories, share cards. */
 const DESIGNER_STEPS: TourStep[] = [
-  {
-    id: "hub-mycards",
-    target: "hub-mycards",
-    title: "My cards studio",
-    body: "This is where you create the cards others will give.",
-    path: () => "/emails",
-  },
   {
     id: "mycards-new",
     target: "mycards-new",
@@ -129,13 +122,6 @@ const DESIGNER_STEPS: TourStep[] = [
 
 const ADMIN_STEPS: TourStep[] = [
   {
-    id: "hub-admin",
-    target: "hub-admin",
-    title: "Admin hub",
-    body: "Open Admin for people, send summary, settings, and the audit log.",
-    path: () => "/emails",
-  },
-  {
     id: "admin-stats",
     target: "admin-stats",
     title: "At a glance",
@@ -178,11 +164,11 @@ const ADMIN_STEPS: TourStep[] = [
     path: () => "/admin/audit",
   },
   {
-    id: "hub-mycards",
-    target: "hub-mycards",
+    id: "mycards-list",
+    target: "mycards-list",
     title: "You can design too",
-    body: "Admins also get My cards — create the designs others will give.",
-    path: () => "/emails",
+    body: "Open your name in the top right, then My cards — create the designs others will give.",
+    path: () => "/cards",
   },
 ];
 

@@ -1,32 +1,37 @@
+import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
-import { canManageDesigns, homePath, roleLabel } from "./lib/roles";
+import { canManageDesigns, homePath, isAdmin, roleLabel } from "./lib/roles";
 import { COMPOSE_ENABLED } from "./features";
 import { TourProvider } from "./tour/TourContext";
 import { ProductTour } from "./tour/ProductTour";
 import { SiteFooter } from "./components/SiteFooter";
 
-function pathInCards(pathname: string, simpleUser: boolean) {
-  if (simpleUser) {
-    return (
-      pathname === "/emails" ||
-      pathname.startsWith("/marketplace") ||
-      pathname.startsWith("/cards") ||
-      pathname.startsWith("/drafts")
-    );
-  }
-  return (
-    pathname === "/emails" ||
-    pathname.startsWith("/marketplace") ||
-    pathname.startsWith("/cards") ||
-    pathname.startsWith("/drafts") ||
-    pathname.startsWith("/admin")
-  );
-}
-
 export function AppShell() {
   const { user, loading, logout } = useAuth();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   if (loading) {
     return (
@@ -39,10 +44,8 @@ export function AppShell() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  const simpleUser = !canManageDesigns(user);
-  const onCards = pathInCards(location.pathname, simpleUser);
-  const onSent = location.pathname.startsWith("/sent");
-  const cardsTo = simpleUser ? "/marketplace" : "/emails";
+  const designer = canManageDesigns(user);
+  const admin = isAdmin(user);
 
   return (
     <TourProvider>
@@ -52,26 +55,15 @@ export function AppShell() {
             Gratitude
           </Link>
 
-          <div className="topnav-links">
-            <NavLink
-              to={cardsTo}
-              className={() => `topnav-link ${onCards ? "is-active" : ""}`}
-            >
-              Cards
-            </NavLink>
-            <span className="nav-link-disabled" title="Coming soon">
-              Gifts
-              <em className="coming-soon-badge">Coming soon</em>
-            </span>
-          </div>
-
           <div className="topnav-user">
             {COMPOSE_ENABLED ? (
               <NavLink
                 to="/sent"
-                className={() =>
-                  `topnav-link topnav-link-icon ${onSent ? "is-active" : ""}`
+                className={({ isActive }) =>
+                  `topnav-link topnav-link-icon${isActive ? " is-active" : ""}`
                 }
+                data-tour="nav-history"
+                title="History"
               >
                 <svg
                   className="topnav-sent-icon"
@@ -82,26 +74,86 @@ export function AppShell() {
                 >
                   <path
                     fill="currentColor"
-                    d="M3.4 20.6 22 12 3.4 3.4l.1 6.7L16 12 3.5 13.9z"
+                    d="M13 3a9 9 0 1 0 8.2 12.4l-1.8-.7A7.2 7.2 0 1 1 13 4.8V8l5-4-5-4v3zm-.8 5.2v5.1l4.3 2.6.8-1.3-3.5-2.1V8.2z"
                   />
                 </svg>
-                Sent
+                History
               </NavLink>
             ) : null}
-            <div className="topnav-avatar" aria-hidden>
-              {(user.displayName || "?").slice(0, 1).toUpperCase()}
-            </div>
-            <div className="topnav-user-meta">
-              <strong>{user.displayName}</strong>
-              <span>{roleLabel(user.role)}</span>
-            </div>
-            <button
-              type="button"
-              className="ghost topnav-signout"
-              onClick={logout}
+            <div
+              className={`nav-dropdown nav-dropdown--account${menuOpen ? " is-open" : ""}`}
+              ref={menuRef}
             >
-              Sign out
-            </button>
+              <button
+                type="button"
+                className="account-trigger"
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <span className="topnav-avatar" aria-hidden>
+                  {(user.displayName || "?").slice(0, 1).toUpperCase()}
+                </span>
+                <span className="topnav-user-meta">
+                  <strong>{user.displayName}</strong>
+                  <span>{roleLabel(user.role)}</span>
+                </span>
+                <span className="nav-dropdown-caret" aria-hidden>
+                  ▾
+                </span>
+              </button>
+              {menuOpen ? (
+                <div className="nav-dropdown-menu" role="menu">
+                  <div className="account-menu-head">
+                    <strong>{user.displayName}</strong>
+                    <span>{roleLabel(user.role)}</span>
+                  </div>
+                  <NavLink
+                    to="/marketplace"
+                    role="menuitem"
+                    className="account-menu-item"
+                  >
+                    Cards
+                  </NavLink>
+                  {designer ? (
+                    <NavLink
+                      to="/cards"
+                      role="menuitem"
+                      className="account-menu-item"
+                    >
+                      My cards
+                    </NavLink>
+                  ) : null}
+                  {admin ? (
+                    <NavLink
+                      to="/admin"
+                      role="menuitem"
+                      className="account-menu-item"
+                    >
+                      Admin
+                    </NavLink>
+                  ) : null}
+                  {COMPOSE_ENABLED ? (
+                    <NavLink
+                      to="/sent"
+                      role="menuitem"
+                      className="account-menu-item"
+                    >
+                      History
+                    </NavLink>
+                  ) : null}
+                  <hr className="nav-dropdown-sep" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="account-menu-item"
+                    onClick={logout}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </nav>
         <main>

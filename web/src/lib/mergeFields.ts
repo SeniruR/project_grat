@@ -176,13 +176,24 @@ export const DEFAULT_NAME_HONORIFICS: NameHonorific[] = [
 /** @deprecated Prefer DEFAULT_NAME_HONORIFICS / API settings */
 export const NAME_HONORIFICS = DEFAULT_NAME_HONORIFICS;
 
-/** Prefix a display name with Mr./Mrs./… when a title is chosen. */
+/** Titles that stand in for the name (Dear Sir,) instead of prefixing it. */
+const STANDALONE_HONORIFIC_RE = /^(sir|madam)\.?$/i;
+
+export function isStandaloneHonorific(
+  title: string | null | undefined,
+): boolean {
+  return STANDALONE_HONORIFIC_RE.test((title ?? "").trim());
+}
+
+/** Prefix a display name with Mr./Mrs./… when a title is chosen.
+ * Sir / Madam replace the name so the card reads “Dear Sir,” not “Dear Sir Jane”. */
 export function withHonorific(
   title: string | null | undefined,
   name: string,
 ): string {
   const n = name.trim();
   const t = (title ?? "").trim();
+  if (isStandaloneHonorific(t)) return t;
   if (!n) return "";
   if (!t) return n;
   const lower = n.toLowerCase();

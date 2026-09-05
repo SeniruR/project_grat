@@ -42,8 +42,8 @@ export function Breadcrumbs({ items }: Props) {
   );
 }
 
-/** Shared Cards section crumb - hub is the Cards homepage. */
-export const cardsCrumb: Crumb = { label: "Cards", to: "/emails" };
+/** Shared Cards section crumb — Browse cards is home for every role. */
+export const cardsCrumb: Crumb = { label: "Cards", to: "/marketplace" };
 
 /** @deprecated Use cardsCrumb */
 export const emailsCrumb = cardsCrumb;

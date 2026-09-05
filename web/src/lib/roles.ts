@@ -10,9 +10,9 @@ export function canManageDesigns(user: ApiUser | null | undefined) {
   return user?.role === "DESIGNER" || user?.role === "ADMIN";
 }
 
-/** Users go to Browse cards; designers and admins go to the Cards hub. */
-export function homePath(user: ApiUser | null | undefined) {
-  return canManageDesigns(user) ? "/emails" : "/marketplace";
+/** Everyone lands on Browse cards. My cards and Admin stay in the account menu. */
+export function homePath(_user?: ApiUser | null) {
+  return "/marketplace";
 }
 
 /** Shared/per-person placeholders and image overrides during Compose. */

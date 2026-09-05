@@ -35,25 +35,18 @@ export function SentPage() {
 
   return (
     <div className="page">
-      <Breadcrumbs
-        items={
-          canManageDesigns(user)
-            ? [
-                { label: "Home", to: "/" },
-                emailsCrumb,
-                { label: "Sent" },
-              ]
-            : [{ label: "Sent" }]
-        }
-      />
+      {canManageDesigns(user) ? (
+        <Breadcrumbs
+          items={[emailsCrumb, { label: "History" }]}
+        />
+      ) : null}
       <header className="page-header">
         <div>
-          <p className="eyebrow">Cards</p>
-          <h1>Sent</h1>
+          <h1>History</h1>
           <p className="lede">
             Cards you’ve already given
             {isAdmin(user) ? " — including everyone’s, as an admin" : ""}.
-            Open a row to see how it arrived.
+            Open one to see how it arrived.
           </p>
         </div>
       </header>
@@ -90,7 +83,7 @@ export function SentPage() {
         ) : null}
 
         {!loading && items.length > 0 ? (
-          <ul className="sent-list">
+          <ul className="sent-list sent-keepsake">
             {items.map((item) => (
               <li key={item.id} className="sent-row">
                 <button
@@ -98,17 +91,15 @@ export function SentPage() {
                   className="sent-row-head"
                   onClick={() => setPreviewItem(item)}
                 >
-                  <div>
-                    <strong>{item.subject}</strong>
+                  <div className="sent-keepsake-row">
+                    <strong>{item.job.template.name}</strong>
+                    <span className="sent-keepsake-to">
+                      Given to {item.recipientName || item.recipientEmail}
+                    </span>
                     <span className="meta">
-                      {item.job.template.name}
-                      {item.job.categoryName
-                        ? ` · ${item.job.categoryName}`
-                        : ""}{" "}
-                      → {item.recipientName || item.recipientEmail} ·{" "}
-                      {item.status}
+                      {item.subject}
                       {isAdmin(user)
-                        ? ` · by ${item.job.requester.displayName}`
+                        ? ` · from ${item.job.requester.displayName}`
                         : ""}
                     </span>
                   </div>

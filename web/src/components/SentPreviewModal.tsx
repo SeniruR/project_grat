@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { buildEmailDocument } from "../lib/copyEmail";
+import { EMAIL_PAPER_BG, emailLightSchemeCss } from "../lib/emailHtml";
 import {
   inferEmailWidth,
   measureEmailContentHeight,
@@ -36,6 +37,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
     return doc.replace(
       /<\/head>/i,
       `<style>
+        ${emailLightSchemeCss()}
         html, body {
           margin: 0 !important;
           padding: 0 !important;
@@ -43,7 +45,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
           min-height: 0 !important;
           height: auto !important;
           overflow: hidden !important;
-          background: #ffffff;
+          background: ${EMAIL_PAPER_BG} !important;
         }
         img { display: block; border: 0; max-width: 100%; }
       </style></head>`,

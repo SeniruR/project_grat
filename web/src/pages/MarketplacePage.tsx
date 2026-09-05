@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { api, type MarketplaceCard } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import { EmailCardThumb } from "../components/EmailCardThumb";
 import { canManageDesigns } from "../lib/roles";
 import { COMPOSE_ENABLED } from "../features";
@@ -12,19 +11,15 @@ export function MarketplacePage() {
   const navigate = useNavigate();
   const skipPreview = !canManageDesigns(user) && COMPOSE_ENABLED;
   const [cards, setCards] = useState<MarketplaceCard[]>([]);
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function reload(fav = favoritesOnly) {
+  async function reload() {
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await api.marketplace(token, {
-        favorites: fav,
-      });
+      const res = await api.marketplace(token);
       setCards(res.templates);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load cards");
@@ -46,79 +41,43 @@ export function MarketplacePage() {
     navigate(`/marketplace/${card.id}`);
   }
 
-  async function toggleFavorite(card: MarketplaceCard) {
-    if (!token) return;
-    setBusyId(card.id);
-    try {
-      if (card.isFavorite) await api.removeFavorite(token, card.id);
-      else await api.addFavorite(token, card.id);
-      setCards((prev) =>
-        prev.map((c) =>
-          c.id === card.id ? { ...c, isFavorite: !c.isFavorite } : c,
-        ),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Favorite update failed");
-    } finally {
-      setBusyId(null);
-    }
-  }
+  const giveLabel = skipPreview ? "Give this" : "Look closer";
 
   return (
-    <div className="page">
-      <Breadcrumbs
-        items={
-          skipPreview
-            ? [{ label: "Browse cards" }]
-            : [emailsCrumb, { label: "Browse cards" }]
-        }
-      />
-      <header className="page-header page-header-row" data-tour="marketplace-browse">
-        <div>
-          <p className="eyebrow">Cards</p>
-          <h1>
-            Choose a <span className="title-accent">card</span>
-          </h1>
-          <p className="lede">
-            {skipPreview
-              ? "Find the one that says what you mean. Then send it."
-              : "Find the one that says what you mean. Preview it, then send it."}
-          </p>
-        </div>
-        <div className="header-actions">
-          <button
-            type="button"
-            className={`marketplace-fav-toggle ${favoritesOnly ? "is-on" : ""}`}
-            aria-pressed={favoritesOnly}
-            aria-label={favoritesOnly ? "Show all cards" : "Show favorites only"}
-            title={favoritesOnly ? "Showing favorites" : "Favorites"}
-            onClick={() => {
-              const next = !favoritesOnly;
-              setFavoritesOnly(next);
-              void reload(next);
-            }}
-          >
-            <StarIcon filled={favoritesOnly} />
-          </button>
+    <div className="page gift-page">
+      <header className="gift-hero" data-tour="marketplace-browse">
+        <div className="gift-hero-cover">
+          <img
+            className="gift-hero-cover-img"
+            src="/marketplace-hero-cover.png"
+            alt="A single flower, mug, and envelope on a quiet desk"
+          />
+          <div className="gift-hero-cover-copy">
+            <p className="gift-kicker">It lands like a note on their desk</p>
+            <h1>Someone made your day. Send it back.</h1>
+            <p className="lede">
+              Choose a card the way you would a bouquet — the one that says
+              what you mean. It arrives as email; it still feels handwritten.
+            </p>
+          </div>
         </div>
       </header>
 
       {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Loading cards…</p> : null}
+      {loading ? <p className="muted">Finding cards…</p> : null}
 
       {!loading && cards.length === 0 ? (
         <p className="muted">
-          {favoritesOnly
-            ? "No favorites yet — tap the star on a card you want to find again."
-            : "No cards to send yet. When a design is shared, it will appear here."}
+          No cards to give yet. When a design is shared, it will appear here.
         </p>
-      ) : (
-        <div className="marketplace-grid">
+      ) : null}
+
+      {!loading && cards.length > 0 ? (
+        <div className="gift-shelf">
           {cards.map((card) => {
             const latest = card.versions[0];
-            const favorited = Boolean(card.isFavorite);
             return (
-              <article key={card.id} className="marketplace-card">
+              <article key={card.id} className="marketplace-card gift-shelf-card">
                 <div className="marketplace-card-preview-wrap">
                   <button
                     type="button"
@@ -129,58 +88,17 @@ export function MarketplacePage() {
                       previewUrl={latest?.previewUrl}
                       fallbackLabel={card.name}
                     />
-                  </button>
-                  <button
-                    type="button"
-                    className={`marketplace-card-star ${favorited ? "is-on" : ""}`}
-                    disabled={busyId === card.id}
-                    onClick={() => void toggleFavorite(card)}
-                    aria-pressed={favorited}
-                    aria-label={
-                      favorited ? "Remove from favorites" : "Add to favorites"
-                    }
-                    title={favorited ? "Favorited" : "Favorite"}
-                  >
-                    <StarIcon filled={favorited} />
+                    <span className="gift-give-overlay">{giveLabel}</span>
                   </button>
                 </div>
                 <div className="marketplace-card-body">
                   <h2>{card.name}</h2>
-                  <p className="marketplace-card-meta muted small">
-                    {card.category?.name ?? "Uncategorized"}
-                    {" · "}
-                    by {card.owner.displayName}
-                  </p>
-                  <div className="marketplace-card-actions">
-                    {skipPreview ? (
-                      <Link to={`/cards/${card.id}/compose`}>Send</Link>
-                    ) : (
-                      <Link to={`/marketplace/${card.id}`}>Preview</Link>
-                    )}
-                  </div>
-                </div>
-                <div className="card-accent-bar" aria-hidden>
-                  <span className="card-accent-bar-fill" />
                 </div>
               </article>
             );
           })}
         </div>
-      )}
+      ) : null}
     </div>
-  );
-}
-
-function StarIcon({ filled }: { filled: boolean }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-      <path
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-        d="M12 3.6 14.7 9l5.9.5-4.5 3.9 1.4 5.7L12 16.8 6.5 19.1l1.4-5.7L3.4 9.5 9.3 9 12 3.6Z"
-      />
-    </svg>
   );
 }
