@@ -10,7 +10,7 @@ export const directoryRoutes: FastifyPluginAsync = async (app) => {
       const query = z
         .object({
           q: z.string().optional().default(""),
-          limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+          limit: z.coerce.number().int().min(1).max(200).optional().default(20),
         })
         .parse(request.query);
 

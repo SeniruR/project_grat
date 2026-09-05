@@ -43,7 +43,7 @@ const USER_STEPS: TourStep[] = [
     id: "compose-subject",
     target: "compose-subject",
     title: "The subject is ready",
-    body: "It comes with the card. Names fill in after you choose people.",
+    body: "The subject sits at the top of the preview. Names fill in after you choose people.",
     path: (ctx) =>
       ctx.templateId ? `/cards/${ctx.templateId}/compose` : "/marketplace",
     needsTemplate: true,

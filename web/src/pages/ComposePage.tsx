@@ -47,6 +47,16 @@ import { canManageDesigns, canUseAdvancedCompose } from "../lib/roles";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_RECIPIENTS = 50;
+const DIRECTORY_PAGE_SIZE = 20;
+const DIRECTORY_DOMAIN_LIMIT = 200;
+
+/** `@example.com`, `example.com`, or `@example` → fetch the whole domain. */
+function isDomainDirectoryQuery(raw: string): boolean {
+  const t = raw.trim();
+  if (!t || t.includes(" ") || EMAIL_RE.test(t)) return false;
+  return t.startsWith("@") || /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(t);
+}
 
 function parseTypedEmail(raw: string): DirectoryPerson | null {
   const email = raw.trim().toLowerCase();
@@ -190,8 +200,11 @@ export function ComposePage() {
     }
     const handle = window.setTimeout(() => {
       setSearching(true);
+      const limit = isDomainDirectoryQuery(q)
+        ? DIRECTORY_DOMAIN_LIMIT
+        : DIRECTORY_PAGE_SIZE;
       api
-        .directorySearch(token, q)
+        .directorySearch(token, q, limit)
         .then((res) => setHits(res.people))
         .catch(() => setHits([]))
         .finally(() => setSearching(false));
@@ -378,15 +391,51 @@ export function ComposePage() {
     slotsForOverrides,
   ]);
 
-  function addPerson(person: DirectoryPerson, title = addPrefix) {
-    const ek = personKey(person);
+  function addPeople(people: DirectoryPerson[], title = addPrefix, clearSearch = false) {
+    const room = Math.max(0, MAX_RECIPIENTS - selected.length);
+    const fresh = people.filter(
+      (p) => !selected.some((s) => personKey(s) === personKey(p)),
+    );
+    const toAdd = fresh.slice(0, room);
+    if (!toAdd.length && people.length) {
+      setRecipientTitles((prev) => {
+        const next = { ...prev };
+        for (const p of people) next[personKey(p)] = title;
+        return next;
+      });
+      if (clearSearch) {
+        setQuery("");
+        setHits([]);
+      }
+      return;
+    }
+    if (fresh.length > room) {
+      reportError(`You can send to ${MAX_RECIPIENTS} people at a time.`);
+    }
     setSelected((prev) => {
-      if (prev.some((p) => personKey(p) === ek)) return prev;
-      return [...prev, person];
+      const seen = new Set(prev.map(personKey));
+      const next = [...prev];
+      for (const p of toAdd) {
+        const ek = personKey(p);
+        if (seen.has(ek)) continue;
+        seen.add(ek);
+        next.push(p);
+      }
+      return next;
     });
-    setRecipientTitles((prev) => ({ ...prev, [ek]: title }));
-    setQuery("");
-    setHits([]);
+    setRecipientTitles((prev) => {
+      const next = { ...prev };
+      for (const p of toAdd) next[personKey(p)] = title;
+      return next;
+    });
+    if (clearSearch) {
+      setQuery("");
+      setHits([]);
+    }
+  }
+
+  function addPerson(person: DirectoryPerson, title = addPrefix) {
+    addPeople([person], title, false);
   }
 
   function tryAddTypedEmail(title = addPrefix) {
@@ -396,7 +445,7 @@ export function ComposePage() {
       return;
     }
     setError(null);
-    addPerson(person, title);
+    addPeople([person], title, true);
   }
 
   const typedRecipient = parseTypedEmail(query);
@@ -455,6 +504,16 @@ export function ComposePage() {
     const title = addPrefix;
     const typed = typedRecipient;
     const canTypedAdd = Boolean(typed);
+    const selectedKey = (p: DirectoryPerson) =>
+      selected.some((s) => personKey(s) === personKey(p));
+    const sameTitle = (p: DirectoryPerson) =>
+      (recipientTitles[personKey(p)] || "") === title;
+    const visibleHits = hits.filter((p) => !selectedKey(p) || !sameTitle(p));
+    const newHits = visibleHits.filter((p) => !selectedKey(p));
+    const typedSelected = typed ? selectedKey(typed) : false;
+    const typedSameTitle = typed ? sameTitle(typed) : false;
+    const showTyped =
+      canTypedAdd && typed && (!typedSelected || !typedSameTitle);
     return (
       <>
         <div className="recipient-add-row">
@@ -476,7 +535,8 @@ export function ComposePage() {
           ) : null}
           <input
             id="recipient-search"
-            type="email"
+            type="text"
+            inputMode="email"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -487,8 +547,8 @@ export function ComposePage() {
             }}
             placeholder={
               usesRecipientName
-                ? "Type a name or email"
-                : "Type email and press Enter, or search directory"
+                ? "Name, email, or @example.com"
+                : "Email, or @example.com for everyone"
             }
             disabled={busy}
             autoComplete="off"
@@ -501,7 +561,7 @@ export function ComposePage() {
           </p>
         ) : null}
         {searching ? <p className="muted small">Searching…</p> : null}
-        {canTypedAdd && typed ? (
+        {showTyped && typed ? (
           <ul className="recipient-hits">
             <li>
               <button
@@ -510,41 +570,56 @@ export function ComposePage() {
                 onClick={() => tryAddTypedEmail(title)}
               >
                 <strong>
-                  {selected.some((s) => personKey(s) === personKey(typed))
-                    ? `Update ${typed.email}`
+                  {typedSelected
+                    ? `Update to ${title || "no title"}`
                     : `Add ${typed.email}`}
                 </strong>
-                <span>Press Enter</span>
+                <span>{typed.email}</span>
               </button>
             </li>
           </ul>
         ) : null}
-        {hits.length > 0 ? (
-          <ul className="recipient-hits">
-            {hits.map((p) => {
-              const ek = personKey(p);
-              const already =
-                selected.some((s) => personKey(s) === ek) &&
-                (recipientTitles[ek] || "") === title;
-              const elsewhere = selected.some((s) => personKey(s) === ek);
-              return (
-                <li key={p.aadOid || p.email}>
-                  <button
-                    type="button"
-                    disabled={already || busy}
-                    onClick={() => addPerson(p, title)}
-                  >
-                    <strong>
-                      {elsewhere && !already
-                        ? `Update ${p.displayName}`
-                        : p.displayName}
-                    </strong>
-                    <span>{p.email}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        {visibleHits.length > 0 ? (
+          <div className="recipient-hits-wrap">
+            {newHits.length > 1 ? (
+              <div className="recipient-hits-toolbar">
+                <span className="muted small">
+                  {newHits.length} {newHits.length === 1 ? "person" : "people"}
+                </span>
+                <button
+                  type="button"
+                  className="ghost recipient-add-all"
+                  disabled={busy}
+                  onClick={() => addPeople(newHits, title, true)}
+                >
+                  Add everyone
+                </button>
+              </div>
+            ) : null}
+            <ul className="recipient-hits">
+              {visibleHits.map((p) => {
+                const update = selectedKey(p);
+                return (
+                  <li key={p.aadOid || p.email}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => addPerson(p, title)}
+                    >
+                      <strong>
+                        {update ? `Update ${p.displayName}` : p.displayName}
+                      </strong>
+                      <span>
+                        {update
+                          ? `Change title to ${title || "no title"}`
+                          : p.email}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         ) : null}
       </>
     );
@@ -911,52 +986,39 @@ export function ComposePage() {
             </div>
           </section>
 
-          <section className="compose-section" data-tour="compose-subject">
+          {advancedCompose ? (
+          <section className="compose-section">
             <header className="compose-section-head">
               <div className="compose-section-titles">
                 <h2 className="compose-section-title">Subject</h2>
                 <p className="compose-section-hint">
-                  {advancedCompose
-                    ? "Edit if you like. Names from the card fill in on their own."
-                    : "Comes with the card. Names fill in after you choose people."}
+                  Edit if you like. Names from the card fill in on their own.
                 </p>
               </div>
             </header>
             <div className="compose-section-body">
-              {advancedCompose ? (
-                <div className="form-stack">
-                  <label>
-                    <span className="visually-hidden">Subject</span>
-                    <input
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      disabled={busy}
-                      maxLength={300}
-                      placeholder={
-                        resolveTemplateDefaultSubject(
-                          (template.versions[0]?.designJson ?? {}) as Record<
-                            string,
-                            unknown
-                          >,
-                        )
-                      }
-                    />
-                  </label>
-                  {previewSubject && previewSubject !== subject.trim() ? (
-                    <p className="compose-subject-preview muted small">
-                      Preview: <strong>{previewSubject}</strong>
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="compose-subject-readonly">
-                  {selected.length > 0
-                    ? previewSubject || subject || "Thank you"
-                    : subject || "Thank you"}
-                </p>
-              )}
+              <div className="form-stack">
+                <label>
+                  <span className="visually-hidden">Subject</span>
+                  <input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    disabled={busy}
+                    maxLength={300}
+                    placeholder={
+                      resolveTemplateDefaultSubject(
+                        (template.versions[0]?.designJson ?? {}) as Record<
+                          string,
+                          unknown
+                        >,
+                      )
+                    }
+                  />
+                </label>
+              </div>
             </div>
           </section>
+          ) : null}
 
           {advancedCompose ? (
             <>
@@ -1310,12 +1372,13 @@ export function ComposePage() {
               </label>
             ) : null}
           </div>
-          <p className="muted small">
-            How it looks for{" "}
-            <strong>{previewPerson?.displayName ?? "the recipient"}</strong>.
-          </p>
           {previewHtml ? (
-            <OutlookDualPreview html={previewHtml} embedded showCopyActions={false} />
+            <OutlookDualPreview
+              html={previewHtml}
+              embedded
+              showCopyActions={false}
+              subject={previewSubject || subject}
+            />
           ) : (
             <p className="muted">Nothing to preview yet.</p>
           )}

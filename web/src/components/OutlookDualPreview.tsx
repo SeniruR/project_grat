@@ -11,6 +11,8 @@ type Props = {
   designWidth?: number;
   /** Designer canvas height for Outlook PNG paste sizing */
   designHeight?: number;
+  /** Email subject shown above the card, like an inbox reading pane */
+  subject?: string;
   /** Show copy actions for paste into Outlook / Gmail */
   showCopyActions?: boolean;
   /** Nest inside another Preview panel (skip outer chrome / title) */
@@ -28,6 +30,7 @@ export function OutlookDualPreview({
   showCopyActions = true,
   embedded = false,
   pasteMode = "auto",
+  subject,
 }: Props) {
   const safe = useMemo(() => html.trim(), [html]);
   const cardWidth = useMemo(
@@ -109,6 +112,12 @@ export function OutlookDualPreview({
         ) : null}
       </div>
       )}
+      {subject?.trim() ? (
+        <div className="outlook-preview-subject" data-tour="compose-subject">
+          <span className="outlook-preview-subject-label">Subject</span>
+          <strong>{subject.trim()}</strong>
+        </div>
+      ) : null}
       <div className="outlook-dual-scroll">
         <div className="outlook-measure-probe full" ref={measureRef} aria-hidden />
         <div className="outlook-dual single">

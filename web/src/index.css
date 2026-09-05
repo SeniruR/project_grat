@@ -1,30 +1,31 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap");
 
 :root {
-  --brand-sky: #2b59c3;
-  --brand-blue: #2b59c3;
-  --brand-green: #5b6573;
-  --brand: #2b59c3;
+  --brand-sky: #00b4eb;
+  --brand-blue: #0078a8;
+  --brand-green: #50b748;
+  --brand: #0078a8;
   --ink: #17181c;
   --muted: #5c6370;
   --paper: #ffffff;
   --panel: #ffffff;
-  --line: #e4e6eb;
-  --accent: #2b59c3;
-  --accent-deep: #1e3f9a;
-  --accent-bright: #4d74d9;
-  --success: #15803d;
+  --line: #e2eef2;
+  --accent: #00b4eb;
+  --accent-deep: #0078a8;
+  --accent-bright: #5ecdf5;
+  --success: #50b748;
   --warn: #b42318;
-  --chip-bg: #eef2fb;
-  --page-wash: #f4f5f7;
+  --chip-bg: color-mix(in srgb, #00b4eb 9%, #fff);
+  --page-wash: color-mix(in srgb, #00b4eb 4%, color-mix(in srgb, #50b748 3%, #fff));
   --font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
   --font-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
   --glow:
-    radial-gradient(ellipse at 0% 0%, rgba(43, 89, 195, 0.06) 0%, transparent 40%),
-    linear-gradient(180deg, #f4f5f7 0%, #ffffff 42%, #f4f5f7 100%);
-  --shadow-soft: 0 12px 32px rgba(23, 24, 28, 0.07);
-  --shadow-lift: 0 16px 40px rgba(23, 24, 28, 0.1);
-  --radius: 12px;
+    radial-gradient(ellipse at 0% 0%, rgba(0, 180, 235, 0.08) 0%, transparent 42%),
+    radial-gradient(ellipse at 100% 100%, rgba(80, 183, 72, 0.07) 0%, transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f4fbfd 48%, #f6fbf4 100%);
+  --shadow-soft: 0 12px 32px rgba(0, 136, 176, 0.08);
+  --shadow-lift: 0 16px 40px rgba(0, 136, 176, 0.12);
+  --radius: 10px;
   font-family: var(--font-sans);
   color: var(--ink);
   background: var(--glow);
@@ -136,8 +137,8 @@ button.ghost:hover:not(:disabled) {
 .boot-mark {
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent-deep));
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--brand-sky), var(--brand-green));
   animation: boot-pulse 1.2s ease-in-out infinite;
 }
 
@@ -176,7 +177,7 @@ button.ghost:hover:not(:disabled) {
   grid-template-columns: 1.08fr 0.92fr;
   gap: 0;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--paper);
   box-shadow: var(--shadow-soft);
@@ -196,15 +197,16 @@ button.ghost:hover:not(:disabled) {
 
 .login-hero {
   padding: clamp(2.2rem, 4.5vw, 3.6rem);
-  color: #fff;
+  color: var(--ink);
   background:
-    radial-gradient(480px 280px at 80% 120%, rgba(43, 89, 195, 0.45), transparent 55%),
-    linear-gradient(160deg, #17181c 0%, #1e2330 58%, #243056 100%);
+    radial-gradient(420px 240px at 100% 0%, rgba(0, 180, 235, 0.18), transparent 58%),
+    radial-gradient(380px 220px at 0% 100%, rgba(80, 183, 72, 0.16), transparent 55%),
+    linear-gradient(165deg, #ffffff 0%, #f3fbfe 55%, #f4fbf3 100%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   min-height: 420px;
-  border-right: 0;
+  border-right: 1px solid var(--line);
 }
 
 .login-kicker {
@@ -212,7 +214,7 @@ button.ghost:hover:not(:disabled) {
   letter-spacing: 0.08em;
   font-size: 0.75rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--accent-deep);
   text-transform: uppercase;
 }
 
@@ -223,7 +225,7 @@ button.ghost:hover:not(:disabled) {
   line-height: 1.02;
   font-weight: 700;
   letter-spacing: -0.045em;
-  color: #fff;
+  color: var(--ink);
 }
 
 .login-tagline {
@@ -231,7 +233,7 @@ button.ghost:hover:not(:disabled) {
   max-width: 22rem;
   font-size: 1.08rem;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
 }
 
 .login-quote {
@@ -242,7 +244,7 @@ button.ghost:hover:not(:disabled) {
   font-weight: 500;
   font-size: 0.98rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--muted);
 }
 
 .login-panel {
@@ -501,7 +503,7 @@ button.ghost:hover:not(:disabled) {
   width: 16rem;
   padding: 0.5rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: #fff;
   box-shadow: var(--shadow-soft);
   display: flex;
@@ -657,7 +659,7 @@ button.account-trigger:hover,
   display: inline-flex;
   align-items: center;
   padding: 0.8rem 1.2rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--brand-blue);
   color: #fff !important;
   font-weight: 700;
@@ -716,7 +718,7 @@ button.btn-link {
   font-weight: 800;
   font-size: 0.85rem;
   color: #fff;
-  background: linear-gradient(135deg, var(--brand-sky), var(--accent-deep));
+  background: linear-gradient(135deg, var(--brand-sky), var(--brand-green));
 }
 
 .topnav-user-meta {
@@ -774,7 +776,7 @@ button.btn-link {
 }
 
 .title-accent {
-  color: var(--brand-sky);
+  color: var(--accent-deep);
 }
 
 .back {
@@ -846,7 +848,7 @@ button.btn-link {
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   margin-bottom: 0;
   flex-shrink: 0;
   color: var(--brand-sky);
@@ -1135,7 +1137,7 @@ button.btn-link {
 .stats-row > div {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 1rem;
   display: grid;
   gap: 0.2rem;
@@ -1424,9 +1426,9 @@ button.btn-link {
 }
 
 .audit-cat-badge.is-auth {
-  background: color-mix(in srgb, #4b6bfb 12%, #fff);
-  border-color: color-mix(in srgb, #4b6bfb 30%, var(--line));
-  color: #2f4fd0;
+  background: color-mix(in srgb, var(--brand-sky) 12%, #fff);
+  border-color: color-mix(in srgb, var(--brand-sky) 30%, var(--line));
+  color: var(--accent-deep);
 }
 
 .audit-cat-badge.is-people {
@@ -1448,9 +1450,9 @@ button.btn-link {
 }
 
 .audit-cat-badge.is-sends {
-  background: color-mix(in srgb, #0e7490 12%, #fff);
-  border-color: color-mix(in srgb, #0e7490 30%, var(--line));
-  color: #155e75;
+  background: color-mix(in srgb, var(--brand-green) 14%, #fff);
+  border-color: color-mix(in srgb, var(--brand-green) 30%, var(--line));
+  color: color-mix(in srgb, var(--brand-green) 40%, var(--ink));
 }
 
 .audit-cat-badge.is-other {
@@ -1547,7 +1549,7 @@ button.linkish:disabled {
 .template-card {
   position: relative;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: #fff;
   overflow: hidden;
   display: flex;
@@ -1706,7 +1708,7 @@ button.linkish:disabled {
   overscroll-behavior: contain;
   padding: 0.35rem 0.15rem 1rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--ink) 2%, #fff);
 }
 
@@ -1744,7 +1746,7 @@ button.linkish:disabled {
 .canvas-preview-fit {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(28, 36, 32, 0.12);
 }
 
@@ -1809,7 +1811,7 @@ button.linkish:disabled {
   overflow: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background:
     linear-gradient(45deg, #f0eeea 25%, transparent 25%),
     linear-gradient(-45deg, #f0eeea 25%, transparent 25%),
@@ -1846,6 +1848,31 @@ button.linkish:disabled {
 
 .outlook-preview-embedded .outlook-preview-actions {
   width: 100%;
+}
+
+.outlook-preview-subject {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.45rem 0.15rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.outlook-preview-subject-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.outlook-preview-subject strong {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .template-card-frame {
@@ -1943,7 +1970,7 @@ button.linkish:disabled {
 }
 
 .visibility-pill.is-shared {
-  color: var(--brand-green);
+  color: color-mix(in srgb, var(--brand-green) 42%, var(--ink));
   border-color: color-mix(in srgb, var(--brand-green) 40%, var(--line));
   background: color-mix(in srgb, var(--brand-green) 14%, #fff);
 }
@@ -2238,7 +2265,7 @@ button.linkish:disabled {
   gap: 0.45rem 0.75rem;
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, #fff 88%, var(--bg));
 }
 
@@ -2536,7 +2563,7 @@ button.linkish:disabled {
 
 .choice-set {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 0.85rem 1rem;
   margin: 0;
 }
@@ -2567,7 +2594,7 @@ button.linkish:disabled {
   gap: 0.35rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.55);
   cursor: pointer;
   transition:
@@ -2596,7 +2623,7 @@ button.linkish:disabled {
 .starter-card.is-selected:hover {
   box-shadow:
     0 0 0 1px var(--accent),
-    0 12px 30px rgba(43, 89, 195, 0.14);
+    0 12px 30px rgba(0, 180, 235, 0.16);
 }
 
 .starter-card-title {
@@ -2620,7 +2647,7 @@ button.linkish:disabled {
   gap: 0.75rem;
   padding: 0.85rem 1rem;
   border: 1px dashed var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.4);
 }
 
@@ -2791,7 +2818,7 @@ button.danger-text {
 
 .email-preview {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 1rem;
   background: #fff;
   overflow: hidden;
@@ -2928,7 +2955,7 @@ button.danger-text {
   width: min(420px, 100%);
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   box-shadow: 0 20px 50px rgba(2, 132, 199, 0.22);
   padding: 1.15rem 1.2rem 1.1rem;
 }
@@ -3055,7 +3082,7 @@ button.danger-text {
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--ink) 4%, #fff);
   scrollbar-width: thin;
   position: relative;
@@ -3471,7 +3498,7 @@ button.danger-text {
   min-height: 0;
   padding: 0.85rem 0.95rem 1rem;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow-soft);
 }
@@ -3601,10 +3628,34 @@ button.danger-text {
 }
 
 .recipient-chips {
+  --recipient-chip-row: 3.05rem;
+  --recipient-chip-gap: 0.4rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  min-height: 0.25rem;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--recipient-chip-gap);
+  min-height: 0;
+  max-height: calc(
+    4 * var(--recipient-chip-row) + 3 * var(--recipient-chip-gap)
+  );
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.1rem;
+}
+
+.recipient-chip-row {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--recipient-chip-row);
+  box-sizing: border-box;
+  padding: 0.35rem 0.45rem 0.35rem 0.55rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  width: 100%;
+  max-width: 100%;
 }
 
 .recipient-prefix-groups {
@@ -3617,7 +3668,7 @@ button.danger-text {
   gap: 0.45rem;
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--ink) 2%, #fff);
 }
 
@@ -3662,17 +3713,6 @@ button.danger-text {
   margin: 0.35rem 0 0;
 }
 
-.recipient-chip-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.45rem 0.35rem 0.55rem;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--accent) 10%, #fff);
-  max-width: 100%;
-}
-
 .recipient-title-tick {
   display: inline-flex;
   align-items: center;
@@ -3687,17 +3727,23 @@ button.danger-text {
 }
 
 .recipient-chip-body {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.05rem;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .recipient-chip-name {
   font-weight: 600;
   font-size: 0.88rem;
   color: var(--ink);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .recipient-chip-body em {
@@ -3705,6 +3751,10 @@ button.danger-text {
   color: var(--muted);
   font-weight: 500;
   font-size: 0.8rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .recipient-title-select {
@@ -3773,16 +3823,38 @@ button.danger-text {
   color: var(--muted);
 }
 
+.recipient-hits-wrap {
+  margin-top: 0.45rem;
+}
+
+.recipient-hits-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+button.ghost.recipient-add-all {
+  padding: 0.28rem 0.65rem;
+  font-size: 0.82rem;
+}
+
 .recipient-hits {
+  --recipient-hit-row: 3.25rem;
   list-style: none;
   margin: 0;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
-  overflow: hidden;
-  background: #fffdf8;
-  max-height: 220px;
+  background: #fff;
+  max-height: calc(4 * var(--recipient-hit-row));
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.recipient-hits li {
+  height: var(--recipient-hit-row);
 }
 
 .recipient-hits li + li {
@@ -3791,8 +3863,10 @@ button.danger-text {
 
 .recipient-hits button {
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: flex-start;
   gap: 0.1rem;
   text-align: left;
@@ -3800,7 +3874,7 @@ button.danger-text {
   background: transparent;
   color: var(--ink);
   font-weight: 500;
-  padding: 0.65rem 0.85rem;
+  padding: 0.35rem 0.85rem;
   box-shadow: none;
   transform: none;
 }
@@ -4025,7 +4099,7 @@ button.danger-text {
   z-index: 1200;
   width: min(22rem, calc(100vw - 1.5rem));
   padding: 0.85rem 0.9rem 0.55rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: #fff;
   box-shadow: 0 10px 28px color-mix(in srgb, var(--ink) 18%, transparent);
@@ -4224,9 +4298,9 @@ button.danger-text {
 }
 
 .merge-source-badge.is-recipient {
-  background: color-mix(in srgb, #2f6fed 12%, #fff);
-  border-color: color-mix(in srgb, #2f6fed 28%, var(--line));
-  color: #1a4fb5;
+  background: color-mix(in srgb, var(--brand-sky) 12%, #fff);
+  border-color: color-mix(in srgb, var(--brand-sky) 28%, var(--line));
+  color: var(--accent-deep);
 }
 
 .merge-source-badge.is-sender {
@@ -4236,9 +4310,9 @@ button.danger-text {
 }
 
 .merge-source-badge.is-shared {
-  background: color-mix(in srgb, #0f7a4a 12%, #fff);
-  border-color: color-mix(in srgb, #0f7a4a 28%, var(--line));
-  color: #0b5c38;
+  background: color-mix(in srgb, var(--brand-green) 14%, #fff);
+  border-color: color-mix(in srgb, var(--brand-green) 28%, var(--line));
+  color: color-mix(in srgb, var(--brand-green) 40%, var(--ink));
 }
 
 .merge-source-badge.is-perRecipient {
@@ -4337,7 +4411,7 @@ button.danger-text {
   gap: 1rem;
   padding: 0.95rem 1.1rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel);
   text-decoration: none !important;
   color: inherit;
@@ -4536,7 +4610,7 @@ button.danger-text {
   gap: 0;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--panel);
   overflow: hidden;
   transition:
@@ -4653,7 +4727,7 @@ button.danger-text {
 
 .sent-row {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel);
   overflow: hidden;
 }
@@ -4717,7 +4791,7 @@ button.danger-text {
   overscroll-behavior: contain;
   padding: 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--ink) 3%, #fff);
   display: flex;
   justify-content: center;
@@ -4747,7 +4821,7 @@ button.danger-text {
   margin: 0;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--page-wash) 70%, #fff);
 }
 
@@ -4820,7 +4894,7 @@ button.danger-text {
   display: inline-flex;
   align-items: center;
   padding: 0.8rem 1.2rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: #fff;
   color: var(--ink);
@@ -4852,7 +4926,7 @@ button.danger-text {
 }
 
 .template-card {
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .template-card:hover {
@@ -4904,7 +4978,7 @@ button.danger-text {
 .tour-spotlight {
   position: fixed;
   z-index: 1;
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: 0 0 0 9999px rgba(15, 27, 45, 0.42);
   outline: 2px solid color-mix(in srgb, var(--brand-sky) 70%, #fff);
   outline-offset: 2px;
@@ -4926,7 +5000,7 @@ button.danger-text {
   pointer-events: auto;
   max-width: calc(100vw - 24px);
   padding: 1rem 1.1rem 0.95rem;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: #fff;
   box-shadow: 0 16px 40px rgba(2, 132, 199, 0.2);
@@ -4968,7 +5042,7 @@ button.danger-text {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow-soft);
 }
@@ -5036,7 +5110,7 @@ button.danger-text {
 
 .gift-shelf-card .marketplace-card-preview {
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   height: 320px;
   background: #fff;
   transition:
