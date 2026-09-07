@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
 /** Admin hub - stats + links to Summary, People, Audit. */
 export function AdminPage() {
