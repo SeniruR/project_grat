@@ -10,7 +10,7 @@ import {
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
 import { CategoryCombobox } from "../components/CategoryCombobox";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, myCardsCrumb } from "../components/Breadcrumbs";
 import type { PlaceholderDef } from "../lib/mergeFields";
 import { FALLBACK_DEFAULT_SUBJECT } from "../lib/mergeFields";
 import type { ImageSlotDef } from "../lib/imageSlots";
@@ -77,6 +77,13 @@ export function NewTemplatePage() {
     setIgnoredPlaceholders([]);
     setImageSlots([]);
     setScanNotice(null);
+  }
+
+  function clearZip() {
+    setZipFile(null);
+    resetZipScan();
+    setError(null);
+    if (zipInputRef.current) zipInputRef.current.value = "";
   }
 
   async function onZipSelected(file: File | null) {
@@ -209,9 +216,8 @@ export function NewTemplatePage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "My cards", to: "/cards" },
+          myCardsCrumb,
           { label: "New card" },
         ]}
       />
@@ -303,27 +309,43 @@ export function NewTemplatePage() {
               <li>
                 <strong>Share → Download → HTML and images</strong> (ZIP).
               </li>
-              <li>Choose that ZIP below - tags and images are scanned right away.</li>
+              <li>
+                {zipFile && !scanning
+                  ? "ZIP added - tags and images are listed below."
+                  : "Choose that ZIP below - tags and images are scanned right away."}
+              </li>
             </ol>
-            <label
-              className={`file-pick ${saving || scanning ? "is-disabled" : ""}`}
-            >
-              <input
-                ref={zipInputRef}
-                type="file"
-                accept=".zip,application/zip"
-                disabled={saving || scanning}
-                onChange={(e) => {
-                  void onZipSelected(e.target.files?.[0] ?? null);
-                }}
-              />
-              <span className="file-pick-btn">
-                {scanning ? "Scanning ZIP…" : "Choose Canva ZIP"}
-              </span>
-              <span className="file-pick-name muted">
-                {zipFile ? zipFile.name : "HTML and images ZIP"}
-              </span>
-            </label>
+            {scanning ? (
+              <p className="muted">Scanning ZIP…</p>
+            ) : zipFile ? (
+              <div className="import-file-added" role="status">
+                <strong>ZIP added</strong>
+                <span className="import-file-added-name">{zipFile.name}</span>
+                <button
+                  type="button"
+                  className="linkish"
+                  disabled={saving}
+                  onClick={clearZip}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label
+                className={`file-pick ${saving ? "is-disabled" : ""}`}
+              >
+                <input
+                  ref={zipInputRef}
+                  type="file"
+                  accept=".zip,application/zip"
+                  disabled={saving}
+                  onChange={(e) => {
+                    void onZipSelected(e.target.files?.[0] ?? null);
+                  }}
+                />
+                <span className="file-pick-btn">Choose Canva ZIP</span>
+              </label>
+            )}
             <label className="check import-trim-option">
               <input
                 type="checkbox"

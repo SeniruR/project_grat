@@ -1,16 +1,21 @@
 # Documents
 
-LaTeX sources for project documentation.
+Server / infrastructure handover PDFs live here.
 
-## System requirements
+## Policy
 
-File: `system-requirements.tex`
+- **Commit:** `*.pdf` only (e.g. `system-requirements.pdf`)
+- **Do not commit:** `*.tex` and LaTeX build artefacts (ignored by `.gitignore`)
 
-Build a PDF (run twice so the table of contents is complete):
+Edit the local `.tex` source, rebuild the PDF, then commit the PDF.
+
+## System requirements (simple server handover)
+
+Local source (ignored by Git): `system-requirements.tex`  
+Committed deliverable: `system-requirements.pdf`
 
 ```bash
 cd documents
-pdflatex system-requirements.tex
 pdflatex system-requirements.tex
 ```
 

@@ -9,7 +9,7 @@ type Props = {
   items: Crumb[];
 };
 
-/** Trail like Home > Cards > Browse cards > … */
+/** Trail like Cards › Choose a card › Send */
 export function Breadcrumbs({ items }: Props) {
   if (items.length === 0) return null;
   return (
@@ -42,8 +42,19 @@ export function Breadcrumbs({ items }: Props) {
   );
 }
 
-/** Shared Cards section crumb - hub is the Cards homepage. */
-export const cardsCrumb: Crumb = { label: "Cards", to: "/emails" };
+/** Shared Cards section crumb. Browse cards is home for every role. */
+export const cardsCrumb: Crumb = { label: "Cards", to: "/marketplace" };
+
+export const chooseCardCrumb: Crumb = {
+  label: "Choose a card",
+  to: "/marketplace",
+};
+
+export const myCardsCrumb: Crumb = { label: "My cards", to: "/cards" };
+
+export const historyCrumb: Crumb = { label: "History", to: "/sent" };
+
+export const adminCrumb: Crumb = { label: "Admin", to: "/admin" };
 
 /** @deprecated Use cardsCrumb */
 export const emailsCrumb = cardsCrumb;

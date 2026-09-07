@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
 import { DEFAULT_NAME_HONORIFICS } from "../lib/mergeFields";
 
@@ -121,9 +121,8 @@ export function AdminSettingsPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin", to: "/admin" },
+          adminCrumb,
           { label: "Settings" },
         ]}
       />
@@ -133,9 +132,9 @@ export function AdminSettingsPage() {
           <p className="eyebrow">Admin</p>
           <h1>Send settings</h1>
           <p className="lede">
-            Choose which name titles appear as recipient groups when sending
-            (Mr., Mrs., Sir, …). People start without a title until you pick
-            one.
+            Choose which name titles appear when sending (Mr., Mrs., Sir, …).
+            Sir and Madam replace the name (Dear Sir,) instead of prefixing it.
+            People start without a title until you pick one.
           </p>
         </div>
       </header>
@@ -146,9 +145,9 @@ export function AdminSettingsPage() {
       <section className="panel form-stack">
         <h2 className="card-section-title">Name prefixes</h2>
         <p className="muted small">
-          Each prefix becomes a recipient group on Compose with its own search.
-          Add several people under Mr., others under Mrs., and so on. Order here
-          is the order of those groups.
+          These titles appear in the prefix menu on Compose. Mr. and Mrs. go
+          in front of the name; Sir and Madam replace it (Dear Sir,). Order
+          here is the order in that menu.
         </p>
 
         {loading ? (

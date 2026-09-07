@@ -38,11 +38,7 @@ export function AdminPage() {
   return (
     <div className="page">
       <Breadcrumbs
-        items={[
-          { label: "Home", to: "/" },
-          emailsCrumb,
-          { label: "Admin" },
-        ]}
+        items={[emailsCrumb, { label: "Admin" }]}
       />
       <header className="page-header">
         <div>

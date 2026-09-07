@@ -8,15 +8,17 @@ import { SiteFooter } from "../components/SiteFooter";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
-  const [displayName, setDisplayName] = useState("Seniru");
-  const [email, setEmail] = useState("seniru@slt.com.lk");
+  const [displayName, setDisplayName] = useState("Admin");
+  const [email, setEmail] = useState("admin@example.com");
   const [role, setRole] = useState<AppRole>("USER");
   const [startTutorial, setStartTutorial] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [modes, setModes] = useState("…");
+  const [modes, setModes] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!showDemo) return;
     api
       .getMode()
       .then((m) =>
@@ -25,7 +27,7 @@ export function LoginPage() {
         ),
       )
       .catch(() => setModes("API offline"));
-  }, []);
+  }, [showDemo]);
 
   if (!loading && user) {
     return (
@@ -61,17 +63,16 @@ export function LoginPage() {
           <p className="login-tagline">
             When someone made your day, send it back.
           </p>
+          <p className="login-quote">The smallest note can mean the most.</p>
         </section>
 
         <section className="login-panel">
-          <h2>Sign in</h2>
-          <p className="lede">
-            Use your work details. Choose a role to see how it looks for you.
-          </p>
+          <h2>Continue to give</h2>
+          <p className="lede">Sign in, then choose a card for someone.</p>
 
           <form className="login-form" onSubmit={onSubmit}>
             <label>
-              Display name
+              Your name
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -89,55 +90,64 @@ export function LoginPage() {
                 autoComplete="email"
               />
             </label>
-            <fieldset className="choice-set">
-              <legend>Role</legend>
-              <label className="check">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={role === "USER"}
-                  onChange={() => setRole("USER")}
-                />
-                User - browse and send
-              </label>
-              <label className="check">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={role === "DESIGNER"}
-                  onChange={() => setRole("DESIGNER")}
-                />
-                Designer - create cards and send
-              </label>
-              <label className="check">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={role === "ADMIN"}
-                  onChange={() => setRole("ADMIN")}
-                />
-                Admin - full access
-              </label>
-            </fieldset>
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={startTutorial}
-                onChange={(e) => setStartTutorial(e.target.checked)}
-              />
-              Start tutorial after sign in
-            </label>
-            <p className="muted small login-tour-hint">
-              Covers the flow for the role you pick above (User, Designer, or
-              Admin).
-            </p>
+            {showDemo ? (
+              <>
+                <fieldset className="choice-set">
+                  <legend>Try as</legend>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "USER"}
+                      onChange={() => setRole("USER")}
+                    />
+                    Someone sending a card
+                  </label>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "DESIGNER"}
+                      onChange={() => setRole("DESIGNER")}
+                    />
+                    Someone who designs cards
+                  </label>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="role"
+                      checked={role === "ADMIN"}
+                      onChange={() => setRole("ADMIN")}
+                    />
+                    Someone who looks after the system
+                  </label>
+                </fieldset>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={startTutorial}
+                    onChange={(e) => setStartTutorial(e.target.checked)}
+                  />
+                  Show me around after I sign in
+                </label>
+              </>
+            ) : null}
             {error ? <p className="error">{error}</p> : null}
             <button type="submit" disabled={submitting}>
-              {submitting ? "Signing in…" : "Sign in"}
+              {submitting ? "Signing in…" : "Continue"}
             </button>
           </form>
 
-          <p className="mode-line">{modes}</p>
+          <button
+            type="button"
+            className="ghost login-demo-swap"
+            onClick={() => setShowDemo((open) => !open)}
+          >
+            {showDemo
+              ? "Hide demonstration options"
+              : "Demonstration - show extra options"}
+          </button>
+          {showDemo && modes ? <p className="mode-line">{modes}</p> : null}
         </section>
       </div>
       <SiteFooter />

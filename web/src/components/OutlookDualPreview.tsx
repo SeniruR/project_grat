@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { openEmailInNewTab } from "../lib/copyEmail";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { buildEmailDocument } from "../lib/copyEmail";
+import { inferEmailWidth, measureEmailContentHeight } from "../lib/rasterizeEmailHtml";
 import { EmailBrowserCopyModal } from "./EmailBrowserCopyModal";
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   designWidth?: number;
   /** Designer canvas height for Outlook PNG paste sizing */
   designHeight?: number;
+  /** Email subject shown above the card, like an inbox reading pane */
+  subject?: string;
   /** Show copy actions for paste into Outlook / Gmail */
   showCopyActions?: boolean;
   /** Nest inside another Preview panel (skip outer chrome / title) */
@@ -27,15 +30,22 @@ export function OutlookDualPreview({
   showCopyActions = true,
   embedded = false,
   pasteMode = "auto",
+  subject,
 }: Props) {
   const safe = useMemo(() => html.trim(), [html]);
+  const cardWidth = useMemo(
+    () => inferEmailWidth(safe, designWidth),
+    [safe, designWidth],
+  );
+  const srcDoc = useMemo(
+    () => (safe ? buildEmailDocument(safe) : ""),
+    [safe],
+  );
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [fitZoom, setFitZoom] = useState(1);
-  const [copyNotice, setCopyNotice] = useState<string | null>(null);
+  const [contentH, setContentH] = useState(designHeight);
   const [browserCopyOpen, setBrowserCopyOpen] = useState(false);
 
-  // Measure a stable width probe that is NOT affected by email zoom, so Fit
-  // cannot ResizeObserver-loop (that was the preview "vibration").
   useEffect(() => {
     const el = measureRef.current;
     if (!el) return;
@@ -46,7 +56,7 @@ export function OutlookDualPreview({
       timer = window.setTimeout(() => {
         const paneWidth = el.getBoundingClientRect().width;
         if (paneWidth < 40) return;
-        const next = Math.min(2.5, Math.max(0.35, (paneWidth - 32) / designWidth));
+        const next = Math.min(1, Math.max(0.35, (paneWidth - 24) / cardWidth));
         const rounded = Math.round(next * 100) / 100;
         setFitZoom((prev) => (Math.abs(prev - rounded) < 0.01 ? prev : rounded));
       }, 120);
@@ -61,21 +71,25 @@ export function OutlookDualPreview({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [designWidth, safe]);
+  }, [cardWidth, safe]);
 
-  if (!safe) return null;
-
-  function openToCopy() {
-    setCopyNotice(null);
+  function onFrameLoad(iframe: HTMLIFrameElement) {
     try {
-      openEmailInNewTab(safe);
-      setCopyNotice(
-        "Opened in a new tab - click that page, press Ctrl+A then Ctrl+C, then paste into Outlook (Ctrl+V).",
-      );
-    } catch (err) {
-      setCopyNotice(err instanceof Error ? err.message : "Could not open tab");
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+      const measured = measureEmailContentHeight(doc, iframe);
+      const next = Math.min(8_000, Math.max(120, measured + 8));
+      setContentH((prev) => (Math.abs(prev - next) < 4 ? prev : next));
+      iframe.style.height = `${next}px`;
+      iframe.style.overflow = "hidden";
+      doc.documentElement.style.overflow = "hidden";
+      doc.body.style.overflow = "hidden";
+    } catch {
+      /* opaque origin */
     }
   }
+
+  if (!safe) return null;
 
   const Wrapper = embedded ? "div" : "section";
   const wrapperClass = embedded
@@ -84,6 +98,7 @@ export function OutlookDualPreview({
 
   return (
     <Wrapper className={wrapperClass}>
+      {embedded && !showCopyActions ? null : (
       <div className="outlook-preview-toolbar">
         {embedded ? null : <h2>Preview</h2>}
         {showCopyActions ? (
@@ -92,18 +107,17 @@ export function OutlookDualPreview({
               <button type="button" onClick={() => setBrowserCopyOpen(true)}>
                 Copy for Outlook
               </button>
-              <button
-                type="button"
-                className="ghost small"
-                onClick={openToCopy}
-              >
-                Open in new tab
-              </button>
             </div>
           </div>
         ) : null}
       </div>
-      {copyNotice ? <p className="notice">{copyNotice}</p> : null}
+      )}
+      {subject?.trim() ? (
+        <div className="outlook-preview-subject" data-tour="compose-subject">
+          <span className="outlook-preview-subject-label">Subject</span>
+          <strong>{subject.trim()}</strong>
+        </div>
+      ) : null}
       <div className="outlook-dual-scroll">
         <div className="outlook-measure-probe full" ref={measureRef} aria-hidden />
         <div className="outlook-dual single">
@@ -111,21 +125,23 @@ export function OutlookDualPreview({
             <div className="outlook-pane-body">
               <div
                 className="email-preview-scale"
-                style={
-                  {
-                    "--preview-zoom": String(fitZoom),
-                    "--preview-design-width": `${designWidth}px`,
-                  } as CSSProperties
-                }
+                style={{
+                  width: cardWidth * fitZoom,
+                  height: contentH * fitZoom,
+                }}
               >
-                <div
-                  className="email-preview outlook-web-sim"
+                <iframe
+                  title="Email preview"
+                  className="outlook-preview-iframe"
+                  sandbox="allow-same-origin"
+                  scrolling="no"
+                  srcDoc={srcDoc}
+                  onLoad={(e) => onFrameLoad(e.currentTarget)}
                   style={{
-                    width: designWidth,
-                    minWidth: designWidth,
-                    maxWidth: designWidth,
+                    width: cardWidth,
+                    height: contentH,
+                    transform: `scale(${fitZoom})`,
                   }}
-                  dangerouslySetInnerHTML={{ __html: safe }}
                 />
               </div>
             </div>
@@ -137,7 +153,7 @@ export function OutlookDualPreview({
         <EmailBrowserCopyModal
           html={safe}
           pngUrl={pngUrl}
-          designWidth={designWidth}
+          designWidth={cardWidth}
           designHeight={designHeight}
           pasteMode={pasteMode}
           onClose={() => setBrowserCopyOpen(false)}

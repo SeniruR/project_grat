@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type SentItem } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { canManageDesigns, isAdmin } from "../lib/roles";
+import { isAdmin } from "../lib/roles";
 import { SentPreviewModal } from "../components/SentPreviewModal";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 
@@ -35,25 +35,14 @@ export function SentPage() {
 
   return (
     <div className="page">
-      <Breadcrumbs
-        items={
-          canManageDesigns(user)
-            ? [
-                { label: "Home", to: "/" },
-                emailsCrumb,
-                { label: "Sent" },
-              ]
-            : [{ label: "Sent" }]
-        }
-      />
+      <Breadcrumbs items={[emailsCrumb, { label: "History" }]} />
       <header className="page-header">
         <div>
-          <p className="eyebrow">Cards</p>
-          <h1>Sent</h1>
+          <h1>History</h1>
           <p className="lede">
             Cards you’ve already given
-            {isAdmin(user) ? " — including everyone’s, as an admin" : ""}.
-            Open a row to see how it arrived.
+            {isAdmin(user) ? " - including everyone’s, as an admin" : ""}.
+            Open one to see how it arrived.
           </p>
         </div>
       </header>
@@ -85,12 +74,12 @@ export function SentPage() {
 
         {!loading && items.length === 0 ? (
           <p className="muted">
-            No cards given yet. Choose one and send it — someone will feel it.
+            No cards given yet. Choose one and send it - someone will feel it.
           </p>
         ) : null}
 
         {!loading && items.length > 0 ? (
-          <ul className="sent-list">
+          <ul className="sent-list sent-keepsake">
             {items.map((item) => (
               <li key={item.id} className="sent-row">
                 <button
@@ -98,17 +87,15 @@ export function SentPage() {
                   className="sent-row-head"
                   onClick={() => setPreviewItem(item)}
                 >
-                  <div>
-                    <strong>{item.subject}</strong>
+                  <div className="sent-keepsake-row">
+                    <strong>{item.job.template.name}</strong>
+                    <span className="sent-keepsake-to">
+                      Given to {item.recipientName || item.recipientEmail}
+                    </span>
                     <span className="meta">
-                      {item.job.template.name}
-                      {item.job.categoryName
-                        ? ` · ${item.job.categoryName}`
-                        : ""}{" "}
-                      → {item.recipientName || item.recipientEmail} ·{" "}
-                      {item.status}
+                      {item.subject}
                       {isAdmin(user)
-                        ? ` · by ${item.job.requester.displayName}`
+                        ? ` · from ${item.job.requester.displayName}`
                         : ""}
                     </span>
                   </div>

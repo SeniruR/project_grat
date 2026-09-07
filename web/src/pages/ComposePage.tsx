@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   api,
@@ -22,6 +23,7 @@ import {
   sharedPlaceholderKeys,
   suggestPlaceholderSource,
   withHonorific,
+  isStandaloneHonorific,
   type NameHonorific,
   type PlaceholderDef,
   type PlaceholderSource,
@@ -45,6 +47,16 @@ import { canManageDesigns, canUseAdvancedCompose } from "../lib/roles";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_RECIPIENTS = 50;
+const DIRECTORY_PAGE_SIZE = 20;
+const DIRECTORY_DOMAIN_LIMIT = 200;
+
+/** `@example.com`, `example.com`, or `@example` → fetch the whole domain. */
+function isDomainDirectoryQuery(raw: string): boolean {
+  const t = raw.trim();
+  if (!t || t.includes(" ") || EMAIL_RE.test(t)) return false;
+  return t.startsWith("@") || /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(t);
+}
 
 function parseTypedEmail(raw: string): DirectoryPerson | null {
   const email = raw.trim().toLowerCase();
@@ -105,17 +117,15 @@ export function ComposePage() {
   const [recipientTitles, setRecipientTitles] = useState<
     Record<string, string>
   >({});
-  /** Prefix groups the composer opted into (not all admin prefixes). */
-  const [activePrefixGroups, setActivePrefixGroups] = useState<string[]>([]);
-  const [prefixToAdd, setPrefixToAdd] = useState("");
-  /** Which prefix group the current search belongs to ("" = no title). */
-  const [searchScope, setSearchScope] = useState("");
+  /** Prefix applied to the next person added. Empty = no title. */
+  const [addPrefix, setAddPrefix] = useState("");
   const [nameHonorifics, setNameHonorifics] = useState<NameHonorific[]>([
     ...DEFAULT_NAME_HONORIFICS,
   ]);
   const [error, setError] = useState<string | null>(null);
   const [errorTick, setErrorTick] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
   const [mailMode, setMailMode] = useState("mock");
   const [smtpFrom, setSmtpFrom] = useState<string | null>(null);
   const [smtpFromName, setSmtpFromName] = useState<string | null>(null);
@@ -190,8 +200,11 @@ export function ComposePage() {
     }
     const handle = window.setTimeout(() => {
       setSearching(true);
+      const limit = isDomainDirectoryQuery(q)
+        ? DIRECTORY_DOMAIN_LIMIT
+        : DIRECTORY_PAGE_SIZE;
       api
-        .directorySearch(token, q)
+        .directorySearch(token, q, limit)
         .then((res) => setHits(res.people))
         .catch(() => setHits([]))
         .finally(() => setSearching(false));
@@ -378,25 +391,61 @@ export function ComposePage() {
     slotsForOverrides,
   ]);
 
-  function addPerson(person: DirectoryPerson, title = "") {
-    const ek = personKey(person);
+  function addPeople(people: DirectoryPerson[], title = addPrefix, clearSearch = false) {
+    const room = Math.max(0, MAX_RECIPIENTS - selected.length);
+    const fresh = people.filter(
+      (p) => !selected.some((s) => personKey(s) === personKey(p)),
+    );
+    const toAdd = fresh.slice(0, room);
+    if (!toAdd.length && people.length) {
+      setRecipientTitles((prev) => {
+        const next = { ...prev };
+        for (const p of people) next[personKey(p)] = title;
+        return next;
+      });
+      if (clearSearch) {
+        setQuery("");
+        setHits([]);
+      }
+      return;
+    }
+    if (fresh.length > room) {
+      reportError(`You can send to ${MAX_RECIPIENTS} people at a time.`);
+    }
     setSelected((prev) => {
-      if (prev.some((p) => personKey(p) === ek)) return prev;
-      return [...prev, person];
+      const seen = new Set(prev.map(personKey));
+      const next = [...prev];
+      for (const p of toAdd) {
+        const ek = personKey(p);
+        if (seen.has(ek)) continue;
+        seen.add(ek);
+        next.push(p);
+      }
+      return next;
     });
-    setRecipientTitles((prev) => ({ ...prev, [ek]: title }));
-    setQuery("");
-    setHits([]);
+    setRecipientTitles((prev) => {
+      const next = { ...prev };
+      for (const p of toAdd) next[personKey(p)] = title;
+      return next;
+    });
+    if (clearSearch) {
+      setQuery("");
+      setHits([]);
+    }
   }
 
-  function tryAddTypedEmail(title = searchScope) {
+  function addPerson(person: DirectoryPerson, title = addPrefix) {
+    addPeople([person], title, false);
+  }
+
+  function tryAddTypedEmail(title = addPrefix) {
     const person = parseTypedEmail(query);
     if (!person) {
       reportError("Enter a valid email address (e.g. you@example.com).");
       return;
     }
     setError(null);
-    addPerson(person, title);
+    addPeople([person], title, true);
   }
 
   const typedRecipient = parseTypedEmail(query);
@@ -421,41 +470,6 @@ export function ComposePage() {
     });
   }
 
-  function peopleForTitle(title: string): DirectoryPerson[] {
-    return selected.filter(
-      (p) => (recipientTitles[personKey(p)] || "") === title,
-    );
-  }
-
-  function addPrefixGroup(value: string) {
-    const title = value.trim();
-    if (!title) return;
-    if (!nameHonorifics.some((h) => h.value === title)) return;
-    setActivePrefixGroups((prev) =>
-      prev.includes(title) ? prev : [...prev, title],
-    );
-    setPrefixToAdd("");
-    setSearchScope(title);
-    setQuery("");
-    setHits([]);
-  }
-
-  function removePrefixGroup(title: string) {
-    setActivePrefixGroups((prev) => prev.filter((t) => t !== title));
-    setRecipientTitles((prev) => {
-      const next = { ...prev };
-      for (const [email, t] of Object.entries(next)) {
-        if (t === title) next[email] = "";
-      }
-      return next;
-    });
-    if (searchScope === title) {
-      setSearchScope("");
-      setQuery("");
-      setHits([]);
-    }
-  }
-
   function titledRecipientName(person: DirectoryPerson): string {
     const ek = personKey(person);
     return withHonorific(recipientTitles[ek] || "", person.displayName);
@@ -468,48 +482,86 @@ export function ComposePage() {
     );
   }
 
-  function renderRecipientSearch(title: string, inputId: string) {
-    const active = searchScope === title;
-    const typed = active ? typedRecipient : null;
+  function resolvedSubjectFor(person: DirectoryPerson): string {
+    const raw = subject.trim();
+    if (!raw) return "";
+    return applyMergeFields(
+      raw,
+      buildMergeFieldMapFromPlaceholders(placeholders, {
+        recipientName: titledRecipientName(person),
+        recipientEmail: person.email,
+        senderName:
+          titledSenderName().trim() || user?.displayName || "You",
+        senderEmail:
+          senderEmail.trim() || user?.email || "you@example.com",
+        shared: sharedFields,
+        perRecipient: perRecipientFields[personKey(person)] ?? {},
+      }),
+    );
+  }
+
+  function renderRecipientSearch() {
+    const title = addPrefix;
+    const typed = typedRecipient;
     const canTypedAdd = Boolean(typed);
-    const activeHits = active ? hits : [];
+    const selectedKey = (p: DirectoryPerson) =>
+      selected.some((s) => personKey(s) === personKey(p));
+    const sameTitle = (p: DirectoryPerson) =>
+      (recipientTitles[personKey(p)] || "") === title;
+    const visibleHits = hits.filter((p) => !selectedKey(p) || !sameTitle(p));
+    const newHits = visibleHits.filter((p) => !selectedKey(p));
+    const typedSelected = typed ? selectedKey(typed) : false;
+    const typedSameTitle = typed ? sameTitle(typed) : false;
+    const showTyped =
+      canTypedAdd && typed && (!typedSelected || !typedSameTitle);
     return (
       <>
-        <input
-          id={inputId}
-          type="email"
-          value={active ? query : ""}
-          onChange={(e) => {
-            setSearchScope(title);
-            setQuery(e.target.value);
-          }}
-          onFocus={() => {
-            if (searchScope !== title) {
-              setSearchScope(title);
-              setQuery("");
-              setHits([]);
+        <div className="recipient-add-row">
+          {usesRecipientName ? (
+            <select
+              className="recipient-prefix-select"
+              value={addPrefix}
+              disabled={busy}
+              onChange={(e) => setAddPrefix(e.target.value)}
+              aria-label="Name prefix"
+            >
+              <option value="">No title</option>
+              {nameHonorifics.map((h) => (
+                <option key={h.value} value={h.value}>
+                  {h.label}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <input
+            id="recipient-search"
+            type="text"
+            inputMode="email"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (canTypedAdd) tryAddTypedEmail(title);
+              }
+            }}
+            placeholder={
+              usesRecipientName
+                ? "Name, email, or @example.com"
+                : "Email, or @example.com for everyone"
             }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              if (canTypedAdd) tryAddTypedEmail(title);
-            }
-          }}
-          placeholder={
-            title
-              ? `Add under ${nameHonorifics.find((h) => h.value === title)?.label ?? title}…`
-              : usesRecipientName
-                ? "No title - type email or search directory"
-                : "Type email and press Enter, or search directory"
-          }
-          disabled={busy}
-          autoComplete="off"
-        />
-        {active && searching ? (
-          <p className="muted small">Searching…</p>
+            disabled={busy}
+            autoComplete="off"
+          />
+        </div>
+        {isStandaloneHonorific(addPrefix) ? (
+          <p className="muted small recipient-standalone-hint">
+            {addPrefix} is used on its own - the card will say Dear {addPrefix},
+            without their name.
+          </p>
         ) : null}
-        {active && canTypedAdd && typed ? (
+        {searching ? <p className="muted small">Searching…</p> : null}
+        {showTyped && typed ? (
           <ul className="recipient-hits">
             <li>
               <button
@@ -518,41 +570,56 @@ export function ComposePage() {
                 onClick={() => tryAddTypedEmail(title)}
               >
                 <strong>
-                  {selected.some((s) => personKey(s) === personKey(typed))
-                    ? `Move ${typed.email} here`
+                  {typedSelected
+                    ? `Update to ${title || "no title"}`
                     : `Add ${typed.email}`}
                 </strong>
-                <span>Press Enter</span>
+                <span>{typed.email}</span>
               </button>
             </li>
           </ul>
         ) : null}
-        {active && activeHits.length > 0 ? (
-          <ul className="recipient-hits">
-            {activeHits.map((p) => {
-              const ek = personKey(p);
-              const alreadyHere =
-                selected.some((s) => personKey(s) === ek) &&
-                (recipientTitles[ek] || "") === title;
-              const elsewhere = selected.some((s) => personKey(s) === ek);
-              return (
-                <li key={p.aadOid || p.email}>
-                  <button
-                    type="button"
-                    disabled={alreadyHere || busy}
-                    onClick={() => addPerson(p, title)}
-                  >
-                    <strong>
-                      {elsewhere && !alreadyHere
-                        ? `Move ${p.displayName}`
-                        : p.displayName}
-                    </strong>
-                    <span>{p.email}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        {visibleHits.length > 0 ? (
+          <div className="recipient-hits-wrap">
+            {newHits.length > 1 ? (
+              <div className="recipient-hits-toolbar">
+                <span className="muted small">
+                  {newHits.length} {newHits.length === 1 ? "person" : "people"}
+                </span>
+                <button
+                  type="button"
+                  className="ghost recipient-add-all"
+                  disabled={busy}
+                  onClick={() => addPeople(newHits, title, true)}
+                >
+                  Add everyone
+                </button>
+              </div>
+            ) : null}
+            <ul className="recipient-hits">
+              {visibleHits.map((p) => {
+                const update = selectedKey(p);
+                return (
+                  <li key={p.aadOid || p.email}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => addPerson(p, title)}
+                    >
+                      <strong>
+                        {update ? `Update ${p.displayName}` : p.displayName}
+                      </strong>
+                      <span>
+                        {update
+                          ? `Change title to ${title || "no title"}`
+                          : p.email}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         ) : null}
       </>
     );
@@ -703,38 +770,43 @@ export function ComposePage() {
     return null;
   }
 
-  async function createDrafts() {
-    if (!token || !template || !id) return;
+  function sendValidationError(): string | null {
+    if (!token || !template || !id) return "Not ready to send yet.";
     if (!compiled) {
-      reportError(
-        "No compiled email HTML yet. Import a Canva ZIP (or HTML) on the card page first.",
-      );
-      return;
+      return "No compiled email HTML yet. Import a Canva ZIP (or HTML) on the card page first.";
     }
-    if (!subject.trim()) {
-      reportError("Subject is required.");
-      return;
-    }
-    if (!selected.length) {
-      reportError("Pick at least one recipient.");
-      return;
-    }
+    if (!subject.trim()) return "Subject is required.";
+    if (!selected.length) return "Pick at least one recipient.";
     if (!senderName.trim() && !user?.displayName && mailMode !== "smtp") {
-      reportError("Your account name is missing. Sign in again and retry.");
-      return;
+      return "Your account name is missing. Sign in again and retry.";
     }
     if (
       mailMode !== "smtp" &&
       !EMAIL_RE.test((senderEmail.trim() || user?.email || "").trim())
     ) {
-      reportError("Your account email is missing or invalid. Sign in again and retry.");
+      return "Your account email is missing or invalid. Sign in again and retry.";
+    }
+    return validateMergeInputs();
+  }
+
+  function requestSend() {
+    const err = sendValidationError();
+    if (err) {
+      reportError(err);
       return;
     }
-    const mergeErr = validateMergeInputs();
-    if (mergeErr) {
-      reportError(mergeErr);
+    setConfirmSend(true);
+  }
+
+  async function createDrafts() {
+    const err = sendValidationError();
+    if (err) {
+      reportError(err);
+      setConfirmSend(false);
       return;
     }
+
+    if (!token || !template) return;
 
     setBusy(true);
     setError(null);
@@ -812,6 +884,7 @@ export function ComposePage() {
       });
       navigate(`/drafts/${job.id}`);
     } catch (err) {
+      setConfirmSend(false);
       reportError(err instanceof Error ? err.message : "Could not create drafts");
     } finally {
       setBusy(false);
@@ -824,6 +897,15 @@ export function ComposePage() {
     if (placeholders.some((p) => p.source === "recipientName")) return true;
     return detectMergeFields(subject).some((k) => isRecipientNameToken(k));
   }, [placeholders, subject]);
+
+  useEffect(() => {
+    if (!confirmSend) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) setConfirmSend(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmSend, busy]);
 
   if (!template && !error) {
     return (
@@ -846,20 +928,17 @@ export function ComposePage() {
     canManageDesigns(user) && template.owner.id === user?.id;
   const parentCrumb = fromDesigns
     ? { label: "My cards", to: "/cards" }
-    : { label: "Browse cards", to: "/marketplace" };
+    : { label: "Choose a card", to: "/marketplace" };
   const parentDetailTo = fromDesigns
     ? `/cards/${template.id}`
-    : `/marketplace/${template.id}`;
+    : "/marketplace";
   const cancelTo = fromDesigns ? `/cards/${template.id}` : "/marketplace";
-  const composeCrumbs = fromDesigns
-    ? [
-        { label: "Home", to: "/" },
-        emailsCrumb,
-        parentCrumb,
-        { label: template.name, to: parentDetailTo },
-        { label: "Send" },
-      ]
-    : [parentCrumb, { label: "Send" }];
+  const composeCrumbs = [
+    emailsCrumb,
+    parentCrumb,
+    { label: template.name, to: parentDetailTo },
+    { label: "Send" },
+  ];
 
   return (
     <div className="page">
@@ -868,15 +947,12 @@ export function ComposePage() {
         message={error}
         onClose={dismissError}
       />
-      <Breadcrumbs items={composeCrumbs} />
+      {composeCrumbs.length ? <Breadcrumbs items={composeCrumbs} /> : null}
       <header className="page-header">
         <div>
-          <p className="eyebrow">Cards</p>
           <h1>Send this</h1>
           <p className="lede">
-            {advancedCompose
-              ? "Who it’s for, a few details, then a look at how it will arrive."
-              : "Who it’s for, then a look at how it will arrive."}
+            They’ll see the card. It comes from you.
           </p>
         </div>
       </header>
@@ -895,175 +971,59 @@ export function ComposePage() {
         >
           <section className="compose-section" data-tour="compose-recipients">
             <header className="compose-section-head">
-              <span className="compose-section-step" aria-hidden>
-                1
-              </span>
               <div className="compose-section-titles">
-                <h2 className="compose-section-title">Who is this for?</h2>
+                <h2 className="compose-section-title">For</h2>
                 <p className="compose-section-hint">
                   {usesRecipientName
-                    ? "Search for the person. Add a title if you want Mr. or Mrs. on the card."
+                    ? "Choose a title, then search. Change the title to add the next person with a different one."
                     : "Search for a colleague or type an email and press Enter."}
                 </p>
               </div>
             </header>
             <div className="compose-section-body">
-              <div className="recipient-prefix-groups">
-                <section
-                  className={`recipient-prefix-group ${usesRecipientName ? "" : "is-plain"}`.trim()}
-                >
-                  {usesRecipientName ? (
-                    <h4 className="recipient-prefix-title">Without prefix</h4>
-                  ) : null}
-                  {peopleForTitle("").length > 0
-                    ? renderPersonChips(peopleForTitle(""))
-                    : null}
-                  {renderRecipientSearch("", "recipient-search")}
-                </section>
-
-                {usesRecipientName
-                  ? activePrefixGroups.map((title) => {
-                      const label =
-                        nameHonorifics.find((h) => h.value === title)?.label ??
-                        title;
-                      const people = peopleForTitle(title);
-                      return (
-                        <section
-                          key={title}
-                          className="recipient-prefix-group"
-                        >
-                          <div className="recipient-prefix-head">
-                            <h4 className="recipient-prefix-title">{label}</h4>
-                            <button
-                              type="button"
-                              className="ghost recipient-prefix-remove"
-                              disabled={busy}
-                              onClick={() => removePrefixGroup(title)}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                          {advancedCompose ? (
-                            <p className="muted small">
-                              People added here become{" "}
-                              <strong>{label} Name</strong> in the email.
-                            </p>
-                          ) : null}
-                          {people.length > 0 ? renderPersonChips(people) : null}
-                          {renderRecipientSearch(
-                            title,
-                            `recipient-search-${title}`,
-                          )}
-                        </section>
-                      );
-                    })
-                  : null}
-              </div>
-
-              {usesRecipientName ? (
-                <div className="recipient-prefix-add">
-                  {(() => {
-                    const available = nameHonorifics.filter(
-                      (h) => !activePrefixGroups.includes(h.value),
-                    );
-                    if (available.length === 0) {
-                      return (
-                        <p className="muted small">
-                          All configured prefixes are already added.
-                        </p>
-                      );
-                    }
-                    const selectedValue =
-                      prefixToAdd &&
-                      available.some((h) => h.value === prefixToAdd)
-                        ? prefixToAdd
-                        : available[0].value;
-                    return (
-                      <>
-                        <select
-                          value={selectedValue}
-                          disabled={busy}
-                          onChange={(e) => setPrefixToAdd(e.target.value)}
-                          aria-label="Prefix to add"
-                        >
-                          {available.map((h) => (
-                            <option key={h.value} value={h.value}>
-                              {h.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => addPrefixGroup(selectedValue)}
-                        >
-                          Add prefix
-                        </button>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : null}
+              {selected.length > 0 ? renderPersonChips(selected) : null}
+              {renderRecipientSearch()}
             </div>
           </section>
 
-          <section className="compose-section" data-tour="compose-subject">
+          {advancedCompose ? (
+          <section className="compose-section">
             <header className="compose-section-head">
-              <span className="compose-section-step" aria-hidden>
-                2
-              </span>
               <div className="compose-section-titles">
                 <h2 className="compose-section-title">Subject</h2>
                 <p className="compose-section-hint">
-                  {advancedCompose
-                    ? "Edit if you like. Names from the card fill in on their own."
-                    : "Comes with the card. Names fill in after you choose people."}
+                  Edit if you like. Names from the card fill in on their own.
                 </p>
               </div>
             </header>
             <div className="compose-section-body">
-              {advancedCompose ? (
-                <div className="form-stack">
-                  <label>
-                    <span className="visually-hidden">Subject</span>
-                    <input
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      disabled={busy}
-                      maxLength={300}
-                      placeholder={
-                        resolveTemplateDefaultSubject(
-                          (template.versions[0]?.designJson ?? {}) as Record<
-                            string,
-                            unknown
-                          >,
-                        )
-                      }
-                    />
-                  </label>
-                  {previewSubject && previewSubject !== subject.trim() ? (
-                    <p className="compose-subject-preview muted small">
-                      Preview: <strong>{previewSubject}</strong>
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="compose-subject-readonly">
-                  {selected.length > 0
-                    ? previewSubject || subject || "Thank you"
-                    : subject || "Thank you"}
-                </p>
-              )}
+              <div className="form-stack">
+                <label>
+                  <span className="visually-hidden">Subject</span>
+                  <input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    disabled={busy}
+                    maxLength={300}
+                    placeholder={
+                      resolveTemplateDefaultSubject(
+                        (template.versions[0]?.designJson ?? {}) as Record<
+                          string,
+                          unknown
+                        >,
+                      )
+                    }
+                  />
+                </label>
+              </div>
             </div>
           </section>
+          ) : null}
 
           {advancedCompose ? (
             <>
               <section className="compose-section compose-section--tools">
                 <header className="compose-section-head">
-                  <span className="compose-section-step" aria-hidden>
-                    ·
-                  </span>
                   <div className="compose-section-titles">
                     <h2 className="compose-section-title">Placeholders</h2>
                     <p className="compose-section-hint">
@@ -1194,9 +1154,6 @@ export function ComposePage() {
               {(sharedSlots.length > 0 || perPersonSlots.length > 0) ? (
                 <section className="compose-section compose-section--tools">
                   <header className="compose-section-head">
-                    <span className="compose-section-step" aria-hidden>
-                      ·
-                    </span>
                     <div className="compose-section-titles">
                       <h2 className="compose-section-title">Images</h2>
                       <p className="compose-section-hint">
@@ -1385,15 +1342,9 @@ export function ComposePage() {
             <button
               type="button"
               disabled={busy || !compiled || selected.length === 0}
-              onClick={() => void createDrafts()}
+              onClick={requestSend}
             >
-              {busy
-                ? mailMode === "smtp"
-                  ? "Sending…"
-                  : "Creating drafts…"
-                : mailMode === "smtp"
-                  ? `Send to ${selected.length} ${selected.length === 1 ? "person" : "people"}`
-                  : `Create ${selected.length} ${mailMode === "graph" ? "Outlook" : "mock"} draft${selected.length === 1 ? "" : "s"}`}
+              Send
             </button>
             <Link className="ghost btn-link-ghost" to={cancelTo}>
               Cancel
@@ -1403,7 +1354,7 @@ export function ComposePage() {
 
         <section className="compose-preview">
           <div className="compose-preview-head">
-            <h2 className="compose-preview-title">Preview</h2>
+            <h2 className="compose-preview-title">How it arrives</h2>
             {selected.length > 1 ? (
               <label className="compose-preview-pick">
                 <span className="muted small">Show as</span>
@@ -1421,33 +1372,75 @@ export function ComposePage() {
               </label>
             ) : null}
           </div>
-          <p className="muted small">
-            {advancedCompose ? (
-              <>
-                Live merge for{" "}
-                <strong>
-                  {previewPerson?.displayName ?? "recipient"}
-                </strong>
-                {" - "}
-                sender <strong>{sampleCtx.senderName}</strong>.
-              </>
-            ) : (
-              <>
-                How it looks for{" "}
-                <strong>
-                  {previewPerson?.displayName ?? "the recipient"}
-                </strong>
-                .
-              </>
-            )}
-          </p>
           {previewHtml ? (
-            <OutlookDualPreview html={previewHtml} embedded />
+            <OutlookDualPreview
+              html={previewHtml}
+              embedded
+              showCopyActions={false}
+              subject={previewSubject || subject}
+            />
           ) : (
             <p className="muted">Nothing to preview yet.</p>
           )}
         </section>
       </div>
+
+      {confirmSend
+        ? createPortal(
+            <div
+              className="app-modal-backdrop"
+              role="presentation"
+              onClick={() => !busy && setConfirmSend(false)}
+            >
+              <div
+                className="app-modal send-confirm-modal"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="send-confirm-title"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 id="send-confirm-title">Send this card?</h2>
+                <p>This will send the card.</p>
+                <ul className="send-confirm-list">
+                  {selected.map((p) => {
+                    const personSubject = resolvedSubjectFor(p);
+                    return (
+                      <li key={personKey(p)}>
+                        <span className="send-confirm-name">
+                          {titledRecipientName(p)}
+                        </span>
+                        {personSubject ? (
+                          <span className="send-confirm-person-subject">
+                            Subject: {personSubject}
+                          </span>
+                        ) : null}
+                        <span className="send-confirm-email">{p.email}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => setConfirmSend(false)}
+                  >
+                    Go back
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void createDrafts()}
+                  >
+                    {busy ? "Sending…" : "Send"}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

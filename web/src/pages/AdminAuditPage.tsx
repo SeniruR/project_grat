@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type AdminAuditEvent } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
 import {
   AUDIT_CATEGORIES,
@@ -64,9 +64,8 @@ export function AdminAuditPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin", to: "/admin" },
+          adminCrumb,
           { label: "Audit log" },
         ]}
       />

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type AdminSendSummaryUser } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { roleLabel } from "../lib/roles";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
 import { COMPOSE_ENABLED } from "../features";
 
@@ -41,9 +41,8 @@ export function AdminSendSummaryPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Home", to: "/" },
           emailsCrumb,
-          { label: "Admin", to: "/admin" },
+          adminCrumb,
           { label: "Send summary" },
         ]}
       />

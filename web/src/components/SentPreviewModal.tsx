@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { buildEmailDocument } from "../lib/copyEmail";
+import { EMAIL_PAPER_BG, emailLightSchemeCss } from "../lib/emailHtml";
 import {
   inferEmailWidth,
   measureEmailContentHeight,
@@ -36,6 +37,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
     return doc.replace(
       /<\/head>/i,
       `<style>
+        ${emailLightSchemeCss()}
         html, body {
           margin: 0 !important;
           padding: 0 !important;
@@ -43,7 +45,7 @@ export function SentPreviewModal({ item, onClose }: Props) {
           min-height: 0 !important;
           height: auto !important;
           overflow: hidden !important;
-          background: #ffffff;
+          background: ${EMAIL_PAPER_BG} !important;
         }
         img { display: block; border: 0; max-width: 100%; }
       </style></head>`,
@@ -129,17 +131,34 @@ export function SentPreviewModal({ item, onClose }: Props) {
           <div>
             <p className="eyebrow">Sent preview</p>
             <h2 id="sent-preview-title">{item.subject}</h2>
-            <p className="muted small">
-              To {item.recipientName || "-"} &lt;{item.recipientEmail}&gt; ·{" "}
-              {item.job.template.name} ·{" "}
-              {new Date(item.createdAt).toLocaleString()} ·{" "}
-              <Link to={`/drafts/${item.job.id}`}>Open job</Link>
-            </p>
           </div>
           <button type="button" className="ghost" onClick={onClose}>
             Close
           </button>
         </header>
+
+        <dl className="sent-preview-details">
+          <div>
+            <dt>To</dt>
+            <dd>
+              {item.recipientName || item.recipientEmail}
+              {item.recipientName ? (
+                <span className="sent-preview-email">{item.recipientEmail}</span>
+              ) : null}
+            </dd>
+          </div>
+          <div>
+            <dt>Card</dt>
+            <dd>{item.job.template.name}</dd>
+          </div>
+          <div>
+            <dt>Sent</dt>
+            <dd>{new Date(item.createdAt).toLocaleString()}</dd>
+          </div>
+        </dl>
+        <p className="sent-preview-job">
+          <Link to={`/drafts/${item.job.id}`}>Open job</Link>
+        </p>
 
         {item.error ? <p className="error">{item.error}</p> : null}
 
@@ -174,11 +193,6 @@ export function SentPreviewModal({ item, onClose }: Props) {
             </div>
           </div>
         )}
-
-        <p className="muted small sent-preview-meta">
-          Width-fit {Math.round(fitScale * 100)}% · design {designW}px · scroll
-          for full height
-        </p>
       </div>
     </div>,
     document.body,

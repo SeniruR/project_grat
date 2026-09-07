@@ -1,66 +1,71 @@
 import "dotenv/config";
 import { prisma, disconnectDb } from "../src/db.js";
 
-/** Demo directory for SLT.lk testing (dev login + recipient picker). */
+/**
+ * Fresh demo directory. Roles to try at login:
+ *   admin@example.com      ADMIN
+ *   designer@example.com   DESIGNER
+ *   user@example.com       USER
+ * Everyone else is a USER in the recipient picker.
+ */
 const colleagues = [
   {
-    email: "seniru@slt.lk",
-    displayName: "Seniru Perera",
-    aadOid: "dev-seniru@slt.lk",
+    email: "admin@example.com",
+    displayName: "Admin",
+    aadOid: "dev-admin@example.com",
     role: "ADMIN" as const,
   },
   {
-    email: "ava.fernando@slt.lk",
+    email: "designer@example.com",
+    displayName: "Designer",
+    aadOid: "dev-designer@example.com",
+    role: "DESIGNER" as const,
+  },
+  {
+    email: "user@example.com",
+    displayName: "User",
+    aadOid: "dev-user@example.com",
+    role: "USER" as const,
+  },
+  {
+    email: "ava.fernando@example.com",
     displayName: "Ava Fernando",
-    aadOid: "dev-ava.fernando@slt.lk",
-    role: "DESIGNER" as const,
+    aadOid: "dev-ava.fernando@example.com",
+    role: "USER" as const,
   },
   {
-    email: "ben.jayasuriya@slt.lk",
+    email: "ben.jayasuriya@example.com",
     displayName: "Ben Jayasuriya",
-    aadOid: "dev-ben.jayasuriya@slt.lk",
+    aadOid: "dev-ben.jayasuriya@example.com",
     role: "USER" as const,
   },
   {
-    email: "cara.silva@slt.lk",
+    email: "cara.silva@example.com",
     displayName: "Cara Silva",
-    aadOid: "dev-cara.silva@slt.lk",
+    aadOid: "dev-cara.silva@example.com",
     role: "USER" as const,
   },
   {
-    email: "diego.bandara@slt.lk",
+    email: "diego.bandara@example.com",
     displayName: "Diego Bandara",
-    aadOid: "dev-diego.bandara@slt.lk",
-    role: "DESIGNER" as const,
+    aadOid: "dev-diego.bandara@example.com",
+    role: "USER" as const,
   },
   {
-    email: "elena.wickramasinghe@slt.lk",
+    email: "elena.wickramasinghe@example.com",
     displayName: "Elena Wickramasinghe",
-    aadOid: "dev-elena.wickramasinghe@slt.lk",
+    aadOid: "dev-elena.wickramasinghe@example.com",
     role: "USER" as const,
   },
   {
     email: "seniruranasinghe@gmail.com",
     displayName: "Seniru Ranasinghe",
     aadOid: "dev-seniruranasinghe@gmail.com",
-    role: "USER" as const, // or "DESIGNER" / "ADMIN"
-  }
+    role: "USER" as const,
+  },
 ];
 
 async function main() {
-  // Drop unused old Contoso demo accounts (keep any that own templates/jobs)
-  await prisma.user.deleteMany({
-    where: {
-      OR: [
-        { email: { endsWith: "@contoso.local" } },
-        { aadOid: { startsWith: "dev-", endsWith: "@contoso.local" } },
-      ],
-      ownedTemplates: { none: {} },
-      draftJobs: { none: {} },
-      auditEvents: { none: {} },
-    },
-  });
-
   for (const person of colleagues) {
     await prisma.user.upsert({
       where: { email: person.email },
@@ -74,7 +79,9 @@ async function main() {
     });
   }
 
-  console.log(`Seeded ${colleagues.length} directory users (@slt.lk).`);
+  console.log(
+    `Seeded ${colleagues.length} directory accounts (admin, designer, user, and Seniru Ranasinghe).`,
+  );
 }
 
 main()

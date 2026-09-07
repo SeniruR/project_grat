@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, type TemplateSummary } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { EmailCardThumb } from "../components/EmailCardThumb";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs, emailsCrumb, myCardsCrumb } from "../components/Breadcrumbs";
 import { refreshPreviewPngInPlace } from "../lib/importDesign";
 
 type VisibilityFilter = "all" | "private" | "published";
@@ -132,13 +132,7 @@ export function CardsPage() {
 
   return (
     <div className="page">
-      <Breadcrumbs
-        items={[
-          { label: "Home", to: "/" },
-          emailsCrumb,
-          { label: "My cards" },
-        ]}
-      />
+      <Breadcrumbs items={[emailsCrumb, myCardsCrumb]} />
       <header className="page-header page-header-row">
         <div>
           <p className="eyebrow">Cards</p>
@@ -194,7 +188,7 @@ export function CardsPage() {
         {!loading && filtered.length === 0 ? (
           <p className="muted">
             {templates.length === 0
-              ? "No cards yet — create one for others to send."
+              ? "No cards yet - create one for others to send."
               : "No cards match this filter."}
           </p>
         ) : (

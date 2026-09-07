@@ -2,6 +2,10 @@ import {
   extractEmailBodyHtml,
   extractEmailHeadInner,
   isFullHtmlDocument,
+  EMAIL_LIGHT_SCHEME_HEAD,
+  EMAIL_PAPER_BG,
+  emailLightSchemeCss,
+  ensureEmailLightColorScheme,
 } from "./emailHtml";
 
 function fullDocument(html: string) {
@@ -14,16 +18,18 @@ function fullDocument(html: string) {
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="x-apple-disable-message-reformatting" />
+${EMAIL_LIGHT_SCHEME_HEAD}
 <title>Email</title>
 ${head}
 <style>
+  ${emailLightSchemeCss()}
   html, body { margin: 0 !important; padding: 0 !important; }
-  body { background: #f0f0f0; font-family: Arial, Helvetica, sans-serif; }
+  body { background: ${EMAIL_PAPER_BG}; font-family: Arial, Helvetica, sans-serif; }
   img { border: 0; outline: none; text-decoration: none; }
   table { border-collapse: collapse; }
 </style>
 </head>
-<body style="margin:0;padding:0;background:#f0f0f0;font-family:Arial, Helvetica, sans-serif;">
+<body style="margin:0;padding:0;background:${EMAIL_PAPER_BG};font-family:Arial, Helvetica, sans-serif;">
 ${body}
 </body>
 </html>`;
@@ -69,9 +75,9 @@ export function buildEmailDocument(html: string) {
         return `<body${attrs} style="font-family:Arial, Helvetica, sans-serif;">`;
       },
     );
-    return preserveHexColors(withFallback);
+    return ensureEmailLightColorScheme(preserveHexColors(withFallback));
   }
-  return preserveHexColors(fullDocument(trimmed));
+  return ensureEmailLightColorScheme(preserveHexColors(fullDocument(trimmed)));
 }
 
 /**
@@ -90,7 +96,7 @@ export function buildOutlookPngEmailHtml(input: {
   const src = escAttr(input.imageSrc);
   const img = `<img src="${src}" width="${w}" height="${h}" alt="${alt}" style="display:block;border:0;outline:none;text-decoration:none;width:${w}px;height:${h}px;max-width:100%;" />`;
   const fragment = [
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;width:${w}px;max-width:100%;margin:0 auto;background:#ffffff;">`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${w}" style="border-collapse:collapse;width:${w}px;max-width:100%;margin:0 auto;background:${EMAIL_PAPER_BG};">`,
     `  <tr>`,
     `    <td style="padding:0;line-height:0;font-size:0;">${img}</td>`,
     `  </tr>`,
@@ -106,8 +112,10 @@ export function buildOutlookPngEmailHtml(input: {
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=${w}, initial-scale=1" />
 <title>${alt}</title>
+${EMAIL_LIGHT_SCHEME_HEAD}
+<style>${emailLightSchemeCss()}</style>
 </head>
-<body style="margin:0;padding:0;background:#f0f0f0;">
+<body style="margin:0;padding:0;background:${EMAIL_PAPER_BG};">
 ${fragment}
 </body>
 </html>`,
@@ -305,19 +313,6 @@ export async function copyHtmlSource(html: string) {
   const trimmed = html.trim();
   if (!trimmed) throw new Error("Nothing to copy.");
   await navigator.clipboard.writeText(buildEmailDocument(trimmed));
-}
-
-export function openEmailInNewTab(html: string) {
-  const trimmed = html.trim();
-  if (!trimmed) throw new Error("Nothing to open.");
-  const blob = new Blob([buildEmailDocument(trimmed)], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank", "noopener,noreferrer");
-  if (!win) {
-    URL.revokeObjectURL(url);
-    throw new Error("Popup blocked - allow popups for this site, then try again.");
-  }
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /** True only for legacy broken absolute HTML (not the new fixed canvas stage). */

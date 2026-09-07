@@ -402,11 +402,16 @@ export const api = {
     }>;
   },
 
-  directorySearch: (token: string, q: string) =>
+  directorySearch: (token: string, q: string, limit?: number) =>
     request<{
       mode: string;
       people: Array<{ aadOid: string; email: string; displayName: string }>;
-    }>(`/directory/search?q=${encodeURIComponent(q)}`, { token }),
+    }>(
+      `/directory/search?q=${encodeURIComponent(q)}${
+        limit != null ? `&limit=${limit}` : ""
+      }`,
+      { token },
+    ),
 
   createDraftJob: (
     token: string,

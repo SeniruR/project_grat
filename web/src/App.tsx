@@ -22,7 +22,6 @@ import { AdminPeoplePage } from "./pages/AdminPeoplePage";
 import { AdminSendSummaryPage } from "./pages/AdminSendSummaryPage";
 import { AdminAuditPage } from "./pages/AdminAuditPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
-import { EmailsHomePage } from "./pages/EmailsHomePage";
 import { COMPOSE_ENABLED } from "./features";
 import { canManageDesigns, homePath, isAdmin } from "./lib/roles";
 import type { ReactNode } from "react";
@@ -50,8 +49,8 @@ const router = createBrowserRouter(
       <Route path="/login" element={<LoginPage />} />
       <Route element={<AppShell />}>
         <Route path="/" element={<HomeRedirect />} />
-        <Route path="/emails" element={<EmailsHomePage />} />
-        <Route path="/gifts" element={<Navigate to="/emails" replace />} />
+        <Route path="/emails" element={<Navigate to="/marketplace" replace />} />
+        <Route path="/gifts" element={<Navigate to="/" replace />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/marketplace/:id" element={<MarketplaceDetailPage />} />
         <Route

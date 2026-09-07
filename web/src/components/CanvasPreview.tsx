@@ -9,6 +9,9 @@ import {
 import {
   extractEmailBodyHtml,
   extractEmailHeadInner,
+  EMAIL_LIGHT_SCHEME_HEAD,
+  EMAIL_PAPER_BG,
+  emailLightSchemeCss,
 } from "../lib/emailHtml";
 import { measureEmailContentHeight } from "../lib/rasterizeEmailHtml";
 import { EmailBrowserCopyModal } from "./EmailBrowserCopyModal";
@@ -148,7 +151,7 @@ export function CanvasPreview({
     min-height: 0 !important;
     height: auto !important;
     overflow: hidden !important;
-    background: #ffffff;
+    background: ${EMAIL_PAPER_BG} !important;
   }
   body {
     font-family: Arial, Helvetica, sans-serif;
@@ -159,7 +162,7 @@ export function CanvasPreview({
     width: ${w}px;
     height: ${fixedH}px;
     overflow: hidden;
-    background: #ffffff;
+    background: ${EMAIL_PAPER_BG} !important;
   }`;
 
     return `<!DOCTYPE html>
@@ -167,8 +170,10 @@ export function CanvasPreview({
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=${w}"/>
+${EMAIL_LIGHT_SCHEME_HEAD}
 ${head}
 <style>
+  ${emailLightSchemeCss()}
   ${sizeCss}
   .grat-canvas-stage { position: relative; }
   .grat-obj { position: absolute; box-sizing: border-box; }
@@ -176,7 +181,7 @@ ${head}
   table { border-collapse: collapse; }
 </style>
 </head>
-<body>${card}</body>
+<body style="background:${EMAIL_PAPER_BG};">${card}</body>
 </html>`;
   }, [bodyHtml, w, fixedH, fluidHtml]);
 
@@ -188,7 +193,7 @@ ${head}
         const doc = iframe.contentDocument;
         if (!doc?.body) return;
         const measured = measureEmailContentHeight(doc, iframe);
-        const next = Math.min(8_000, Math.max(120, measured + 2));
+        const next = Math.min(8_000, Math.max(120, measured + 8));
         // Ignore absurd heights from a bad measure pass (keeps prior / design H).
         if (next >= 9000) return;
         setMeasuredH((prev) => (Math.abs(prev - next) < 4 ? prev : next));
