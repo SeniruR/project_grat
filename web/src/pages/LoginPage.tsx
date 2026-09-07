@@ -8,8 +8,8 @@ import { SiteFooter } from "../components/SiteFooter";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
-  const [displayName, setDisplayName] = useState("Seniru");
-  const [email, setEmail] = useState("seniru@example.com");
+  const [displayName, setDisplayName] = useState("Admin");
+  const [email, setEmail] = useState("admin@example.com");
   const [role, setRole] = useState<AppRole>("USER");
   const [startTutorial, setStartTutorial] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
