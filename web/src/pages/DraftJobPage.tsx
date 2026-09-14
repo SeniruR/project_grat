@@ -86,23 +86,17 @@ export function DraftJobPage() {
 
       {error ? <p className="error">{error}</p> : null}
 
-      {mailMode === "mock" ? (
-        <p className="notice">
-          Mock mode - drafts are stored here only. Set{" "}
-          <code>MAIL_MODE=smtp</code> (Gmail) or <code>MAIL_MODE=graph</code> in{" "}
-          <code>api/.env</code> to send for real.
-        </p>
-      ) : mailMode === "smtp" ? (
+      {mailMode === "smtp" ? (
         <p className="notice">
           SMTP mode - messages were sent with images embedded in the email (not
           linked from localhost). Check the recipient inbox.
         </p>
-      ) : (
+      ) : mailMode === "graph" ? (
         <p className="notice">
           Graph mode - drafts were created in Outlook (mailbox from the signed-in
           user email, or <code>GRAPH_MAILBOX_UPN</code>).
         </p>
-      )}
+      ) : null}
 
       <ul className="draft-list">
         {job.drafts.map((d) => {
@@ -141,7 +135,10 @@ export function DraftJobPage() {
                           keep a normal preview.
                         </p>
                       ) : null}
-                      <OutlookDualPreview html={d.bodyHtml} />
+                      <OutlookDualPreview
+                        html={d.bodyHtml}
+                        showCopyActions={false}
+                      />
                     </>
                   ) : (
                     <p className="muted">No HTML stored for this draft.</p>
