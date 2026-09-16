@@ -19,4 +19,17 @@ cd documents
 pdflatex system-requirements.tex
 ```
 
+## Project guidelines (server host procedure)
+
+Local source (ignored by Git): `project-guidelines.tex`  
+Committed deliverable: `project-guidelines.pdf`
+
+Linux VM deploy checklist only (install, env, migrate, nginx, smoke checks).
+
+```bash
+cd documents
+pdflatex project-guidelines.tex
+pdflatex project-guidelines.tex
+```
+
 Requires a TeX distribution with `pdflatex` (TeX Live or MiKTeX).
