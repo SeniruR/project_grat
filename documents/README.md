@@ -24,7 +24,7 @@ pdflatex system-requirements.tex
 Local source (ignored by Git): `project-guidelines.tex`  
 Committed deliverable: `project-guidelines.pdf`
 
-Linux VM deploy checklist only (install, env, migrate, nginx, smoke checks).
+RHEL VM deploy checklist (`dnf`, firewalld, nginx `conf.d`, SELinux notes).
 
 ```bash
 cd documents

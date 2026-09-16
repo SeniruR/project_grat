@@ -58,17 +58,15 @@ export function LoginPage() {
     <div className="login-shell">
       <div className="login-stage">
         <section className="login-hero" aria-label="Gratitude">
-          <p className="login-kicker">A small gesture, done well</p>
           <h1 className="login-brand">Gratitude</h1>
           <p className="login-tagline">
-            When someone made your day, send it back.
+            An intranet tool for thanking colleagues by email.
           </p>
-          <p className="login-quote">The smallest note can mean the most.</p>
         </section>
 
         <section className="login-panel">
-          <h2>Continue to give</h2>
-          <p className="lede">Sign in, then choose a card for someone.</p>
+          <h2>Sign in</h2>
+          <p className="lede">Use your work name and email to continue.</p>
 
           <form className="login-form" onSubmit={onSubmit}>
             <label>

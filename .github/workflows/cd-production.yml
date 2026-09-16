@@ -1,0 +1,67 @@
+name: CD Production
+
+# Deploys to the RHEL app server after CI succeeds on main.
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   DEPLOY_HOST       — server IP or hostname
+#   DEPLOY_USER       — SSH user (e.g. cloud-user)
+#   DEPLOY_SSH_KEY    — private key with access to the server
+# Optional:
+#   DEPLOY_PORT       — SSH port (default 22)
+#   DEPLOY_APP_ROOT   — app path on server (default /var/www/project_grat)
+#
+# On the server, create /etc/gratitude/deploy.env:
+#   VITE_API_URL=https://your-api-hostname
+#
+# Also create a GitHub Environment named "production" (optional approval gate).
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to RHEL
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    environment: production
+
+    steps:
+      - name: Checkout (for deploy script reference)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_ROOT: ${{ secrets.DEPLOY_APP_ROOT }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: APP_ROOT
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_ROOT="${APP_ROOT:-/var/www/project_grat}"
+            if [ ! -d "$APP_ROOT/.git" ]; then
+              echo "App not found at $APP_ROOT - clone the repo on the server first (see project-guidelines.pdf)."
+              exit 1
+            fi
+            cd "$APP_ROOT"
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
+            chmod +x scripts/deploy-rhel.sh
+            APP_ROOT="$APP_ROOT" bash scripts/deploy-rhel.sh

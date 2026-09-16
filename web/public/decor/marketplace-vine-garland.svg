@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 120" fill="none" aria-hidden="true">
+  <!-- Soft hanging vine — round flowers, never stretched -->
+  <path d="M8 48 C 70 40, 130 56, 190 46 S 310 38, 370 50 S 490 42, 550 48 S 670 40, 730 52 S 850 44, 952 48"
+        stroke="#5f8f4a" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M8 52 C 70 44, 130 60, 190 50 S 310 42, 370 54 S 490 46, 550 52 S 670 44, 730 56 S 850 48, 952 52"
+        stroke="#7aab5e" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Leaves (heart-ish ellipses) -->
+  <g fill="#5f9a52">
+    <ellipse cx="70" cy="36" rx="14" ry="9" transform="rotate(-28 70 36)"/>
+    <ellipse cx="150" cy="58" rx="13" ry="8" transform="rotate(24 150 58)"/>
+    <ellipse cx="250" cy="34" rx="15" ry="9" transform="rotate(-18 250 34)"/>
+    <ellipse cx="340" cy="60" rx="13" ry="8" transform="rotate(30 340 60)"/>
+    <ellipse cx="450" cy="32" rx="14" ry="9" transform="rotate(-22 450 32)"/>
+    <ellipse cx="540" cy="62" rx="13" ry="8" transform="rotate(20 540 62)"/>
+    <ellipse cx="650" cy="34" rx="15" ry="9" transform="rotate(-26 650 34)"/>
+    <ellipse cx="760" cy="60" rx="13" ry="8" transform="rotate(28 760 60)"/>
+    <ellipse cx="860" cy="36" rx="14" ry="9" transform="rotate(-16 860 36)"/>
+  </g>
+  <g fill="#6aad5c" opacity="0.9">
+    <ellipse cx="110" cy="42" rx="11" ry="7" transform="rotate(18 110 42)"/>
+    <ellipse cx="300" cy="44" rx="12" ry="7" transform="rotate(-30 300 44)"/>
+    <ellipse cx="500" cy="40" rx="11" ry="7" transform="rotate(22 500 40)"/>
+    <ellipse cx="700" cy="42" rx="12" ry="7" transform="rotate(-20 700 42)"/>
+    <ellipse cx="900" cy="44" rx="11" ry="7" transform="rotate(26 900 44)"/>
+  </g>
+
+  <!-- Round trumpet flowers (uniform scale — no horizontal squash) -->
+  <g id="bloom">
+    <g>
+      <ellipse rx="9" ry="11" fill="#c5b4e8" stroke="#9aa3d4" stroke-width="0.6" transform="rotate(0)"/>
+      <ellipse rx="9" ry="11" fill="#c5b4e8" stroke="#9aa3d4" stroke-width="0.6" transform="rotate(72)"/>
+      <ellipse rx="9" ry="11" fill="#c5b4e8" stroke="#9aa3d4" stroke-width="0.6" transform="rotate(144)"/>
+      <ellipse rx="9" ry="11" fill="#b8a6de" stroke="#9aa3d4" stroke-width="0.6" transform="rotate(216)"/>
+      <ellipse rx="9" ry="11" fill="#b8a6de" stroke="#9aa3d4" stroke-width="0.6" transform="rotate(288)"/>
+      <circle r="5" fill="#f0c85a"/>
+      <circle r="2.2" fill="#f7e08a"/>
+    </g>
+  </g>
+
+  <use href="#bloom" x="95" y="50"/>
+  <use href="#bloom" x="230" y="46" transform="translate(230 46) scale(0.92) translate(-230 -46)"/>
+  <use href="#bloom" x="380" y="52"/>
+  <use href="#bloom" x="520" y="48" transform="translate(520 48) scale(0.88) translate(-520 -48)"/>
+  <use href="#bloom" x="670" y="54"/>
+  <use href="#bloom" x="810" y="48" transform="translate(810 48) scale(0.9) translate(-810 -48)"/>
+  <use href="#bloom" x="920" y="50" transform="translate(920 50) scale(0.82) translate(-920 -50)"/>
+
+  <!-- Small buds -->
+  <g fill="#8fbc6e">
+    <ellipse cx="180" cy="64" rx="3.5" ry="6" transform="rotate(12 180 64)"/>
+    <ellipse cx="430" cy="66" rx="3.2" ry="5.5" transform="rotate(-8 430 66)"/>
+    <ellipse cx="610" cy="68" rx="3.5" ry="6" transform="rotate(10 610 68)"/>
+    <ellipse cx="780" cy="66" rx="3.2" ry="5.5" transform="rotate(-12 780 66)"/>
+  </g>
+</svg>

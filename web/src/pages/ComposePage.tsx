@@ -119,6 +119,8 @@ export function ComposePage() {
   >({});
   /** Prefix applied to the next person added. Empty = no title. */
   const [addPrefix, setAddPrefix] = useState("");
+  /** When false and recipients exist, hide the search row until "Add more". */
+  const [recipientFormOpen, setRecipientFormOpen] = useState(true);
   const [nameHonorifics, setNameHonorifics] = useState<NameHonorific[]>([
     ...DEFAULT_NAME_HONORIFICS,
   ]);
@@ -428,7 +430,7 @@ export function ComposePage() {
       for (const p of toAdd) next[personKey(p)] = title;
       return next;
     });
-    if (clearSearch) {
+    if (toAdd.length > 0 || clearSearch) {
       setQuery("");
       setHits([]);
     }
@@ -448,11 +450,22 @@ export function ComposePage() {
     addPeople([person], title, true);
   }
 
+  /** Close the add form. Typed-but-not-listed addresses are discarded — only chips send. */
+  function closeRecipientForm() {
+    setRecipientFormOpen(false);
+    setQuery("");
+    setHits([]);
+  }
+
   const typedRecipient = parseTypedEmail(query);
 
   function removePerson(email: string) {
     const key = email.trim().toLowerCase();
-    setSelected((prev) => prev.filter((p) => personKey(p) !== key));
+    setSelected((prev) => {
+      const next = prev.filter((p) => personKey(p) !== key);
+      if (next.length === 0) setRecipientFormOpen(true);
+      return next;
+    });
     setPerRecipientFields((prev) => {
       const next = { ...prev };
       delete next[key];
@@ -939,6 +952,7 @@ export function ComposePage() {
     { label: template.name, to: parentDetailTo },
     { label: "Send" },
   ];
+  const showRecipientSearch = selected.length === 0 || recipientFormOpen;
 
   return (
     <div className="page">
@@ -974,15 +988,59 @@ export function ComposePage() {
               <div className="compose-section-titles">
                 <h2 className="compose-section-title">For</h2>
                 <p className="compose-section-hint">
-                  {usesRecipientName
-                    ? "Choose a title, then search. Change the title to add the next person with a different one."
-                    : "Search for a colleague or type an email and press Enter."}
+                  {showRecipientSearch
+                    ? usesRecipientName
+                      ? selected.length > 0
+                        ? "Choose a title, then search to add another person."
+                        : "Choose a title, then search."
+                      : selected.length > 0
+                        ? "Search or type an email to add another person."
+                        : "Search for a colleague or type an email and press Enter."
+                    : "People who will receive this card."}
                 </p>
               </div>
             </header>
             <div className="compose-section-body">
               {selected.length > 0 ? renderPersonChips(selected) : null}
-              {renderRecipientSearch()}
+              {selected.length > 0 && !showRecipientSearch ? (
+                <button
+                  type="button"
+                  className="ghost recipient-add-more-btn"
+                  disabled={busy}
+                  onClick={() => setRecipientFormOpen(true)}
+                >
+                  Add more
+                </button>
+              ) : null}
+              {showRecipientSearch ? (
+                <div
+                  className={
+                    selected.length > 0 ? "recipient-add-more-panel" : undefined
+                  }
+                >
+                  {selected.length > 0 ? (
+                    <div className="recipient-add-more-head">
+                      <span className="recipient-add-more-label">Add another</span>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        disabled={busy}
+                        title="Finish adding. Addresses still in the box are not sent."
+                        aria-label="Done. Only listed people will be sent."
+                        onClick={closeRecipientForm}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  ) : null}
+                  {renderRecipientSearch()}
+                  {selected.length > 0 && typedRecipient ? (
+                    <p className="muted small recipient-draft-hint">
+                      Click Add below to list this address, or Done to leave it out.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </section>
 

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 640" fill="none" aria-hidden="true">
+  <path d="M98 0 C94 72, 78 128, 86 208 S74 328, 68 448 S58 560, 52 632" stroke="#7a4fa8" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M118 18 C108 98, 122 178, 104 268 S92 388, 82 508 S76 590, 72 638" stroke="#9b6fc4" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/>
+  <path d="M88 42 C82 120, 70 200, 76 280" stroke="#6b8f4e" stroke-width="1.8" stroke-linecap="round" opacity="0.75"/>
+  <ellipse cx="72" cy="108" rx="16" ry="8" fill="#5f9a52" transform="rotate(-28 72 108)"/>
+  <ellipse cx="96" cy="188" rx="15" ry="7.5" fill="#6aad5c" transform="rotate(34 96 188)"/>
+  <ellipse cx="66" cy="268" rx="17" ry="8" fill="#5f9a52" transform="rotate(-22 66 268)"/>
+  <ellipse cx="88" cy="358" rx="16" ry="8" fill="#6aad5c" transform="rotate(26 88 358)"/>
+  <ellipse cx="62" cy="448" rx="15" ry="7.5" fill="#5f9a52" transform="rotate(-18 62 448)"/>
+  <ellipse cx="78" cy="528" rx="14" ry="7" fill="#6aad5c" transform="rotate(20 78 528)"/>
+  <g transform="translate(54 148)">
+    <circle r="6" fill="#e8a820"/>
+    <ellipse rx="8" ry="12" fill="#f5c842" stroke="#e8a820" stroke-width="0.7"/>
+    <ellipse rx="8" ry="12" fill="#f5c842" stroke="#e8a820" stroke-width="0.7" transform="rotate(72)"/>
+    <ellipse rx="8" ry="12" fill="#f5c842" stroke="#e8a820" stroke-width="0.7" transform="rotate(144)"/>
+    <ellipse rx="8" ry="12" fill="#f5c842" stroke="#e8a820" stroke-width="0.7" transform="rotate(216)"/>
+    <ellipse rx="8" ry="12" fill="#f5c842" stroke="#e8a820" stroke-width="0.7" transform="rotate(288)"/>
+  </g>
+  <g transform="translate(102 238) scale(0.92)">
+    <circle r="5.5" fill="#8b5fbf"/>
+    <ellipse rx="7.5" ry="11" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.7"/>
+    <ellipse rx="7.5" ry="11" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(72)"/>
+    <ellipse rx="7.5" ry="11" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(144)"/>
+    <ellipse rx="7.5" ry="11" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(216)"/>
+    <ellipse rx="7.5" ry="11" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(288)"/>
+  </g>
+  <g transform="translate(48 328) scale(0.88)">
+    <circle r="5.5" fill="#8b5fbf"/>
+    <ellipse rx="7" ry="10.5" fill="#d4a8f0" stroke="#8b5fbf" stroke-width="0.7"/>
+    <ellipse rx="7" ry="10.5" fill="#d4a8f0" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(72)"/>
+    <ellipse rx="7" ry="10.5" fill="#d4a8f0" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(144)"/>
+    <ellipse rx="7" ry="10.5" fill="#d4a8f0" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(216)"/>
+    <ellipse rx="7" ry="10.5" fill="#d4a8f0" stroke="#8b5fbf" stroke-width="0.7" transform="rotate(288)"/>
+  </g>
+  <g transform="translate(92 418) scale(0.95)">
+    <circle r="6" fill="#e8a820"/>
+    <ellipse rx="8" ry="12" fill="#ffe066" stroke="#e8a820" stroke-width="0.7"/>
+    <ellipse rx="8" ry="12" fill="#ffe066" stroke="#e8a820" stroke-width="0.7" transform="rotate(72)"/>
+    <ellipse rx="8" ry="12" fill="#ffe066" stroke="#e8a820" stroke-width="0.7" transform="rotate(144)"/>
+    <ellipse rx="8" ry="12" fill="#ffe066" stroke="#e8a820" stroke-width="0.7" transform="rotate(216)"/>
+    <ellipse rx="8" ry="12" fill="#ffe066" stroke="#e8a820" stroke-width="0.7" transform="rotate(288)"/>
+  </g>
+  <g transform="translate(58 508) scale(0.78)">
+    <circle r="4.5" fill="#8b5fbf"/>
+    <ellipse rx="6" ry="9" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.6"/>
+    <ellipse rx="6" ry="9" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.6" transform="rotate(72)"/>
+    <ellipse rx="6" ry="9" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.6" transform="rotate(144)"/>
+    <ellipse rx="6" ry="9" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.6" transform="rotate(216)"/>
+    <ellipse rx="6" ry="9" fill="#c49ce8" stroke="#8b5fbf" stroke-width="0.6" transform="rotate(288)"/>
+  </g>
+</svg>

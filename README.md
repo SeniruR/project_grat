@@ -95,14 +95,44 @@ npm run dev
 - Web: http://localhost:5173  
 - API: http://localhost:3001/health  
 
-## CI (GitHub Actions)
+## CI / CD (GitHub Actions)
 
-On every pull request and every push, GitHub runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+### Continuous integration
+
+On every pull request and every push, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs:
 
 - API: `prisma generate`, `prisma migrate deploy` (Postgres service), TypeScript check
 - Web: oxlint, TypeScript check, production build
 
-After pushing this repo to GitHub, enable **branch protection** on `main` / `staging` and require the **CI** check to pass before merge.
+Enable **branch protection** on `main` and require the **CI** check before merge.
+
+### Continuous deployment (production)
+
+After CI succeeds on a push to `main`, [`.github/workflows/cd-production.yml`](.github/workflows/cd-production.yml) SSHs to the RHEL host and runs [`scripts/deploy-rhel.sh`](scripts/deploy-rhel.sh) (pull, migrate, build web, restart API, reload nginx, health check).
+
+**One-time GitHub setup** (Settings → Secrets and variables → Actions):
+
+| Secret | Purpose |
+|--------|---------|
+| `DEPLOY_HOST` | Server IP or hostname |
+| `DEPLOY_USER` | SSH user (`root` or `cloud-user`) |
+| `DEPLOY_SSH_KEY` | Private key that can SSH to the host |
+| `DEPLOY_PORT` | Optional; default `22` |
+| `DEPLOY_APP_ROOT` | Optional; default `/var/www/project_grat` |
+
+Create a GitHub **Environment** named `production` if you want a manual approval gate before deploy.
+
+**One-time on the RHEL server** (after the app is cloned and systemd/nginx are set up — see `documents/project-guidelines.pdf`):
+
+```bash
+sudo mkdir -p /etc/gratitude
+sudo tee /etc/gratitude/deploy.env <<'EOF'
+VITE_API_URL=https://YOUR_API_HOSTNAME
+EOF
+sudo chmod 640 /etc/gratitude/deploy.env
+```
+
+You can also run **CD Production → Run workflow** manually from the Actions tab (`workflow_dispatch`).
 
 ## What to try
 
