@@ -21,8 +21,6 @@ export function DraftJobPage() {
       .then((res) => {
         setJob(res.job);
         setMailMode(res.mailMode);
-        const firstOk = res.job.drafts.find((d) => d.bodyHtml);
-        if (firstOk) setOpenId(firstOk.id);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load job"),
@@ -116,7 +114,7 @@ export function DraftJobPage() {
                   <span className={`draft-status draft-status--${d.status}`}>
                     {d.status}
                   </span>
-                  <span className="muted small">{open ? "Hide" : "Show"}</span>
+                  <span className="muted small">{open ? "Hide preview" : "Show preview"}</span>
                 </div>
               </button>
               {open ? (

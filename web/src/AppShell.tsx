@@ -6,6 +6,7 @@ import { COMPOSE_ENABLED } from "./features";
 import { TourProvider } from "./tour/TourContext";
 import { ProductTour } from "./tour/ProductTour";
 import { SiteFooter } from "./components/SiteFooter";
+import { ThemeSwitcher } from "./components/ThemeSwitcher";
 
 export function AppShell() {
   const { user, loading, logout } = useAuth();
@@ -56,6 +57,7 @@ export function AppShell() {
             </Link>
 
             <div className="topnav-user">
+              <ThemeSwitcher />
               {COMPOSE_ENABLED ? (
                 <NavLink
                   to="/sent"

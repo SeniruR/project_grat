@@ -6,6 +6,7 @@ import { EmailCardThumb } from "../components/EmailCardThumb";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import { COMPOSE_ENABLED } from "../features";
 import { GiftVineDecor } from "../components/GiftVineDecor";
+import { HeroLoopVideo } from "../components/HeroLoopVideo";
 
 export function MarketplacePage() {
   const { token } = useAuth();
@@ -59,17 +60,23 @@ export function MarketplacePage() {
             </p>
           </div>
           <div className="gift-hero-media" aria-hidden>
-            <video
-              className="gift-hero-video"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster="/marketplace-hero-cover.png"
-            >
-              <source src="/marketplace-hero-flowers.mp4" type="video/mp4" />
-            </video>
+            <HeroLoopVideo
+              className="gift-hero-evening-media"
+              src="/marketplace-hero-flowers.mp4"
+              poster="/marketplace-hero-illustration.png"
+            />
+            <img
+              className="gift-hero-cover-img gift-hero-cover-img--morning"
+              src="/marketplace-hero-morning.png"
+              alt=""
+              decoding="async"
+            />
+            <img
+              className="gift-hero-cover-img gift-hero-cover-img--still"
+              src="/marketplace-hero-still.png"
+              alt=""
+              decoding="async"
+            />
           </div>
         </div>
       </header>
