@@ -57,15 +57,13 @@ const colleagues = [
     aadOid: "dev-elena.wickramasinghe@example.com",
     role: "USER" as const,
   },
-  {
-    email: "seniruranasinghe@gmail.com",
-    displayName: "Seniru Ranasinghe",
-    aadOid: "dev-seniruranasinghe@gmail.com",
-    role: "USER" as const,
-  },
 ];
 
 async function main() {
+  await prisma.user.deleteMany({
+    where: { email: { endsWith: "@gmail.com" } },
+  });
+
   for (const person of colleagues) {
     await prisma.user.upsert({
       where: { email: person.email },
@@ -80,7 +78,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${colleagues.length} directory accounts (admin, designer, user, and Seniru Ranasinghe).`,
+    `Seeded ${colleagues.length} directory accounts (admin, designer, user + @example.com colleagues).`,
   );
 }
 

@@ -5,6 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import { EmailCardThumb } from "../components/EmailCardThumb";
 import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
 import { COMPOSE_ENABLED } from "../features";
+import { GiftVineDecor } from "../components/GiftVineDecor";
+import { HeroLoopVideo } from "../components/HeroLoopVideo";
 
 export function MarketplacePage() {
   const { token } = useAuth();
@@ -45,24 +47,48 @@ export function MarketplacePage() {
 
   return (
     <div className="page gift-page">
-      <Breadcrumbs items={[emailsCrumb, { label: "Choose a card" }]} />
+      <GiftVineDecor />
+      <div className="gift-page-content">
+      <Breadcrumbs items={[emailsCrumb]} />
       <header className="gift-hero" data-tour="marketplace-browse">
         <div className="gift-hero-cover">
-          <img
-            className="gift-hero-cover-img"
-            src="/marketplace-hero-cover.png"
-            alt="A single flower, mug, and envelope on a quiet desk"
-          />
-          <div className="gift-hero-cover-copy">
-            <p className="gift-kicker">It lands like a note on their desk</p>
-            <h1>Someone made your day. Send it back.</h1>
+          <div className="gift-hero-copy-panel">
+            <h1>Gratitude</h1>
             <p className="lede">
-              Choose a card the way you would a bouquet, the one that says
-              what you mean. It arrives as email, and it still feels handwritten.
+              An intranet tool for thanking colleagues. Pick a ready-made card
+              template and send it by email.
             </p>
+          </div>
+          <div className="gift-hero-media" aria-hidden>
+            <HeroLoopVideo
+              className="gift-hero-evening-media"
+              src="/marketplace-hero-flowers.mp4"
+              poster="/marketplace-hero-illustration.png"
+            />
+            <img
+              className="gift-hero-cover-img gift-hero-cover-img--morning"
+              src="/marketplace-hero-morning.png"
+              alt=""
+              decoding="async"
+            />
+            <img
+              className="gift-hero-cover-img gift-hero-cover-img--still"
+              src="/marketplace-hero-still.png"
+              alt=""
+              decoding="async"
+            />
           </div>
         </div>
       </header>
+
+      <section className="gift-pick" aria-labelledby="gift-pick-title">
+        <h2 id="gift-pick-title" className="gift-pick-title">
+          Choose a card
+        </h2>
+        <p className="gift-pick-lede">
+          Open a card below to send it.
+        </p>
+      </section>
 
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Finding cards…</p> : null}
@@ -100,6 +126,7 @@ export function MarketplacePage() {
           })}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

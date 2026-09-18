@@ -6,13 +6,13 @@ import { COMPOSE_ENABLED } from "./features";
 import { TourProvider } from "./tour/TourContext";
 import { ProductTour } from "./tour/ProductTour";
 import { SiteFooter } from "./components/SiteFooter";
+import { ThemeSwitcher } from "./components/ThemeSwitcher";
 
 export function AppShell() {
   const { user, loading, logout } = useAuth();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
@@ -50,112 +50,115 @@ export function AppShell() {
   return (
     <TourProvider>
       <div className="app-shell">
-        <nav className="topnav">
-          <Link to={homePath(user)} className="brand">
-            Gratitude
-          </Link>
+        <header className="topnav-wrap">
+          <nav className="topnav">
+            <Link to={homePath(user)} className="brand">
+              Gratitude
+            </Link>
 
-          <div className="topnav-user">
-            {COMPOSE_ENABLED ? (
-              <NavLink
-                to="/sent"
-                className={({ isActive }) =>
-                  `topnav-link topnav-link-icon${isActive ? " is-active" : ""}`
-                }
-                data-tour="nav-history"
-                title="History"
-              >
-                <svg
-                  className="topnav-sent-icon"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  aria-hidden
+            <div className="topnav-user">
+              <ThemeSwitcher />
+              {COMPOSE_ENABLED ? (
+                <NavLink
+                  to="/sent"
+                  className={({ isActive }) =>
+                    `topnav-link topnav-link-icon${isActive ? " is-active" : ""}`
+                  }
+                  data-tour="nav-history"
+                  title="History"
                 >
-                  <path
-                    fill="currentColor"
-                    d="M13 3a9 9 0 1 0 8.2 12.4l-1.8-.7A7.2 7.2 0 1 1 13 4.8V8l5-4-5-4v3zm-.8 5.2v5.1l4.3 2.6.8-1.3-3.5-2.1V8.2z"
-                  />
-                </svg>
-                History
-              </NavLink>
-            ) : null}
-            <div
-              className={`nav-dropdown nav-dropdown--account${menuOpen ? " is-open" : ""}`}
-              ref={menuRef}
-            >
-              <button
-                type="button"
-                className="account-trigger"
-                aria-expanded={menuOpen}
-                aria-haspopup="menu"
-                onClick={() => setMenuOpen((open) => !open)}
+                  <svg
+                    className="topnav-sent-icon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M13 3a9 9 0 1 0 8.2 12.4l-1.8-.7A7.2 7.2 0 1 1 13 4.8V8l5-4-5-4v3zm-.8 5.2v5.1l4.3 2.6.8-1.3-3.5-2.1V8.2z"
+                    />
+                  </svg>
+                  History
+                </NavLink>
+              ) : null}
+              <div
+                className={`nav-dropdown nav-dropdown--account${menuOpen ? " is-open" : ""}`}
+                ref={menuRef}
               >
-                <span className="topnav-avatar" aria-hidden>
-                  {(user.displayName || "?").slice(0, 1).toUpperCase()}
-                </span>
-                <span className="topnav-user-meta">
-                  <strong>{user.displayName}</strong>
-                  <span>{roleLabel(user.role)}</span>
-                </span>
-                <span className="nav-dropdown-caret" aria-hidden>
-                  ▾
-                </span>
-              </button>
-              {menuOpen ? (
-                <div className="nav-dropdown-menu" role="menu">
-                  <div className="account-menu-head">
+                <button
+                  type="button"
+                  className="account-trigger"
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setMenuOpen((open) => !open)}
+                >
+                  <span className="topnav-avatar" aria-hidden>
+                    {(user.displayName || "?").slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="topnav-user-meta">
                     <strong>{user.displayName}</strong>
                     <span>{roleLabel(user.role)}</span>
+                  </span>
+                  <span className="nav-dropdown-caret" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+                {menuOpen ? (
+                  <div className="nav-dropdown-menu" role="menu">
+                    <div className="account-menu-head">
+                      <strong>{user.displayName}</strong>
+                      <span>{roleLabel(user.role)}</span>
+                    </div>
+                    <NavLink
+                      to="/marketplace"
+                      role="menuitem"
+                      className="account-menu-item"
+                    >
+                      Cards
+                    </NavLink>
+                    {designer ? (
+                      <NavLink
+                        to="/cards"
+                        role="menuitem"
+                        className="account-menu-item"
+                      >
+                        My cards
+                      </NavLink>
+                    ) : null}
+                    {admin ? (
+                      <NavLink
+                        to="/admin"
+                        role="menuitem"
+                        className="account-menu-item"
+                      >
+                        Admin
+                      </NavLink>
+                    ) : null}
+                    {COMPOSE_ENABLED ? (
+                      <NavLink
+                        to="/sent"
+                        role="menuitem"
+                        className="account-menu-item"
+                      >
+                        History
+                      </NavLink>
+                    ) : null}
+                    <hr className="nav-dropdown-sep" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="account-menu-item"
+                      onClick={logout}
+                    >
+                      Sign out
+                    </button>
                   </div>
-                  <NavLink
-                    to="/marketplace"
-                    role="menuitem"
-                    className="account-menu-item"
-                  >
-                    Cards
-                  </NavLink>
-                  {designer ? (
-                    <NavLink
-                      to="/cards"
-                      role="menuitem"
-                      className="account-menu-item"
-                    >
-                      My cards
-                    </NavLink>
-                  ) : null}
-                  {admin ? (
-                    <NavLink
-                      to="/admin"
-                      role="menuitem"
-                      className="account-menu-item"
-                    >
-                      Admin
-                    </NavLink>
-                  ) : null}
-                  {COMPOSE_ENABLED ? (
-                    <NavLink
-                      to="/sent"
-                      role="menuitem"
-                      className="account-menu-item"
-                    >
-                      History
-                    </NavLink>
-                  ) : null}
-                  <hr className="nav-dropdown-sep" />
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="account-menu-item"
-                    onClick={logout}
-                  >
-                    Sign out
-                  </button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </header>
         <main>
           <Outlet />
         </main>

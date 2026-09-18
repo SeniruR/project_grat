@@ -119,6 +119,8 @@ export function ComposePage() {
   >({});
   /** Prefix applied to the next person added. Empty = no title. */
   const [addPrefix, setAddPrefix] = useState("");
+  /** When false, hide the search row until "Add another" is clicked. */
+  const [recipientFormOpen, setRecipientFormOpen] = useState(false);
   const [nameHonorifics, setNameHonorifics] = useState<NameHonorific[]>([
     ...DEFAULT_NAME_HONORIFICS,
   ]);
@@ -428,7 +430,7 @@ export function ComposePage() {
       for (const p of toAdd) next[personKey(p)] = title;
       return next;
     });
-    if (clearSearch) {
+    if (toAdd.length > 0 || clearSearch) {
       setQuery("");
       setHits([]);
     }
@@ -448,11 +450,22 @@ export function ComposePage() {
     addPeople([person], title, true);
   }
 
+  /** Close the add form. Typed-but-not-listed addresses are discarded — only chips send. */
+  function closeRecipientForm() {
+    setRecipientFormOpen(false);
+    setQuery("");
+    setHits([]);
+  }
+
   const typedRecipient = parseTypedEmail(query);
 
   function removePerson(email: string) {
     const key = email.trim().toLowerCase();
-    setSelected((prev) => prev.filter((p) => personKey(p) !== key));
+    setSelected((prev) => {
+      const next = prev.filter((p) => personKey(p) !== key);
+      if (next.length === 0) setRecipientFormOpen(false);
+      return next;
+    });
     setPerRecipientFields((prev) => {
       const next = { ...prev };
       delete next[key];
@@ -547,8 +560,8 @@ export function ComposePage() {
             }}
             placeholder={
               usesRecipientName
-                ? "Name, email, or @example.com"
-                : "Email, or @example.com for everyone"
+                ? "Name, email, or @example.com — press Enter to add"
+                : "Email, or @example.com — press Enter to add"
             }
             disabled={busy}
             autoComplete="off"
@@ -939,6 +952,7 @@ export function ComposePage() {
     { label: template.name, to: parentDetailTo },
     { label: "Send" },
   ];
+  const showRecipientSearch = recipientFormOpen;
 
   return (
     <div className="page">
@@ -974,17 +988,87 @@ export function ComposePage() {
               <div className="compose-section-titles">
                 <h2 className="compose-section-title">For</h2>
                 <p className="compose-section-hint">
-                  {usesRecipientName
-                    ? "Choose a title, then search. Change the title to add the next person with a different one."
-                    : "Search for a colleague or type an email and press Enter."}
+                  {selected.length > 0
+                    ? "People who will receive this card."
+                    : usesRecipientName
+                      ? "Choose a title, then search or type an email. Press Enter to add."
+                      : "Search or type an email. Press Enter to add."}
                 </p>
               </div>
             </header>
             <div className="compose-section-body">
               {selected.length > 0 ? renderPersonChips(selected) : null}
-              {renderRecipientSearch()}
+              {selected.length === 0 ? (
+                <>
+                  {renderRecipientSearch()}
+                  {typedRecipient ? (
+                    <p className="muted small recipient-draft-hint">
+                      Press Enter or click Add below to list this address.
+                    </p>
+                  ) : (
+                    <p className="muted small recipient-draft-hint">
+                      Press Enter to add.
+                    </p>
+                  )}
+                </>
+              ) : null}
             </div>
           </section>
+
+          {selected.length > 0 ? (
+            <section className="compose-section" data-tour="compose-add-recipient">
+              <header className="compose-section-head">
+                <div className="compose-section-titles">
+                  <h2 className="compose-section-title">Add another</h2>
+                  <p className="compose-section-hint">
+                    {showRecipientSearch
+                      ? usesRecipientName
+                        ? "Choose a title, then search or type an email. Press Enter to add."
+                        : "Search or type an email. Press Enter to add."
+                      : "Click Add another to open the name and email fields."}
+                  </p>
+                </div>
+                {showRecipientSearch ? (
+                  <button
+                    type="button"
+                    className="ghost small"
+                    disabled={busy}
+                    title="Finish adding. Addresses still in the box are not sent."
+                    aria-label="Done. Only listed people will be sent."
+                    onClick={closeRecipientForm}
+                  >
+                    Done
+                  </button>
+                ) : null}
+              </header>
+              <div className="compose-section-body">
+                {showRecipientSearch ? (
+                  <>
+                    {renderRecipientSearch()}
+                    {typedRecipient ? (
+                      <p className="muted small recipient-draft-hint">
+                        Press Enter or click Add below to list this address. Done
+                        leaves it out.
+                      </p>
+                    ) : (
+                      <p className="muted small recipient-draft-hint">
+                        Press Enter to add.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="ghost recipient-add-more-btn"
+                    disabled={busy}
+                    onClick={() => setRecipientFormOpen(true)}
+                  >
+                    Add another
+                  </button>
+                )}
+              </div>
+            </section>
+          ) : null}
 
           {advancedCompose ? (
           <section className="compose-section">
