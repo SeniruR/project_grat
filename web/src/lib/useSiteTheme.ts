@@ -4,7 +4,7 @@ import {
   isSiteTheme,
   readStoredTheme,
   type SiteTheme,
-} from "../lib/theme";
+} from "./theme";
 
 export function useSiteTheme(): SiteTheme {
   const [theme, setTheme] = useState<SiteTheme>(() => readStoredTheme());
