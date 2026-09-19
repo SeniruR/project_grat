@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Gratitude Bloom">
   <rect width="32" height="32" rx="8" fill="#fff9f0"/>
-  <g transform="translate(16 16) rotate(-52)">
-    <rect x="-13.2" y="-10.5" width="6.2" height="21" rx="3.1" fill="#00AEEF"/>
-    <rect x="-3.1" y="-10.5" width="6.2" height="21" rx="3.1" fill="#4DB848"/>
-    <rect x="7" y="-10.5" width="6.2" height="21" rx="3.1" fill="#8CC63F"/>
+  <g transform="translate(16 17) rotate(28)">
+    <rect x="-11.5" y="-12" width="5.2" height="24" rx="2.6" fill="#0084c6"/>
+    <rect x="1.2" y="-7" width="5.2" height="16.5" rx="2.6" fill="#4fb648"/>
   </g>
 </svg>

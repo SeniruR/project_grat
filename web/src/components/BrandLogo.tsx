@@ -11,7 +11,7 @@ export function BrandMark({ size = 28, className }: MarkProps) {
       src="/slt-mark.png"
       alt=""
       height={size}
-      width={Math.round(size * (76 / 93))}
+      width={Math.round(size * (55 / 70))}
       aria-hidden
     />
   );
