@@ -41,7 +41,8 @@ import {
 } from "../lib/imageSlots";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { ToastBanner } from "../components/ToastBanner";
-import { Breadcrumbs, emailsCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs } from "../components/Breadcrumbs";
+import { ComposeFlowerDecor } from "../components/ComposeFlowerDecor";
 import { canManageDesigns, canUseAdvancedCompose } from "../lib/roles";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
@@ -558,11 +559,7 @@ export function ComposePage() {
                 if (canTypedAdd) tryAddTypedEmail(title);
               }
             }}
-            placeholder={
-              usesRecipientName
-                ? "Name, email, or @example.com — press Enter to add"
-                : "Email, or @example.com — press Enter to add"
-            }
+            placeholder="type name or @slt.com.lk"
             disabled={busy}
             autoComplete="off"
           />
@@ -939,23 +936,17 @@ export function ComposePage() {
 
   const fromDesigns =
     canManageDesigns(user) && template.owner.id === user?.id;
-  const parentCrumb = fromDesigns
-    ? { label: "My cards", to: "/cards" }
-    : { label: "Choose a card", to: "/marketplace" };
-  const parentDetailTo = fromDesigns
-    ? `/cards/${template.id}`
-    : "/marketplace";
+  const parentTo = fromDesigns ? "/cards" : "/marketplace";
   const cancelTo = fromDesigns ? `/cards/${template.id}` : "/marketplace";
   const composeCrumbs = [
-    emailsCrumb,
-    parentCrumb,
-    { label: template.name, to: parentDetailTo },
-    { label: "Send" },
+    { label: "Cards", to: parentTo },
+    { label: "Prepare" },
   ];
   const showRecipientSearch = recipientFormOpen;
 
   return (
-    <div className="page">
+    <div className="page compose-page">
+      <ComposeFlowerDecor />
       <ToastBanner
         key={errorTick}
         message={error}

@@ -4,7 +4,6 @@ import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { homePath, type AppRole } from "../lib/roles";
 import { setTourPending } from "../tour/storage";
-import { SiteFooter } from "../components/SiteFooter";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
@@ -30,9 +29,7 @@ export function LoginPage() {
   }, [showDemo]);
 
   if (!loading && user) {
-    return (
-      <Navigate to={homePath(user)} replace />
-    );
+    return <Navigate to={homePath(user)} replace />;
   }
 
   async function onSubmit(e: FormEvent) {
@@ -56,99 +53,127 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
+      <img
+        className="login-bg"
+        src="/login-meadow-bg.png"
+        alt=""
+        aria-hidden
+      />
       <div className="login-stage">
-        <section className="login-hero" aria-label="Gratitude">
-          <h1 className="login-brand">Gratitude</h1>
-          <p className="login-tagline">
-            An intranet tool for thanking colleagues by email.
-          </p>
-        </section>
-
-        <section className="login-panel">
-          <h2>Sign in</h2>
-          <p className="lede">Use your work name and email to continue.</p>
-
-          <form className="login-form" onSubmit={onSubmit}>
-            <label>
-              Your name
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                required
-                autoComplete="name"
+        <div className="login-stage-body">
+          <section className="login-hero" aria-label="Gratitude Bloom">
+            <div className="login-hero-copy">
+              <img
+                className="login-mark"
+                src="/slt-logo.png"
+                alt="SLT Mobitel"
               />
-            </label>
-            <label>
-              Work email
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </label>
-            {showDemo ? (
-              <>
-                <fieldset className="choice-set">
-                  <legend>Try as</legend>
+              <h1 className="login-brand">
+                Gratitude
+                <span>Bloom</span>
+              </h1>
+              <p className="login-tagline">
+                Strong connection
+                <br />
+                with appreciation
+              </p>
+            </div>
+          </section>
+
+          <section className="login-panel">
+            <h2>Sign in to proceed</h2>
+            <p className="lede">
+              Enter your name and work email to continue.
+            </p>
+
+            <form className="login-form" onSubmit={onSubmit}>
+              <label>
+                Your name
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                  autoComplete="name"
+                />
+              </label>
+              <label>
+                Work email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </label>
+              {showDemo ? (
+                <>
+                  <fieldset className="choice-set">
+                    <legend>Try as</legend>
+                    <label className="check">
+                      <input
+                        type="radio"
+                        name="role"
+                        checked={role === "USER"}
+                        onChange={() => setRole("USER")}
+                      />
+                      Someone sending a card
+                    </label>
+                    <label className="check">
+                      <input
+                        type="radio"
+                        name="role"
+                        checked={role === "DESIGNER"}
+                        onChange={() => setRole("DESIGNER")}
+                      />
+                      Someone who designs cards
+                    </label>
+                    <label className="check">
+                      <input
+                        type="radio"
+                        name="role"
+                        checked={role === "ADMIN"}
+                        onChange={() => setRole("ADMIN")}
+                      />
+                      Someone who looks after the system
+                    </label>
+                  </fieldset>
                   <label className="check">
                     <input
-                      type="radio"
-                      name="role"
-                      checked={role === "USER"}
-                      onChange={() => setRole("USER")}
+                      type="checkbox"
+                      checked={startTutorial}
+                      onChange={(e) => setStartTutorial(e.target.checked)}
                     />
-                    Someone sending a card
+                    Show me around after I sign in
                   </label>
-                  <label className="check">
-                    <input
-                      type="radio"
-                      name="role"
-                      checked={role === "DESIGNER"}
-                      onChange={() => setRole("DESIGNER")}
-                    />
-                    Someone who designs cards
-                  </label>
-                  <label className="check">
-                    <input
-                      type="radio"
-                      name="role"
-                      checked={role === "ADMIN"}
-                      onChange={() => setRole("ADMIN")}
-                    />
-                    Someone who looks after the system
-                  </label>
-                </fieldset>
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={startTutorial}
-                    onChange={(e) => setStartTutorial(e.target.checked)}
-                  />
-                  Show me around after I sign in
-                </label>
-              </>
-            ) : null}
-            {error ? <p className="error">{error}</p> : null}
-            <button type="submit" disabled={submitting}>
-              {submitting ? "Signing in…" : "Continue"}
+                </>
+              ) : null}
+              {error ? <p className="error">{error}</p> : null}
+              <button
+                type="submit"
+                className="login-continue"
+                disabled={submitting}
+              >
+                {submitting ? "Signing in…" : "Continue"}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              className="login-demo-swap"
+              onClick={() => setShowDemo((open) => !open)}
+            >
+              {showDemo
+                ? "Hide demonstration options"
+                : "Demonstration options"}
             </button>
-          </form>
-
-          <button
-            type="button"
-            className="ghost login-demo-swap"
-            onClick={() => setShowDemo((open) => !open)}
-          >
-            {showDemo
-              ? "Hide demonstration options"
-              : "Demonstration - show extra options"}
-          </button>
-          {showDemo && modes ? <p className="mode-line">{modes}</p> : null}
-        </section>
+            {showDemo && modes ? <p className="mode-line">{modes}</p> : null}
+          </section>
+        </div>
+        <p className="login-credit">
+          Customer Experience Division – CSW 2026
+        </p>
       </div>
-      <SiteFooter />
     </div>
   );
 }
