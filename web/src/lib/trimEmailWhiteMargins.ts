@@ -188,6 +188,138 @@ ${wrapped}
 </html>`;
 }
 
+function colIsBlank(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  x: number,
+  threshold: number,
+  minRatio: number,
+): boolean {
+  let blank = 0;
+  for (let y = 0; y < height; y++) {
+    const i = (y * width + x) * 4;
+    const a = data[i + 3] ?? 0;
+    if (a < 12) {
+      blank++;
+      continue;
+    }
+    const r = data[i] ?? 0;
+    const g = data[i + 1] ?? 0;
+    const b = data[i + 2] ?? 0;
+    if (r >= threshold && g >= threshold && b >= threshold) blank++;
+  }
+  return blank / height >= minRatio;
+}
+
+const croppedUrlCache = new Map<string, string>();
+
+/**
+ * Trim solid white (or transparent) bands on all four sides of a PNG.
+ * Used so marketplace thumbs don't show Canva letterboxing.
+ */
+export async function cropWhiteBoxFromUrl(src: string): Promise<string> {
+  const cached = croppedUrlCache.get(src);
+  if (cached) return cached;
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.crossOrigin = "anonymous";
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Could not read card snapshot."));
+    el.src = src;
+  });
+
+  const bw = img.naturalWidth || img.width;
+  const bh = img.naturalHeight || img.height;
+  if (bw < 8 || bh < 8) return src;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = bw;
+  canvas.height = bh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return src;
+  ctx.drawImage(img, 0, 0);
+  const { data } = ctx.getImageData(0, 0, bw, bh);
+
+  const threshold = 246;
+  const minRatio = 0.94;
+
+  let top = 0;
+  while (top < bh - 1 && rowIsBlank(data, bw, top, threshold, minRatio)) {
+    top++;
+  }
+  let bottom = 0;
+  while (
+    bottom < bh - 1 - top &&
+    rowIsBlank(data, bw, bh - 1 - bottom, threshold, minRatio)
+  ) {
+    bottom++;
+  }
+  let left = 0;
+  while (
+    left < bw - 1 &&
+    colIsBlank(data, bw, bh, left, threshold, minRatio)
+  ) {
+    left++;
+  }
+  let right = 0;
+  while (
+    right < bw - 1 - left &&
+    colIsBlank(data, bw, bh, bw - 1 - right, threshold, minRatio)
+  ) {
+    right++;
+  }
+
+  const minTrim = 2;
+  if (top + bottom + left + right < minTrim) {
+    croppedUrlCache.set(src, src);
+    return src;
+  }
+
+  const sx = left;
+  const sy = top;
+  const sw = Math.max(1, bw - left - right);
+  const sh = Math.max(1, bh - top - bottom);
+  if (sw < bw * 0.35 || sh < bh * 0.35) {
+    croppedUrlCache.set(src, src);
+    return src;
+  }
+
+  // White letter pages are mostly paper. Cropping them zooms the text into
+  // the square and looks like a "middle" crop after load.
+  let white = 0;
+  let sampled = 0;
+  const step = 5;
+  for (let y = sy; y < sy + sh; y += step) {
+    for (let x = sx; x < sx + sw; x += step) {
+      const i = (y * bw + x) * 4;
+      sampled++;
+      const a = data[i + 3] ?? 0;
+      const r = data[i] ?? 0;
+      const g = data[i + 1] ?? 0;
+      const b = data[i + 2] ?? 0;
+      if (a < 12 || (r >= threshold && g >= threshold && b >= threshold)) {
+        white++;
+      }
+    }
+  }
+  if (sampled > 0 && white / sampled > 0.58) {
+    croppedUrlCache.set(src, src);
+    return src;
+  }
+
+  const out = document.createElement("canvas");
+  out.width = sw;
+  out.height = sh;
+  const octx = out.getContext("2d");
+  if (!octx) return src;
+  octx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  const url = out.toDataURL("image/png");
+  croppedUrlCache.set(src, url);
+  return url;
+}
+
 export async function dataUrlToPngFile(
   dataUrl: string,
   fileName = "canva-preview.png",

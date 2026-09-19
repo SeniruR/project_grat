@@ -5,7 +5,7 @@ import {
   type SiteTheme,
 } from "../lib/theme";
 
-/** Test control: evening meadow, morning mist, still (quiet gratitude). */
+/** Test control: evening / morning / still / open (video, no vines). */
 export function ThemeSwitcher() {
   const [theme, setTheme] = useState<SiteTheme>(() => readStoredTheme());
 
@@ -26,6 +26,7 @@ export function ThemeSwitcher() {
         <option value="evening">Evening</option>
         <option value="morning">Morning</option>
         <option value="still">Still</option>
+        <option value="open">Open</option>
       </select>
     </label>
   );

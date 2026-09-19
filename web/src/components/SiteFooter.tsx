@@ -4,7 +4,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <p>
-        © {year} Gratitude. Customer Experience Division.
+        © {year} Gratitude Bloom. Customer Experience Division.
       </p>
     </footer>
   );

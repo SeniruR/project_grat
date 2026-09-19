@@ -1,10 +1,15 @@
-export type SiteTheme = "evening" | "morning" | "still";
+export type SiteTheme = "evening" | "morning" | "still" | "open";
 
 export const SITE_THEME_KEY = "gratitude-site-theme";
 export const SITE_THEME_EVENT = "gratitude-site-theme";
 
 export function isSiteTheme(value: unknown): value is SiteTheme {
-  return value === "evening" || value === "morning" || value === "still";
+  return (
+    value === "evening" ||
+    value === "morning" ||
+    value === "still" ||
+    value === "open"
+  );
 }
 
 export function readStoredTheme(): SiteTheme {

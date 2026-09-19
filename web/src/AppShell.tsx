@@ -7,12 +7,14 @@ import { TourProvider } from "./tour/TourContext";
 import { ProductTour } from "./tour/ProductTour";
 import { SiteFooter } from "./components/SiteFooter";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
+import { BrandLogo } from "./components/BrandLogo";
 
 export function AppShell() {
   const { user, loading, logout } = useAuth();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
@@ -20,7 +22,9 @@ export function AppShell() {
   useEffect(() => {
     if (!menuOpen) return;
     function onDoc(e: MouseEvent) {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setMenuOpen(false);
@@ -53,7 +57,7 @@ export function AppShell() {
         <header className="topnav-wrap">
           <nav className="topnav">
             <Link to={homePath(user)} className="brand">
-              Gratitude
+              <BrandLogo size={26} />
             </Link>
 
             <div className="topnav-user">
@@ -159,9 +163,11 @@ export function AppShell() {
             </div>
           </nav>
         </header>
+
         <main>
           <Outlet />
         </main>
+        <div id="app-page-decor" />
         <SiteFooter />
         <ProductTour />
       </div>

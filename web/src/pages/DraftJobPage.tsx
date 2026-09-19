@@ -4,7 +4,7 @@ import { api, type DraftJobDetail } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { COMPOSE_ENABLED } from "../features";
-import { Breadcrumbs, emailsCrumb, historyCrumb } from "../components/Breadcrumbs";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 export function DraftJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -62,9 +62,9 @@ export function DraftJobPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          emailsCrumb,
-          historyCrumb,
-          { label: job.template.name },
+          { label: "Cards", to: "/marketplace" },
+          { label: "Prepare", to: `/cards/${job.template.id}/compose` },
+          { label: "Preview" },
         ]}
       />
       {COMPOSE_ENABLED ? (
@@ -119,9 +119,6 @@ export function DraftJobPage() {
               </button>
               {open ? (
                 <div className="draft-card-body">
-                  <p>
-                    <strong>Subject:</strong> {d.subject}
-                  </p>
                   {d.error ? <p className="error">{d.error}</p> : null}
                   {d.bodyHtml ? (
                     <>
@@ -135,7 +132,9 @@ export function DraftJobPage() {
                       ) : null}
                       <OutlookDualPreview
                         html={d.bodyHtml}
+                        subject={d.subject}
                         showCopyActions={false}
+                        embedded
                       />
                     </>
                   ) : (
