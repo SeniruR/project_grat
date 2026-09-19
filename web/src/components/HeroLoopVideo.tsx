@@ -48,34 +48,37 @@ export function HeroLoopVideo({
     primary.currentTime = 0;
     secondary.pause();
 
-    async function start() {
+    async function start(
+      frontEl: HTMLVideoElement,
+      backEl: HTMLVideoElement,
+    ) {
       if (!withAudio) {
-        primary.muted = true;
-        secondary.muted = true;
-        await primary.play().catch(() => undefined);
+        frontEl.muted = true;
+        backEl.muted = true;
+        await frontEl.play().catch(() => undefined);
         return;
       }
 
-      primary.muted = false;
-      primary.volume = 1;
-      secondary.muted = true;
-      secondary.volume = 0;
+      frontEl.muted = false;
+      frontEl.volume = 1;
+      backEl.muted = true;
+      backEl.volume = 0;
 
       try {
-        await primary.play();
+        await frontEl.play();
         if (!cancelled) {
           soundEnabledRef.current = true;
           setNeedsGesture(false);
         }
       } catch {
         // Browsers usually block unmuted autoplay — start muted, unlock on gesture.
-        primary.muted = true;
-        await primary.play().catch(() => undefined);
+        frontEl.muted = true;
+        await frontEl.play().catch(() => undefined);
         if (!cancelled) setNeedsGesture(true);
       }
     }
 
-    void start();
+    void start(primary, secondary);
     return () => {
       cancelled = true;
     };
