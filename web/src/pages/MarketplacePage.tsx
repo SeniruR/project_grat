@@ -43,7 +43,7 @@ export function MarketplacePage() {
     navigate(`/marketplace/${card.id}`);
   }
 
-  const giveLabel = skipPreview ? "Give this" : "Look closer";
+  const giveLabel = skipPreview ? "Share" : "Look closer";
 
   return (
     <div className="page gift-page">
@@ -54,7 +54,7 @@ export function MarketplacePage() {
             <h1>
               <BrandLogo size={42} />
             </h1>
-            <p className="lede">Thank a colleague.</p>
+            {/* <p className="lede">Thank a colleague.</p> */}
           </div>
           <div className="gift-hero-media" aria-hidden>
             <HeroLoopVideo
@@ -110,7 +110,9 @@ export function MarketplacePage() {
                         previewUrl={latest?.previewUrl}
                         fallbackLabel={card.name}
                       />
-                      <span className="gift-give-overlay">{giveLabel}</span>
+                      <span className="gift-give-overlay">
+                        <span className="gift-give-chip">{giveLabel}</span>
+                      </span>
                     </button>
                   </div>
                   <div className="marketplace-card-body">

@@ -955,9 +955,9 @@ export function ComposePage() {
       {composeCrumbs.length ? <Breadcrumbs items={composeCrumbs} /> : null}
       <header className="page-header">
         <div>
-          <h1>Send this</h1>
+          <h1>Share</h1>
           <p className="lede">
-            They’ll see the card. It comes from you.
+            They’ll know it’s your card.
           </p>
         </div>
       </header>
@@ -977,13 +977,13 @@ export function ComposePage() {
           <section className="compose-section" data-tour="compose-recipients">
             <header className="compose-section-head">
               <div className="compose-section-titles">
-                <h2 className="compose-section-title">For</h2>
+                <h2 className="compose-section-title">To</h2>
                 <p className="compose-section-hint">
                   {selected.length > 0
                     ? "People who will receive this card."
                     : usesRecipientName
-                      ? "Choose a title, then search or type an email. Press Enter to add."
-                      : "Search or type an email. Press Enter to add."}
+                      ? "Select a title, then search by name or type an email"
+                      : "Search or type an email. Press Enter ( ⏎ ) to add."}
                 </p>
               </div>
             </header>
@@ -994,11 +994,11 @@ export function ComposePage() {
                   {renderRecipientSearch()}
                   {typedRecipient ? (
                     <p className="muted small recipient-draft-hint">
-                      Press Enter or click Add below to list this address.
+                      Press Enter ( ⏎ ) or click Add below to list this address.
                     </p>
                   ) : (
                     <p className="muted small recipient-draft-hint">
-                      Press Enter to add.
+                      Press Enter ( ⏎ ) to add.
                     </p>
                   )}
                 </>
@@ -1008,42 +1008,32 @@ export function ComposePage() {
 
           {selected.length > 0 ? (
             <section className="compose-section" data-tour="compose-add-recipient">
-              <header className="compose-section-head">
-                <div className="compose-section-titles">
-                  <h2 className="compose-section-title">Add another</h2>
-                  <p className="compose-section-hint">
-                    {showRecipientSearch
-                      ? usesRecipientName
-                        ? "Choose a title, then search or type an email. Press Enter to add."
-                        : "Search or type an email. Press Enter to add."
-                      : "Click Add another to open the name and email fields."}
-                  </p>
-                </div>
-                {showRecipientSearch ? (
-                  <button
-                    type="button"
-                    className="ghost small"
-                    disabled={busy}
-                    title="Finish adding. Addresses still in the box are not sent."
-                    aria-label="Done. Only listed people will be sent."
-                    onClick={closeRecipientForm}
-                  >
-                    Done
-                  </button>
-                ) : null}
-              </header>
               <div className="compose-section-body">
                 {showRecipientSearch ? (
                   <>
-                    {renderRecipientSearch()}
+                    <div className="recipient-add-open-row">
+                      <div className="recipient-add-open-fields">
+                        {renderRecipientSearch()}
+                      </div>
+                      <button
+                        type="button"
+                        className="recipient-add-cancel"
+                        disabled={busy}
+                        title="Cancel adding"
+                        aria-label="Cancel adding"
+                        onClick={closeRecipientForm}
+                      >
+                        ×
+                      </button>
+                    </div>
                     {typedRecipient ? (
                       <p className="muted small recipient-draft-hint">
-                        Press Enter or click Add below to list this address. Done
+                        Press Enter ( ⏎ ) or click Add below to list this address. Cancel
                         leaves it out.
                       </p>
                     ) : (
                       <p className="muted small recipient-draft-hint">
-                        Press Enter to add.
+                        Press Enter ( ⏎ ) to add.
                       </p>
                     )}
                   </>
@@ -1054,7 +1044,7 @@ export function ComposePage() {
                     disabled={busy}
                     onClick={() => setRecipientFormOpen(true)}
                   >
-                    Add another
+                    + Add another
                   </button>
                 )}
               </div>
@@ -1414,22 +1404,22 @@ export function ComposePage() {
                 {error}
               </p>
             ) : null}
+            <Link className="ghost btn-link-ghost" to={cancelTo}>
+              Back to cards
+            </Link>
             <button
               type="button"
               disabled={busy || !compiled || selected.length === 0}
               onClick={requestSend}
             >
-              Send
+              Share
             </button>
-            <Link className="ghost btn-link-ghost" to={cancelTo}>
-              Cancel
-            </Link>
           </div>
         </aside>
 
         <section className="compose-preview">
           <div className="compose-preview-head">
-            <h2 className="compose-preview-title">How it arrives</h2>
+            <h2 className="compose-preview-title">Preview</h2>
             {selected.length > 1 ? (
               <label className="compose-preview-pick">
                 <span className="muted small">Show as</span>
@@ -1474,8 +1464,8 @@ export function ComposePage() {
                 aria-labelledby="send-confirm-title"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h2 id="send-confirm-title">Send this card?</h2>
-                <p>This will send the card.</p>
+                <h2 id="send-confirm-title">Share</h2>
+                
                 <ul className="send-confirm-list">
                   {selected.map((p) => {
                     const personSubject = resolvedSubjectFor(p);
@@ -1508,7 +1498,7 @@ export function ComposePage() {
                     disabled={busy}
                     onClick={() => void createDrafts()}
                   >
-                    {busy ? "Sending…" : "Send"}
+                    {busy ? "Sharing…" : "Share"}
                   </button>
                 </div>
               </div>

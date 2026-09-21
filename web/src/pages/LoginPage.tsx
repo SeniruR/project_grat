@@ -73,15 +73,13 @@ export function LoginPage() {
                 <span>Bloom</span>
               </h1>
               <p className="login-tagline">
-                Strong connection
-                <br />
-                with appreciation
+                Strong connection with appreciation
               </p>
             </div>
           </section>
 
           <section className="login-panel">
-            <h2>Sign in to proceed</h2>
+            <h2>Sign in</h2>
             <p className="lede">
               Enter your name and work email to continue.
             </p>
@@ -171,7 +169,7 @@ export function LoginPage() {
           </section>
         </div>
         <p className="login-credit">
-          Customer Experience Division – CSW 2026
+          Customer Experience Division – Customer Service Week 2026
         </p>
       </div>
     </div>

@@ -74,8 +74,8 @@ export function SentPreviewModal({ item, onClose }: Props) {
       timer = window.setTimeout(() => {
         const avail = Math.max(200, el.clientWidth - 8);
         const next = Math.min(1.35, Math.max(0.35, avail / designW));
-        const rounded = Math.round(next * 100) / 100;
-        setFitScale((prev) => (Math.abs(prev - rounded) < 0.01 ? prev : rounded));
+        const rounded = Math.floor(next * 100) / 100;
+        setFitScale((prev) => (Math.abs(prev - rounded) < 0.02 ? prev : rounded));
       }, 60);
     };
     measure();

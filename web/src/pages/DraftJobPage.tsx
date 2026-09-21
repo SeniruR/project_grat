@@ -86,8 +86,7 @@ export function DraftJobPage() {
 
       {mailMode === "smtp" ? (
         <p className="notice">
-          SMTP mode - messages were sent with images embedded in the email (not
-          linked from localhost). Check the recipient inbox.
+          
         </p>
       ) : mailMode === "graph" ? (
         <p className="notice">

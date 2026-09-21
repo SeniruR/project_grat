@@ -57,8 +57,8 @@ export function OutlookDualPreview({
         const paneWidth = el.getBoundingClientRect().width;
         if (paneWidth < 40) return;
         const next = Math.min(1, Math.max(0.35, (paneWidth - 24) / cardWidth));
-        const rounded = Math.round(next * 100) / 100;
-        setFitZoom((prev) => (Math.abs(prev - rounded) < 0.01 ? prev : rounded));
+        const rounded = Math.floor(next * 100) / 100;
+        setFitZoom((prev) => (Math.abs(prev - rounded) < 0.02 ? prev : rounded));
       }, 120);
     };
 

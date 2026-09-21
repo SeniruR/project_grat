@@ -116,8 +116,8 @@ export function CanvasPreview({
           );
           next = Math.min(1, availW / w, availH / h);
         }
-        const rounded = Math.round(next * 100) / 100;
-        setFitScale((prev) => (Math.abs(prev - rounded) < 0.01 ? prev : rounded));
+        const rounded = Math.floor(next * 100) / 100;
+        setFitScale((prev) => (Math.abs(prev - rounded) < 0.02 ? prev : rounded));
       }, 80);
     };
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BrandLogo } from "./BrandLogo";
 import { HeroLoopVideo } from "./HeroLoopVideo";
 import { useSiteTheme } from "../lib/useSiteTheme";
 import type { SiteTheme } from "../lib/theme";
@@ -52,7 +53,9 @@ export function MarketplaceVideoIntro({ onEnter }: Props) {
       />
       <div className="marketplace-video-intro-shade" aria-hidden />
       <div className="marketplace-video-intro-copy">
-        <p className="marketplace-video-intro-brand">Gratitude Bloom</p>
+        <p className="marketplace-video-intro-brand">
+          <BrandLogo size={36} />
+        </p>
         <p className="marketplace-video-intro-lede">
           Thank a colleague with a ready-made card.
         </p>
