@@ -60,7 +60,7 @@ export const chooseCardCrumb: Crumb = {
   to: "/marketplace",
 };
 
-export const myCardsCrumb: Crumb = { label: "My cards", to: "/cards" };
+export const myCardsCrumb: Crumb = { label: "My designs", to: "/cards" };
 
 export const historyCrumb: Crumb = { label: "History", to: "/sent" };
 

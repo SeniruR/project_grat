@@ -34,11 +34,20 @@ function getTransporter() {
   return transporter;
 }
 
-function fromAddress() {
-  const user = config.smtpUser!.trim();
-  const from = config.smtpFrom?.trim() || user;
-  const name = config.smtpFromName?.trim();
-  return name ? `"${name.replace(/"/g, "")}" <${from}>` : from;
+function formatMailbox(name: string | undefined, email: string) {
+  const address = email.trim();
+  const label = name?.trim().replace(/"/g, "");
+  return label ? `"${label}" <${address}>` : address;
+}
+
+/** From header the recipient sees: the signed-in person, not the shared mailbox label. */
+function fromHeader(input: CreateDraftInput) {
+  const email =
+    input.senderEmail?.trim() ||
+    config.smtpFrom?.trim() ||
+    config.smtpUser!.trim();
+  const name = input.senderName?.trim() || config.smtpFromName?.trim();
+  return formatMailbox(name, email);
 }
 
 function isFullHtmlDocument(html: string) {
@@ -79,8 +88,10 @@ export const smtpMailProvider: MailProvider = {
       .trim()
       .slice(0, 8000);
 
+    const from = fromHeader(input);
     const info = await transport.sendMail({
-      from: fromAddress(),
+      from,
+      replyTo: from,
       to: input.recipientName
         ? `"${input.recipientName.replace(/"/g, "")}" <${input.recipientEmail}>`
         : input.recipientEmail,

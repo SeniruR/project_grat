@@ -321,8 +321,26 @@ function isBlankCompiledHtml(html: string | null | undefined) {
   return !t || t === "<div></div>" || t === "<div/>";
 }
 
+function firstImageSrc(html: string): string | null {
+  const match = /<img\b[^>]*\bsrc=["']([^"']+)["']/i.exec(html);
+  const src = match?.[1]?.trim();
+  return src || null;
+}
+
+function imageLoads(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const done = (ok: boolean) => resolve(ok);
+    img.onload = () => done(img.naturalWidth > 0);
+    img.onerror = () => done(false);
+    window.setTimeout(() => done(false), 8000);
+    img.src = url;
+  });
+}
+
 /**
  * Rasterize stored HTML to a PNG thumb and store it on the current version.
+ * Picture cards already are the preview, so they keep that image.
  * Does not create a new version or change Template.updatedAt / Edited time.
  */
 export async function refreshPreviewPngInPlace(
@@ -334,6 +352,16 @@ export async function refreshPreviewPngInPlace(
   if (isBlankCompiledHtml(compiledHtml)) {
     throw new Error("This card has no email HTML to snapshot");
   }
+
+  if (designJson.mode === "image_import") {
+    const src = firstImageSrc(rewriteMediaUrlsInHtml(compiledHtml));
+    if (!src || !(await imageLoads(src))) {
+      throw new Error("This card picture could not be loaded");
+    }
+    await api.patchTemplatePreview(token, templateId, src);
+    return { previewUrl: src };
+  }
+
   const emailWidth =
     typeof designJson.width === "number"
       ? designJson.width

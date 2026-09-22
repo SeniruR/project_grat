@@ -1,5 +1,10 @@
 import { prisma } from "../../db.js";
-import type { AuthProvider, AuthUser, DevLoginInput } from "./types.js";
+import {
+  DevLoginRejected,
+  type AuthProvider,
+  type AuthUser,
+  type DevLoginInput,
+} from "./types.js";
 
 function toAuthUser(user: {
   id: string;
@@ -22,24 +27,23 @@ export const devAuthProvider: AuthProvider = {
 
   async loginDev(input: DevLoginInput): Promise<AuthUser> {
     const email = input.email.trim().toLowerCase();
-    const displayName = input.displayName.trim();
-    const role = input.role ?? "USER";
-    const aadOid = `dev-${email}`;
+    const employeeNumber = input.employeeNumber.trim();
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      create: {
-        email,
-        displayName,
-        role,
-        aadOid,
-        isDirectory: true,
-      },
-      update: {
-        displayName,
-        role,
-      },
+    const existing = await prisma.user.findFirst({
+      where: { email, employeeNumber },
     });
+    if (!existing) {
+      throw new DevLoginRejected(
+        "That employee number does not match this office email.",
+      );
+    }
+
+    const user = input.role
+      ? await prisma.user.update({
+          where: { id: existing.id },
+          data: { role: input.role },
+        })
+      : existing;
 
     await prisma.auditEvent.create({
       data: {

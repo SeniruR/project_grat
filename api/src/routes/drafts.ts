@@ -274,18 +274,8 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       } = parsed.data;
 
       const sender = {
-        displayName:
-          senderName?.trim() ||
-          (config.mailMode === "smtp"
-            ? config.smtpFromName?.trim() || user.displayName
-            : user.displayName),
-        email:
-          config.mailMode === "smtp"
-            ? config.smtpFrom?.trim() ||
-              config.smtpUser?.trim() ||
-              senderEmail?.trim() ||
-              user.email
-            : senderEmail?.trim() || user.email,
+        displayName: senderName?.trim() || user.displayName,
+        email: senderEmail?.trim() || user.email,
       };
 
       const advancedCompose = canUseAdvancedCompose(user);
@@ -487,7 +477,8 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         try {
           const result = await mail.createDraft({
             senderUserId: user.id,
-            senderEmail: user.email,
+            senderEmail: sender.email,
+            senderName: sender.displayName,
             recipientEmail: recipient.email,
             recipientName: recipient.displayName,
             recipientOid: recipient.aadOid,

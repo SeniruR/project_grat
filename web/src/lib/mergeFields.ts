@@ -160,17 +160,19 @@ export function recipientNameValueForKey(key: string, fullName: string): string 
 export type NameHonorific = {
   value: string;
   label: string;
+  /** When false, the card uses the title alone (Dear Sir,). Default true. */
+  withName?: boolean;
 };
 
 /** Optional title prefixes for recipient / sender name merges (defaults). */
 export const DEFAULT_NAME_HONORIFICS: NameHonorific[] = [
-  { value: "Mr.", label: "Mr." },
-  { value: "Mrs.", label: "Mrs." },
-  { value: "Miss", label: "Miss" },
-  { value: "Ms.", label: "Ms." },
-  { value: "Dr.", label: "Dr." },
-  { value: "Sir", label: "Sir" },
-  { value: "Madam", label: "Madam" },
+  { value: "Mr.", label: "Mr.", withName: true },
+  { value: "Mrs.", label: "Mrs.", withName: true },
+  { value: "Miss", label: "Miss", withName: true },
+  { value: "Ms.", label: "Ms.", withName: true },
+  { value: "Dr.", label: "Dr.", withName: true },
+  { value: "Sir", label: "Sir", withName: false },
+  { value: "Madam", label: "Madam", withName: false },
 ];
 
 /** @deprecated Prefer DEFAULT_NAME_HONORIFICS / API settings */
@@ -185,15 +187,31 @@ export function isStandaloneHonorific(
   return STANDALONE_HONORIFIC_RE.test((title ?? "").trim());
 }
 
+/** Whether this title keeps the recipient name after it (Mr. Jane). */
+export function honorificIncludesName(
+  title: string | null | undefined,
+  honorifics: NameHonorific[],
+): boolean {
+  const t = (title ?? "").trim();
+  if (!t) return true;
+  const row = honorifics.find(
+    (h) => h.value.toLowerCase() === t.toLowerCase(),
+  );
+  if (row && typeof row.withName === "boolean") return row.withName;
+  return !isStandaloneHonorific(t);
+}
+
 /** Prefix a display name with Mr./Mrs./… when a title is chosen.
- * Sir / Madam replace the name so the card reads “Dear Sir,” not “Dear Sir Jane”. */
+ * withName false uses the title alone so the card reads “Dear Sir,”. */
 export function withHonorific(
   title: string | null | undefined,
   name: string,
+  withName?: boolean,
 ): string {
   const n = name.trim();
   const t = (title ?? "").trim();
-  if (isStandaloneHonorific(t)) return t;
+  const includeName = withName ?? !isStandaloneHonorific(t);
+  if (t && !includeName) return t;
   if (!n) return "";
   if (!t) return n;
   const lower = n.toLowerCase();

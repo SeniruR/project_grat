@@ -1,7 +1,9 @@
 export type CreateDraftInput = {
   senderUserId: string;
-  /** Mailbox UPN/email when using app-only Graph (/users/{upn}/messages) */
+  /** Signed-in person's address. Shown as the From address. */
   senderEmail?: string;
+  /** Signed-in person's name. Shown as the From name. */
+  senderName?: string;
   /** Delegated Graph token — when set, uses /me/messages instead of app mailbox */
   accessToken?: string;
   recipientEmail: string;

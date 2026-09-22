@@ -84,8 +84,8 @@ export function AdminPage() {
       <div className="catalog-grid" data-tour="admin-tiles">
         <Link to="/admin/summary" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">SUMMARY</span>
-          <h2>Send summary</h2>
-          <p>See what each user has sent - jobs, message counts, and recent cards.</p>
+          <h2>Share summary</h2>
+          <p>See what each person has shared.</p>
         </Link>
         <Link to="/admin/people" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">PEOPLE</span>
@@ -94,10 +94,10 @@ export function AdminPage() {
         </Link>
         <Link to="/admin/settings" className="catalog-tile catalog-tile--live">
           <span className="catalog-type">SETTINGS</span>
-          <h2>Send settings</h2>
+          <h2>Manage titles</h2>
           <p>
-            Choose which name titles (Mr., Mrs., Sir, …) become recipient groups
-            when sending.
+            Choose which name titles (Mr., Mrs., Sir, …) people can use when
+            they share.
           </p>
         </Link>
         <Link to="/admin/audit" className="catalog-tile catalog-tile--live">

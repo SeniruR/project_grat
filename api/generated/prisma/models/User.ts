@@ -28,6 +28,7 @@ export type UserMinAggregateOutputType = {
   id: string | null
   aadOid: string | null
   email: string | null
+  employeeNumber: string | null
   displayName: string | null
   role: $Enums.Role | null
   isDirectory: boolean | null
@@ -39,6 +40,7 @@ export type UserMaxAggregateOutputType = {
   id: string | null
   aadOid: string | null
   email: string | null
+  employeeNumber: string | null
   displayName: string | null
   role: $Enums.Role | null
   isDirectory: boolean | null
@@ -50,6 +52,7 @@ export type UserCountAggregateOutputType = {
   id: number
   aadOid: number
   email: number
+  employeeNumber: number
   displayName: number
   role: number
   isDirectory: number
@@ -63,6 +66,7 @@ export type UserMinAggregateInputType = {
   id?: true
   aadOid?: true
   email?: true
+  employeeNumber?: true
   displayName?: true
   role?: true
   isDirectory?: true
@@ -74,6 +78,7 @@ export type UserMaxAggregateInputType = {
   id?: true
   aadOid?: true
   email?: true
+  employeeNumber?: true
   displayName?: true
   role?: true
   isDirectory?: true
@@ -85,6 +90,7 @@ export type UserCountAggregateInputType = {
   id?: true
   aadOid?: true
   email?: true
+  employeeNumber?: true
   displayName?: true
   role?: true
   isDirectory?: true
@@ -169,6 +175,7 @@ export type UserGroupByOutputType = {
   id: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role: $Enums.Role
   isDirectory: boolean
@@ -201,6 +208,7 @@ export type UserWhereInput = {
   id?: Prisma.StringFilter<"User"> | string
   aadOid?: Prisma.StringFilter<"User"> | string
   email?: Prisma.StringFilter<"User"> | string
+  employeeNumber?: Prisma.StringFilter<"User"> | string
   displayName?: Prisma.StringFilter<"User"> | string
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   isDirectory?: Prisma.BoolFilter<"User"> | boolean
@@ -217,6 +225,7 @@ export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   aadOid?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  employeeNumber?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
@@ -233,6 +242,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   aadOid?: string
   email?: string
+  employeeNumber?: string
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
@@ -246,12 +256,13 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   auditEvents?: Prisma.AuditEventListRelationFilter
   draftJobs?: Prisma.DraftJobListRelationFilter
   favorites?: Prisma.TemplateFavoriteListRelationFilter
-}, "id" | "aadOid" | "email">
+}, "id" | "aadOid" | "email" | "employeeNumber">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   aadOid?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  employeeNumber?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
@@ -269,6 +280,7 @@ export type UserScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"User"> | string
   aadOid?: Prisma.StringWithAggregatesFilter<"User"> | string
   email?: Prisma.StringWithAggregatesFilter<"User"> | string
+  employeeNumber?: Prisma.StringWithAggregatesFilter<"User"> | string
   displayName?: Prisma.StringWithAggregatesFilter<"User"> | string
   role?: Prisma.EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
   isDirectory?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
@@ -280,6 +292,7 @@ export type UserCreateInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -296,6 +309,7 @@ export type UserUncheckedCreateInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -312,6 +326,7 @@ export type UserUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -328,6 +343,7 @@ export type UserUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -344,6 +360,7 @@ export type UserCreateManyInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -355,6 +372,7 @@ export type UserUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -366,6 +384,7 @@ export type UserUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -377,6 +396,7 @@ export type UserCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   aadOid?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  employeeNumber?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
@@ -388,6 +408,7 @@ export type UserMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   aadOid?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  employeeNumber?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
@@ -399,6 +420,7 @@ export type UserMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   aadOid?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  employeeNumber?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
@@ -510,6 +532,7 @@ export type UserCreateWithoutCreatedCategoriesInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -525,6 +548,7 @@ export type UserUncheckedCreateWithoutCreatedCategoriesInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -556,6 +580,7 @@ export type UserUpdateWithoutCreatedCategoriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -571,6 +596,7 @@ export type UserUncheckedUpdateWithoutCreatedCategoriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -586,6 +612,7 @@ export type UserCreateWithoutOwnedTemplatesInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -601,6 +628,7 @@ export type UserUncheckedCreateWithoutOwnedTemplatesInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -632,6 +660,7 @@ export type UserUpdateWithoutOwnedTemplatesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -647,6 +676,7 @@ export type UserUncheckedUpdateWithoutOwnedTemplatesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -662,6 +692,7 @@ export type UserCreateWithoutFavoritesInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -677,6 +708,7 @@ export type UserUncheckedCreateWithoutFavoritesInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -708,6 +740,7 @@ export type UserUpdateWithoutFavoritesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -723,6 +756,7 @@ export type UserUncheckedUpdateWithoutFavoritesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -738,6 +772,7 @@ export type UserCreateWithoutDraftJobsInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -753,6 +788,7 @@ export type UserUncheckedCreateWithoutDraftJobsInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -784,6 +820,7 @@ export type UserUpdateWithoutDraftJobsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -799,6 +836,7 @@ export type UserUncheckedUpdateWithoutDraftJobsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -814,6 +852,7 @@ export type UserCreateWithoutAuditEventsInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -829,6 +868,7 @@ export type UserUncheckedCreateWithoutAuditEventsInput = {
   id?: string
   aadOid: string
   email: string
+  employeeNumber: string
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
@@ -860,6 +900,7 @@ export type UserUpdateWithoutAuditEventsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -875,6 +916,7 @@ export type UserUncheckedUpdateWithoutAuditEventsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   aadOid?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeNumber?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -957,6 +999,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   id?: boolean
   aadOid?: boolean
   email?: boolean
+  employeeNumber?: boolean
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
@@ -974,6 +1017,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   id?: boolean
   aadOid?: boolean
   email?: boolean
+  employeeNumber?: boolean
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
@@ -985,6 +1029,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   id?: boolean
   aadOid?: boolean
   email?: boolean
+  employeeNumber?: boolean
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
@@ -996,6 +1041,7 @@ export type UserSelectScalar = {
   id?: boolean
   aadOid?: boolean
   email?: boolean
+  employeeNumber?: boolean
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
@@ -1003,7 +1049,7 @@ export type UserSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aadOid" | "email" | "displayName" | "role" | "isDirectory" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aadOid" | "email" | "employeeNumber" | "displayName" | "role" | "isDirectory" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownedTemplates?: boolean | Prisma.User$ownedTemplatesArgs<ExtArgs>
   createdCategories?: boolean | Prisma.User$createdCategoriesArgs<ExtArgs>
@@ -1031,6 +1077,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      */
     aadOid: string
     email: string
+    /**
+     * Staff id used at sign-in. The display name stays on the directory record.
+     */
+    employeeNumber: string
     displayName: string
     role: $Enums.Role
     /**
@@ -1470,6 +1520,7 @@ export interface UserFieldRefs {
   readonly id: Prisma.FieldRef<"User", 'String'>
   readonly aadOid: Prisma.FieldRef<"User", 'String'>
   readonly email: Prisma.FieldRef<"User", 'String'>
+  readonly employeeNumber: Prisma.FieldRef<"User", 'String'>
   readonly displayName: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'Role'>
   readonly isDirectory: Prisma.FieldRef<"User", 'Boolean'>

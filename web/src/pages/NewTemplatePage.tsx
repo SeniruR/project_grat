@@ -9,7 +9,6 @@ import {
 } from "../lib/importDesign";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
-import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb, myCardsCrumb } from "../components/Breadcrumbs";
 import type { PlaceholderDef } from "../lib/mergeFields";
 import { FALLBACK_DEFAULT_SUBJECT } from "../lib/mergeFields";
@@ -48,7 +47,6 @@ export function NewTemplatePage() {
   const [name, setName] = useState("");
   const [defaultSubject, setDefaultSubject] = useState(FALLBACK_DEFAULT_SUBJECT);
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [starter, setStarter] = useState<Starter>("canva_zip");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -150,10 +148,6 @@ export function NewTemplatePage() {
       setError("Choose a PNG, JPEG, or PDF to upload.");
       return;
     }
-    if (!categoryId) {
-      setError("Choose a category (or create one) before saving.");
-      return;
-    }
 
     setSaving(true);
     try {
@@ -163,7 +157,6 @@ export function NewTemplatePage() {
       const { template } = await api.createTemplate(token, {
         name,
         visibility,
-        categoryId,
         mode: createMode,
       });
 
@@ -222,7 +215,7 @@ export function NewTemplatePage() {
         ]}
       />
       <header className="page-header">
-        <p className="eyebrow">My cards</p>
+        <p className="eyebrow">My designs</p>
         <h1>New card</h1>
         <p className="lede">
           Bring in a design, give it a name, and save. Others can then choose it
@@ -463,19 +456,6 @@ export function NewTemplatePage() {
             Shared - appears under Browse cards
           </label>
         </fieldset>
-
-        {token ? (
-          <CategoryCombobox
-            token={token}
-            value={categoryId}
-            onChange={(id) => setCategoryId(id)}
-            disabled={saving}
-            allowClear={false}
-            allowCreate
-            label="Category"
-            placeholder="Birthday, Promotion, Thank you…"
-          />
-        ) : null}
 
         {error ? <p className="error">{error}</p> : null}
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -23,7 +23,7 @@ import {
   sharedPlaceholderKeys,
   suggestPlaceholderSource,
   withHonorific,
-  isStandaloneHonorific,
+  honorificIncludesName,
   type NameHonorific,
   type PlaceholderDef,
   type PlaceholderSource,
@@ -40,10 +40,9 @@ import {
   type ImageSlotDef,
 } from "../lib/imageSlots";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
-import { ToastBanner } from "../components/ToastBanner";
-import { Breadcrumbs } from "../components/Breadcrumbs";
+import { Breadcrumbs, cardsCrumb } from "../components/Breadcrumbs";
 import { ComposeFlowerDecor } from "../components/ComposeFlowerDecor";
-import { canManageDesigns, canUseAdvancedCompose } from "../lib/roles";
+import { canUseAdvancedCompose, homePath } from "../lib/roles";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -51,6 +50,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 50;
 const DIRECTORY_PAGE_SIZE = 20;
 const DIRECTORY_DOMAIN_LIMIT = 200;
+const UNKNOWN_EMAIL_NOTICE =
+  "This email isn’t in the system. Please check and verify";
+const SHARE_NO_RECIPIENT_NOTICE = "Add at least one recipient.";
 
 /** `@example.com`, `example.com`, or `@example` → fetch the whole domain. */
 function isDomainDirectoryQuery(raw: string): boolean {
@@ -126,31 +128,13 @@ export function ComposePage() {
     ...DEFAULT_NAME_HONORIFICS,
   ]);
   const [error, setError] = useState<string | null>(null);
-  const [errorTick, setErrorTick] = useState(0);
   const [busy, setBusy] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
-  const [mailMode, setMailMode] = useState("mock");
-  const [smtpFrom, setSmtpFrom] = useState<string | null>(null);
-  const [smtpFromName, setSmtpFromName] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-
-  const dismissError = useCallback(() => setError(null), []);
 
   function reportError(message: string) {
     setError(message);
-    setErrorTick((n) => n + 1);
   }
-
-  useEffect(() => {
-    api
-      .getMode()
-      .then((m) => {
-        setMailMode(m.mailMode);
-        setSmtpFrom(m.smtpFrom ?? null);
-        setSmtpFromName(m.smtpFromName ?? null);
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -188,21 +172,17 @@ export function ComposePage() {
     setSenderEmail((prev) => prev || user.email || "");
   }, [user]);
 
-  useEffect(() => {
-    if (mailMode !== "smtp") return;
-    if (smtpFromName) setSenderName(smtpFromName);
-    if (smtpFrom) setSenderEmail(smtpFrom);
-  }, [mailMode, smtpFrom, smtpFromName]);
 
   useEffect(() => {
     if (!token) return;
     const q = query.trim();
-    if (q.length < 1 || EMAIL_RE.test(q)) {
+    if (q.length < 1) {
       setHits([]);
+      setSearching(false);
       return;
     }
+    setSearching(true);
     const handle = window.setTimeout(() => {
-      setSearching(true);
       const limit = isDomainDirectoryQuery(q)
         ? DIRECTORY_DOMAIN_LIMIT
         : DIRECTORY_PAGE_SIZE;
@@ -321,9 +301,11 @@ export function ComposePage() {
     () => {
       const previewKey = previewPerson ? personKey(previewPerson) : "";
       const recipientLabel = previewPerson?.displayName?.trim() || "recipient";
+      const previewTitle = previewKey ? recipientTitles[previewKey] || "" : "";
       const titledRecipient = withHonorific(
-        previewKey ? recipientTitles[previewKey] || "" : "",
+        previewTitle,
         recipientLabel,
+        honorificIncludesName(previewTitle, nameHonorifics),
       );
       const titledSender = withHonorific(
         "",
@@ -348,6 +330,7 @@ export function ComposePage() {
       perRecipientFields,
       user,
       recipientTitles,
+      nameHonorifics,
     ],
   );
 
@@ -435,6 +418,7 @@ export function ComposePage() {
       setQuery("");
       setHits([]);
     }
+    if (toAdd.length > 0) setError(null);
   }
 
   function addPerson(person: DirectoryPerson, title = addPrefix) {
@@ -447,8 +431,13 @@ export function ComposePage() {
       reportError("Enter a valid email address (e.g. you@example.com).");
       return;
     }
+    const match = hits.find((p) => personKey(p) === personKey(person));
+    if (!match) {
+      reportError(UNKNOWN_EMAIL_NOTICE);
+      return;
+    }
     setError(null);
-    addPeople([person], title, true);
+    addPeople([match], title, true);
   }
 
   /** Close the add form. Typed-but-not-listed addresses are discarded — only chips send. */
@@ -459,6 +448,12 @@ export function ComposePage() {
   }
 
   const typedRecipient = parseTypedEmail(query);
+  const typedInDirectory = Boolean(
+    typedRecipient &&
+      hits.some((p) => personKey(p) === personKey(typedRecipient)),
+  );
+  const unknownEmail =
+    Boolean(typedRecipient) && !searching && !typedInDirectory;
 
   function removePerson(email: string) {
     const key = email.trim().toLowerCase();
@@ -486,7 +481,12 @@ export function ComposePage() {
 
   function titledRecipientName(person: DirectoryPerson): string {
     const ek = personKey(person);
-    return withHonorific(recipientTitles[ek] || "", person.displayName);
+    const title = recipientTitles[ek] || "";
+    return withHonorific(
+      title,
+      person.displayName,
+      honorificIncludesName(title, nameHonorifics),
+    );
   }
 
   function titledSenderName(): string {
@@ -516,18 +516,16 @@ export function ComposePage() {
 
   function renderRecipientSearch() {
     const title = addPrefix;
-    const typed = typedRecipient;
-    const canTypedAdd = Boolean(typed);
+    const canTypedAdd = Boolean(typedRecipient);
     const selectedKey = (p: DirectoryPerson) =>
       selected.some((s) => personKey(s) === personKey(p));
     const sameTitle = (p: DirectoryPerson) =>
       (recipientTitles[personKey(p)] || "") === title;
     const visibleHits = hits.filter((p) => !selectedKey(p) || !sameTitle(p));
     const newHits = visibleHits.filter((p) => !selectedKey(p));
-    const typedSelected = typed ? selectedKey(typed) : false;
-    const typedSameTitle = typed ? sameTitle(typed) : false;
-    const showTyped =
-      canTypedAdd && typed && (!typedSelected || !typedSameTitle);
+    const typedSelected = typedRecipient ? selectedKey(typedRecipient) : false;
+    const typedSameTitle = typedRecipient ? sameTitle(typedRecipient) : false;
+    const showUnknownNotice = unknownEmail && (!typedSelected || !typedSameTitle);
     return (
       <>
         <div className="recipient-add-row">
@@ -552,40 +550,36 @@ export function ComposePage() {
             type="text"
             inputMode="email"
             value={query}
+            onFocus={() => {
+              if (error === SHARE_NO_RECIPIENT_NOTICE) setError(null);
+            }}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                if (canTypedAdd) tryAddTypedEmail(title);
+                if (unknownEmail) {
+                  reportError(UNKNOWN_EMAIL_NOTICE);
+                  return;
+                }
+                if (canTypedAdd && typedInDirectory) tryAddTypedEmail(title);
               }
             }}
-            placeholder="type name or @slt.com.lk"
+            placeholder="type name or email"
             disabled={busy}
             autoComplete="off"
           />
         </div>
-        {isStandaloneHonorific(addPrefix) ? (
+        {addPrefix && !honorificIncludesName(addPrefix, nameHonorifics) ? (
           <p className="muted small recipient-standalone-hint">
             {addPrefix} is used on its own - the card will say Dear {addPrefix},
             without their name.
           </p>
         ) : null}
         {searching ? <p className="muted small">Searching…</p> : null}
-        {showTyped && typed ? (
-          <ul className="recipient-hits">
-            <li>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => tryAddTypedEmail(title)}
-              >
-                <strong>
-                  {typedSelected
-                    ? `Update to ${title || "no title"}`
-                    : `Add ${typed.email}`}
-                </strong>
-                <span>{typed.email}</span>
-              </button>
+        {showUnknownNotice ? (
+          <ul className="recipient-hits" role="status">
+            <li className="recipient-hit-notice">
+              <p>{UNKNOWN_EMAIL_NOTICE}</p>
             </li>
           </ul>
         ) : null}
@@ -786,14 +780,11 @@ export function ComposePage() {
       return "No compiled email HTML yet. Import a Canva ZIP (or HTML) on the card page first.";
     }
     if (!subject.trim()) return "Subject is required.";
-    if (!selected.length) return "Pick at least one recipient.";
-    if (!senderName.trim() && !user?.displayName && mailMode !== "smtp") {
+    if (!selected.length) return SHARE_NO_RECIPIENT_NOTICE;
+    if (!senderName.trim() && !user?.displayName) {
       return "Your account name is missing. Sign in again and retry.";
     }
-    if (
-      mailMode !== "smtp" &&
-      !EMAIL_RE.test((senderEmail.trim() || user?.email || "").trim())
-    ) {
+    if (!EMAIL_RE.test((senderEmail.trim() || user?.email || "").trim())) {
       return "Your account email is missing or invalid. Sign in again and retry.";
     }
     return validateMergeInputs();
@@ -852,15 +843,8 @@ export function ComposePage() {
         templateId: template.id,
         templateVersionId: template.versions[0]?.id,
         subject: subject.trim(),
-        senderName:
-          titledSenderName().trim() ||
-          (mailMode === "smtp"
-            ? "Gratitude cards"
-            : senderName.trim() || user?.displayName || ""),
-        senderEmail:
-          mailMode === "smtp"
-            ? (smtpFrom || senderEmail).trim().toLowerCase()
-            : (senderEmail.trim() || user?.email || "").trim().toLowerCase(),
+        senderName: titledSenderName().trim() || user?.displayName || "",
+        senderEmail: (user?.email || senderEmail).trim().toLowerCase(),
         ...(Object.keys(trimmedShared).length
           ? { sharedFields: trimmedShared }
           : {}),
@@ -934,31 +918,17 @@ export function ComposePage() {
     );
   }
 
-  const fromDesigns =
-    canManageDesigns(user) && template.owner.id === user?.id;
-  const parentTo = fromDesigns ? "/cards" : "/marketplace";
-  const cancelTo = fromDesigns ? `/cards/${template.id}` : "/marketplace";
-  const composeCrumbs = [
-    { label: "Cards", to: parentTo },
-    { label: "Prepare" },
-  ];
+  const composeCrumbs = [cardsCrumb, { label: "Prepare" }];
   const showRecipientSearch = recipientFormOpen;
 
   return (
     <div className="page compose-page">
       <ComposeFlowerDecor />
-      <ToastBanner
-        key={errorTick}
-        message={error}
-        onClose={dismissError}
-      />
       {composeCrumbs.length ? <Breadcrumbs items={composeCrumbs} /> : null}
       <header className="page-header">
         <div>
           <h1>Share</h1>
-          <p className="lede">
-            They’ll know it’s your card.
-          </p>
+          
         </div>
       </header>
 
@@ -982,7 +952,7 @@ export function ComposePage() {
                   {selected.length > 0
                     ? "People who will receive this card."
                     : usesRecipientName
-                      ? "Select a title, then search by name or type an email"
+                      ? "Select a title, then search by name or office email"
                       : "Search or type an email. Press Enter ( ⏎ ) to add."}
                 </p>
               </div>
@@ -992,7 +962,7 @@ export function ComposePage() {
               {selected.length === 0 ? (
                 <>
                   {renderRecipientSearch()}
-                  {typedRecipient ? (
+                  {unknownEmail ? null : typedRecipient ? (
                     <p className="muted small recipient-draft-hint">
                       Press Enter ( ⏎ ) or click Add below to list this address.
                     </p>
@@ -1026,7 +996,7 @@ export function ComposePage() {
                         ×
                       </button>
                     </div>
-                    {typedRecipient ? (
+                    {unknownEmail ? null : typedRecipient ? (
                       <p className="muted small recipient-draft-hint">
                         Press Enter ( ⏎ ) or click Add below to list this address. Cancel
                         leaves it out.
@@ -1404,12 +1374,12 @@ export function ComposePage() {
                 {error}
               </p>
             ) : null}
-            <Link className="ghost btn-link-ghost" to={cancelTo}>
+            <Link className="ghost btn-link-ghost" to={homePath(user)}>
               Back to cards
             </Link>
             <button
               type="button"
-              disabled={busy || !compiled || selected.length === 0}
+              disabled={busy || !compiled}
               onClick={requestSend}
             >
               Share

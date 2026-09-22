@@ -41,7 +41,7 @@ export const IMAGE_SLOT_MODES: Array<{
   {
     value: "fixed",
     label: "Fixed (no change)",
-    hint: "Keep the template image; Compose cannot replace it",
+    hint: "Keep the template image; Share cannot replace it",
   },
   {
     value: "shared",

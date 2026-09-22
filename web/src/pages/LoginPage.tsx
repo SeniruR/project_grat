@@ -3,11 +3,12 @@ import { Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { homePath, type AppRole } from "../lib/roles";
+import { SiteCredit } from "../components/SiteFooter";
 import { setTourPending } from "../tour/storage";
 
 export function LoginPage() {
   const { user, login, loading } = useAuth();
-  const [displayName, setDisplayName] = useState("Admin");
+  const [employeeNumber, setEmployeeNumber] = useState("100001");
   const [email, setEmail] = useState("admin@example.com");
   const [role, setRole] = useState<AppRole>("USER");
   const [startTutorial, setStartTutorial] = useState(false);
@@ -40,8 +41,8 @@ export function LoginPage() {
       setTourPending(startTutorial);
       await login({
         email,
-        displayName,
-        role,
+        employeeNumber,
+        ...(showDemo ? { role } : {}),
       });
     } catch (err) {
       setTourPending(false);
@@ -81,21 +82,23 @@ export function LoginPage() {
           <section className="login-panel">
             <h2>Sign in</h2>
             <p className="lede">
-              Enter your name and work email to continue.
+              Enter your employee number and office email to continue.
             </p>
 
             <form className="login-form" onSubmit={onSubmit}>
               <label>
-                Your name
+                Employee number
                 <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  value={employeeNumber}
+                  onChange={(e) => setEmployeeNumber(e.target.value)}
                   required
-                  autoComplete="name"
+                  inputMode="numeric"
+                  autoComplete="username"
+                  maxLength={20}
                 />
               </label>
               <label>
-                Work email
+                Office email
                 <input
                   type="email"
                   value={email}
@@ -108,6 +111,9 @@ export function LoginPage() {
                 <>
                   <fieldset className="choice-set">
                     <legend>Try as</legend>
+                    <p className="muted small">
+                      Example: 100001 and admin@example.com.
+                    </p>
                     <label className="check">
                       <input
                         type="radio"
@@ -168,9 +174,7 @@ export function LoginPage() {
             {showDemo && modes ? <p className="mode-line">{modes}</p> : null}
           </section>
         </div>
-        <p className="login-credit">
-          Customer Experience Division – Customer Service Week 2026
-        </p>
+        <SiteCredit />
       </div>
     </div>
   );

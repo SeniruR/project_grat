@@ -44,19 +44,7 @@ export function DraftJobPage() {
     );
   }
 
-  const okCount = job.drafts.filter((d) => d.status !== "failed").length;
-  const failCount = job.drafts.length - okCount;
-  const names = job.drafts
-    .filter((d) => d.status !== "failed")
-    .map((d) => d.recipientName ?? d.recipientEmail);
-  const forLine =
-    names.length === 0
-      ? "Your card is on its way."
-      : names.length === 1
-        ? `On its way to ${names[0]}.`
-        : names.length === 2
-          ? `On its way to ${names[0]} and ${names[1]}.`
-          : `On its way to ${names[0]} and ${names.length - 1} others.`;
+  const failCount = job.drafts.filter((d) => d.status === "failed").length;
 
   return (
     <div className="page">
@@ -67,19 +55,23 @@ export function DraftJobPage() {
           { label: "Preview" },
         ]}
       />
-      {COMPOSE_ENABLED ? (
-        <p className="back">
-          <Link to={`/cards/${job.template.id}/compose`}>Send again</Link>
-        </p>
-      ) : null}
-      <header className="page-header gift-on-way">
+      <header className="page-header page-header-row gift-on-way">
         <div>
-          <h1>It’s on its way.</h1>
+          <h1>Card sent</h1>
           <p className="lede">
-            {forLine} {job.template.name}
-            {failCount ? ` · ${failCount} could not be sent.` : ""}
+            Below is the list of people who will receive the card you sent.
+            {failCount
+              ? ` ${failCount} could not be sent.`
+              : ""}
           </p>
         </div>
+        {COMPOSE_ENABLED ? (
+          <div className="header-actions">
+            <Link className="btn-link" to={`/cards/${job.template.id}/compose`}>
+              Send again
+            </Link>
+          </div>
+        ) : null}
       </header>
 
       {error ? <p className="error">{error}</p> : null}

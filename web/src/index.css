@@ -209,7 +209,7 @@ button:disabled {
  * menu/chip hovers made labels unreadable.
  */
 button:hover:not(:disabled):where(
-  :not(.ghost):not(.linkish):not(.template-card-hit):not(.marketplace-card-preview):not(.recipient-chip):not(.recipient-chip-remove):not(.compose-subject-tag):not(.draft-card-head):not(.toast-banner-close):not(.category-status-dismiss):not(.template-card-delete):not(.sent-row-head):not(.file-pick-btn):not(.nav-dropdown-trigger):not(.account-trigger):not(.account-menu-item):not(.unsaved-banner-copy):not(.hero-loop-sound-btn):not(.login-demo-swap):not(.login-continue):not(.recipient-add-cancel)
+  :not(.ghost):not(.linkish):not(.template-card-hit):not(.marketplace-card-preview):not(.recipient-chip):not(.recipient-chip-remove):not(.compose-subject-tag):not(.draft-card-head):not(.toast-banner-close):not(.toast-banner-action):not(.category-status-dismiss):not(.template-card-delete):not(.sent-row-head):not(.file-pick-btn):not(.nav-dropdown-trigger):not(.account-trigger):not(.account-menu-item):not(.unsaved-banner-copy):not(.hero-loop-sound-btn):not(.login-demo-swap):not(.login-continue):not(.recipient-add-cancel)
 ) {
   background: var(--accent-deep);
   box-shadow: var(--shadow-lift);
@@ -622,16 +622,14 @@ button.ghost:hover:not(:disabled) {
   z-index: 6;
   flex-shrink: 0;
   margin-top: auto;
-  padding: 1rem 1.35rem 1.25rem;
-  border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--page-wash) 80%, #fff);
+  padding: 0;
+  border: none;
+  background: transparent;
   text-align: center;
 }
 
-.site-footer p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
+.site-footer .login-credit {
+  width: 100%;
 }
 
 .topnav-wrap {
@@ -694,6 +692,8 @@ button.ghost:hover:not(:disabled) {
   align-items: center;
   font-family: var(--font-display);
   font-weight: 700;
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 48, "SOFT" 30, "WONK" 1;
   letter-spacing: -0.03em;
   line-height: 1;
   color: inherit;
@@ -702,6 +702,8 @@ button.ghost:hover:not(:disabled) {
 .brand-wordmark em {
   font-style: italic;
   font-weight: 600;
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 48, "SOFT" 30, "WONK" 1;
   color: var(--brand-green);
   margin-left: 0.28em;
 }
@@ -1601,42 +1603,104 @@ button.btn-link {
   margin-right: 0.25rem;
 }
 
-.admin-honorific-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.admin-titles-panel {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.85rem;
 }
 
-.admin-honorific-list li {
+.admin-title-table {
+  width: auto;
+}
+
+.admin-title-table th,
+.admin-title-table td {
+  vertical-align: middle;
+  padding: 0.35rem 0.55rem;
+}
+
+.admin-title-table th:nth-child(2),
+.admin-title-table td:nth-child(2) {
+  text-align: center;
+  width: 8.5rem;
+}
+
+.admin-title-table input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.admin-title-table input:not([type="checkbox"]) {
+  width: 8.5rem;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  background: #fff;
+  font: inherit;
+}
+
+.admin-title-actions {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.admin-title-actions .ghost {
+  padding: 0.2rem 0.45rem;
+  min-width: 1.8rem;
+  line-height: 1.2;
+}
+
+.admin-title-actions .linkish {
+  margin-left: 0.35rem;
+}
+
+.admin-title-add {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
 }
 
-.admin-honorific-list input {
-  flex: 1 1 10rem;
-  min-width: 8rem;
+.admin-title-add > input {
+  width: 8.5rem;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  background: #fff;
+  font: inherit;
 }
 
-.admin-honorific-actions {
+.admin-title-add-name {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.admin-honorific-add {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 500;
 }
 
-.admin-honorific-add input {
-  flex: 1 1 12rem;
-  min-width: 8rem;
+.admin-title-add-name input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.admin-title-add > button {
+  padding: 0.4rem 0.85rem;
+}
+
+.admin-share-page {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.admin-share-page-actions {
+  display: inline-flex;
+  gap: 0.4rem;
 }
 
 .admin-expand-row {
@@ -4356,8 +4420,20 @@ button.ghost.recipient-add-all {
   height: var(--recipient-hit-row);
 }
 
-.recipient-hits li + li {
-  border-top: 1px solid var(--line);
+.recipient-hits li.recipient-hit-notice {
+  height: auto;
+  min-height: var(--recipient-hit-row);
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+}
+
+.recipient-hit-notice p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .recipient-hits button {
@@ -4653,6 +4729,29 @@ button.ghost.recipient-add-all {
 .toast-banner-close:hover {
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   color: var(--ink);
+}
+
+button.toast-banner-action {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: none;
+  transform: none;
+}
+
+button.toast-banner-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  color: var(--accent-deep);
+  box-shadow: none;
+  transform: none;
 }
 
 .toast-banner-meta {
@@ -5001,6 +5100,12 @@ button.ghost.recipient-add-all {
   background: #fff;
 }
 
+.draft-card-body .outlook-dual-scroll {
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+
 .draft-card-body .outlook-preview-subject {
   padding: 0 0 0.75rem;
 }
@@ -5022,6 +5127,12 @@ button.ghost.recipient-add-all {
   flex-wrap: wrap;
   gap: 0.55rem;
   align-items: center;
+}
+
+.header-action-note {
+  margin: 0;
+  max-width: 22rem;
+  text-align: right;
 }
 
 .marketplace-toolbar {
@@ -5571,15 +5682,16 @@ button.ghost.recipient-add-all {
   --vine-inner-w: min(16vw, 170px);
   --vine-inner-inset: clamp(4.5rem, 14vw, 11rem);
 
-  /* Scroll with the page, painted above page content */
+  /* Stay inside the page so the right vine is not clipped by the scrollbar */
   position: absolute;
   top: -1.5rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  width: auto;
+  margin: 0;
   height: min(72vw, 580px);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
   overflow: visible;
 }
 
@@ -5816,6 +5928,16 @@ button.ghost.recipient-add-all {
   display: none;
 }
 
+/* Evening, Morning, and Still: the two outer vines only. */
+[data-theme="evening"] .gift-vine--inner-left,
+[data-theme="evening"] .gift-vine--inner-right,
+[data-theme="morning"] .gift-vine--inner-left,
+[data-theme="morning"] .gift-vine--inner-right,
+[data-theme="still"] .gift-vine--inner-left,
+[data-theme="still"] .gift-vine--inner-right {
+  display: none;
+}
+
 [data-theme="still"] .gift-hero-cover {
   border-radius: 0;
   border-color: transparent;
@@ -5996,7 +6118,7 @@ button.ghost.recipient-add-all {
 
 .gift-hero-cover-copy h1,
 .gift-hero-copy-panel h1 {
-  margin: 0;
+  margin: 0 0 1.15rem;
   max-width: 22ch;
   font-family: var(--font-display);
   font-size: clamp(1.85rem, 3.8vw, 2.55rem);
@@ -6158,7 +6280,7 @@ button.ghost.recipient-add-all {
 }
 
 .gift-on-way h1 {
-  max-width: 16ch;
+  margin-bottom: 0.2rem;
 }
 
 .page > .notice {

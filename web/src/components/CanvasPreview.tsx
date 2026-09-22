@@ -274,85 +274,9 @@ ${head}
           ) : null}
         </header>
       ) : (
-        <>
-          <header className="canvas-preview-head">
-            <div>
-              <h2>Preview</h2>
-              <p className="muted small tip">
-                PNG and HTML use the same canvas size ({w}×{fixedH}px). After a
-                canvas resize, Save & compile so both rebuild together.
-              </p>
-            </div>
-
-            <div className="canvas-preview-meta" aria-label="Canvas dimensions">
-              <label className="canvas-preview-dim">
-                <span>Width</span>
-                <span className="canvas-preview-dim-row">
-                  <input
-                    type="number"
-                    value={w}
-                    readOnly
-                    aria-readonly="true"
-                  />
-                  <span className="canvas-preview-unit">px</span>
-                </span>
-              </label>
-              <span className="canvas-preview-times" aria-hidden>
-                ×
-              </span>
-              <label className="canvas-preview-dim">
-                <span>Height</span>
-                <span className="canvas-preview-dim-row">
-                  <input
-                    type="number"
-                    value={h}
-                    readOnly
-                    aria-readonly="true"
-                  />
-                  <span className="canvas-preview-unit">px</span>
-                </span>
-              </label>
-            </div>
-          </header>
-
-          <div className="canvas-preview-toolbar">
-            <div className="outlook-zoom" role="group" aria-label="Preview mode">
-              <span className="outlook-zoom-label">Show</span>
-              <button
-                type="button"
-                className={`ghost small ${mode === "both" ? "active" : ""}`}
-                disabled={!canBoth}
-                onClick={() => setMode("both")}
-              >
-                Both
-              </button>
-              <button
-                type="button"
-                className={`ghost small ${mode === "png" ? "active" : ""}`}
-                disabled={!png}
-                onClick={() => setMode("png")}
-              >
-                PNG
-              </button>
-              <button
-                type="button"
-                className={`ghost small ${mode === "html" ? "active" : ""}`}
-                disabled={!bodyHtml}
-                onClick={() => setMode("html")}
-              >
-                HTML
-              </button>
-            </div>
-            <span className="muted small">
-              Width fit {Math.round(fitScale * 100)}%
-            </span>
-            {bodyHtml || png ? (
-              <button type="button" onClick={() => setCopyOpen(true)}>
-                Copy for Outlook
-              </button>
-            ) : null}
-          </div>
-        </>
+        <header className="canvas-preview-head">
+          <h2>Preview</h2>
+        </header>
       )}
 
       <div

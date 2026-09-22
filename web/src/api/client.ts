@@ -28,25 +28,15 @@ export type AdminAuditEvent = {
   } | null;
 };
 
-export type AdminSendSummaryMessage = {
+export type AdminSendSummaryCard = {
   id: string;
   subject: string;
   recipientName: string | null;
   recipientEmail: string;
   status: string;
   createdAt: string;
-};
-
-export type AdminSendSummaryJob = {
-  id: string;
-  status: string;
-  total: number;
-  completed: number;
-  messageCount: number;
   templateName: string;
-  categoryName: string | null;
-  createdAt: string;
-  messages?: AdminSendSummaryMessage[];
+  jobId: string;
 };
 
 export type AdminSendSummaryUser = {
@@ -57,8 +47,6 @@ export type AdminSendSummaryUser = {
   jobCount: number;
   messageCount: number;
   lastSentAt: string | null;
-  recentJobs: AdminSendSummaryJob[];
-  recentTemplates: string[];
 };
 
 export type SentItem = {
@@ -80,15 +68,6 @@ export type SentItem = {
     template: { id: string; name: string };
     requester: { id: string; displayName: string; email: string };
   };
-};
-
-export type TemplateCategory = {
-  id: string;
-  name: string;
-  createdAt?: string;
-  updatedAt?: string;
-  createdBy?: { id: string; displayName: string; email: string } | null;
-  _count?: { templates: number; shared?: number };
 };
 
 export type TemplateSummary = {
@@ -229,7 +208,7 @@ export const api = {
 
   devLogin: (body: {
     email: string;
-    displayName: string;
+    employeeNumber: string;
     role?: "USER" | "DESIGNER" | "ADMIN";
   }) =>
     request<{ token: string; user: ApiUser }>("/auth/dev-login", {
@@ -260,7 +239,6 @@ export const api = {
     body: {
       name: string;
       visibility: "PRIVATE" | "SHARED";
-      categoryId?: string;
       mode: "blank" | "html_import" | "canva_html" | "image_import";
       html?: string;
       headerHtml?: string;
@@ -280,7 +258,6 @@ export const api = {
       name?: string;
       visibility?: "PRIVATE" | "SHARED";
       status?: "DRAFT" | "PUBLISHED";
-      categoryId?: string | null;
       headerHtml?: string | null;
       footerHtml?: string | null;
     },
@@ -290,30 +267,6 @@ export const api = {
       token,
       body: JSON.stringify(body),
     }),
-
-  categories: (token: string, q?: string) => {
-    const qs = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
-    return request<{ categories: TemplateCategory[] }>(`/categories${qs}`, {
-      token,
-    });
-  },
-
-  createCategory: (token: string, name: string) =>
-    request<{ category: TemplateCategory; created: boolean }>("/categories", {
-      method: "POST",
-      token,
-      body: JSON.stringify({ name }),
-    }),
-
-  renameCategory: (token: string, id: string, name: string) =>
-    request<{ category: TemplateCategory }>(`/categories/${id}`, {
-      method: "PATCH",
-      token,
-      body: JSON.stringify({ name }),
-    }),
-
-  deleteCategory: (token: string, id: string) =>
-    request<void>(`/categories/${id}`, { method: "DELETE", token }),
 
   saveTemplateVersion: (
     token: string,
@@ -517,6 +470,23 @@ export const api = {
       token,
     }),
 
+  adminSendSummaryCards: (
+    token: string,
+    userId: string,
+    opts?: { skip?: number; take?: number },
+  ) => {
+    const params = new URLSearchParams();
+    if (opts?.skip) params.set("skip", String(opts.skip));
+    if (opts?.take) params.set("take", String(opts.take));
+    const qs = params.toString() ? `?${params}` : "";
+    return request<{
+      total: number;
+      skip: number;
+      take: number;
+      items: AdminSendSummaryCard[];
+    }>(`/admin/send-summary/${userId}${qs}`, { token });
+  },
+
   adminAudit: (
     token: string,
     opts?: { q?: string; action?: string; take?: number },
@@ -569,29 +539,26 @@ export const api = {
     request<void>(`/admin/users/${id}`, { method: "DELETE", token }),
 
   nameHonorifics: (token: string) =>
-    request<{ honorifics: Array<{ value: string; label: string }> }>(
-      "/settings/name-honorifics",
-      { token },
-    ),
+    request<{
+      honorifics: Array<{ value: string; label: string; withName?: boolean }>;
+    }>("/settings/name-honorifics", { token }),
 
   adminNameHonorifics: (token: string) =>
-    request<{ honorifics: Array<{ value: string; label: string }> }>(
-      "/admin/settings/name-honorifics",
-      { token },
-    ),
+    request<{
+      honorifics: Array<{ value: string; label: string; withName?: boolean }>;
+    }>("/admin/settings/name-honorifics", { token }),
 
   adminUpdateNameHonorifics: (
     token: string,
-    honorifics: Array<{ value: string; label: string }>,
+    honorifics: Array<{ value: string; label: string; withName?: boolean }>,
   ) =>
-    request<{ honorifics: Array<{ value: string; label: string }> }>(
-      "/admin/settings/name-honorifics",
-      {
-        method: "PUT",
-        token,
-        body: JSON.stringify({ honorifics }),
-      },
-    ),
+    request<{
+      honorifics: Array<{ value: string; label: string; withName?: boolean }>;
+    }>("/admin/settings/name-honorifics", {
+      method: "PUT",
+      token,
+      body: JSON.stringify({ honorifics }),
+    }),
 };
 
 export function assetUrl(storageKey: string) {

@@ -10,9 +10,17 @@ export type AuthUser = {
 
 export type DevLoginInput = {
   email: string;
-  displayName: string;
+  employeeNumber: string;
+  /** Demonstration only. Everyday sign-in keeps the directory role. */
   role?: AppRole;
 };
+
+export class DevLoginRejected extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DevLoginRejected";
+  }
+}
 
 /**
  * Swap-ready auth surface.

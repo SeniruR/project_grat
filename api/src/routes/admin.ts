@@ -103,26 +103,8 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
           displayName: true,
           role: true,
           draftJobs: {
-            orderBy: { createdAt: "desc" },
             select: {
-              id: true,
-              status: true,
-              total: true,
-              completed: true,
-              templateName: true,
-              categoryName: true,
               createdAt: true,
-              drafts: {
-                orderBy: { createdAt: "desc" },
-                select: {
-                  id: true,
-                  subject: true,
-                  recipientName: true,
-                  recipientEmail: true,
-                  status: true,
-                  createdAt: true,
-                },
-              },
               _count: { select: { drafts: true } },
             },
           },
@@ -139,7 +121,10 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
             (sum, j) => sum + j._count.drafts,
             0,
           );
-          const lastSentAt = jobs[0]?.createdAt ?? null;
+          const lastSentAt = jobs.reduce<Date | null>((latest, job) => {
+            if (!latest || job.createdAt > latest) return job.createdAt;
+            return latest;
+          }, null);
           return {
             id: u.id,
             email: u.email,
@@ -148,31 +133,6 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
             jobCount: u._count.draftJobs,
             messageCount,
             lastSentAt: lastSentAt?.toISOString() ?? null,
-            recentJobs: jobs.map((j) => ({
-              id: j.id,
-              status: j.status,
-              total: j.total,
-              completed: j.completed,
-              messageCount: j._count.drafts,
-              templateName: j.templateName,
-              categoryName: j.categoryName,
-              createdAt: j.createdAt.toISOString(),
-              messages: j.drafts.map((d) => ({
-                id: d.id,
-                subject: d.subject,
-                recipientName: d.recipientName,
-                recipientEmail: d.recipientEmail,
-                status: d.status,
-                createdAt: d.createdAt.toISOString(),
-              })),
-            })),
-            recentTemplates: [
-              ...new Set(
-                jobs
-                  .map((j) => j.templateName)
-                  .filter((n) => Boolean(n?.trim())),
-              ),
-            ].slice(0, 8),
           };
         })
         .sort((a, b) => {
@@ -185,6 +145,69 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
         });
 
       return { users: rows };
+    },
+  );
+
+  /** One person's shared cards, a page at a time. */
+  app.get(
+    "/admin/send-summary/:userId",
+    { preHandler: [app.requireAdmin] },
+    async (request, reply) => {
+      const { userId } = request.params as { userId: string };
+      const query = z
+        .object({
+          skip: z.coerce.number().int().min(0).optional(),
+          take: z.coerce.number().int().min(1).max(50).optional(),
+        })
+        .safeParse(request.query);
+      if (!query.success) {
+        return reply.code(400).send({ error: "Invalid page" });
+      }
+      const skip = query.data.skip ?? 0;
+      const take = query.data.take ?? 20;
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) return reply.code(404).send({ error: "User not found" });
+
+      const where = { job: { requesterId: userId } };
+      const [total, drafts] = await Promise.all([
+        prisma.outboundDraft.count({ where }),
+        prisma.outboundDraft.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip,
+          take,
+          select: {
+            id: true,
+            subject: true,
+            recipientName: true,
+            recipientEmail: true,
+            status: true,
+            createdAt: true,
+            job: {
+              select: { id: true, templateName: true },
+            },
+          },
+        }),
+      ]);
+
+      return {
+        total,
+        skip,
+        take,
+        items: drafts.map((d) => ({
+          id: d.id,
+          subject: d.subject,
+          recipientName: d.recipientName,
+          recipientEmail: d.recipientEmail,
+          status: d.status,
+          createdAt: d.createdAt.toISOString(),
+          templateName: d.job.templateName,
+          jobId: d.job.id,
+        })),
+      };
     },
   );
 
@@ -303,7 +326,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
 
       if (existing._count.draftJobs > 0) {
         return reply.code(400).send({
-          error: "Cannot delete a user who has send jobs",
+          error: "Cannot delete a user who has shares",
         });
       }
 
@@ -349,6 +372,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
               z.object({
                 value: z.string().min(1).max(40),
                 label: z.string().min(1).max(40).optional(),
+                withName: z.boolean().optional(),
               }),
             )
             .max(40),
@@ -362,6 +386,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
         body.data.honorifics.map((h) => ({
           value: h.value,
           label: h.label ?? h.value,
+          withName: h.withName,
         })),
       );
 

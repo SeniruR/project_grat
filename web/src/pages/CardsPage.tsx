@@ -23,6 +23,7 @@ export function CardsPage() {
   const [deleting, setDeleting] = useState(false);
   const [refreshingPreviews, setRefreshingPreviews] = useState(false);
   const [previewProgress, setPreviewProgress] = useState<string | null>(null);
+  const [previewNoteError, setPreviewNoteError] = useState(false);
 
   async function reload() {
     if (!token) return;
@@ -72,7 +73,7 @@ export function CardsPage() {
   async function refreshAllPreviews() {
     if (!token || refreshingPreviews || templates.length === 0) return;
     setRefreshingPreviews(true);
-    setError(null);
+    setPreviewNoteError(false);
     setPreviewProgress(null);
     let updated = 0;
     let skipped = 0;
@@ -81,7 +82,7 @@ export function CardsPage() {
       for (let i = 0; i < templates.length; i++) {
         const card = templates[i];
         setPreviewProgress(
-          `Creating preview ${i + 1} of ${templates.length}…`,
+          `Refreshing ${i + 1} of ${templates.length}`,
         );
         try {
           const { template: full } = await api.template(token, card.id);
@@ -109,20 +110,23 @@ export function CardsPage() {
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Preview failed";
           if (msg.includes("no email HTML")) skipped += 1;
-          else failures.push(`${card.name}: ${msg}`);
+          else failures.push(card.name);
         }
       }
       if (failures.length) {
-        setError(
-          `Updated ${updated} preview${updated === 1 ? "" : "s"}. ${failures.length} failed. ${failures.slice(0, 3).join(" ")}`,
+        const names = failures.join(", ");
+        setPreviewNoteError(true);
+        setPreviewProgress(
+          updated > 0
+            ? `${updated} refreshed. These designs were not: ${names}.`
+            : `These designs were not refreshed: ${names}.`,
         );
       } else {
-        const skipNote =
-          skipped > 0
-            ? ` Skipped ${skipped} with no design HTML.`
-            : "";
+        setPreviewNoteError(false);
         setPreviewProgress(
-          `Updated ${updated} preview${updated === 1 ? "" : "s"}.${skipNote}`,
+          skipped > 0
+            ? `${updated} refreshed. ${skipped} skipped.`
+            : `${updated} refreshed.`,
         );
       }
     } finally {
@@ -137,14 +141,19 @@ export function CardsPage() {
         <div>
           <p className="eyebrow">Cards</p>
           <h1>
-            My <span className="title-accent">cards</span>
+            My <span className="title-accent">designs</span>
           </h1>
-          <p className="lede">
-            Arrange the cards everyone else will give. Share one so it appears
-            when colleagues choose a card.
-          </p>
+          <p className="lede">Share a design so others can send it.</p>
         </div>
         <div className="header-actions">
+          {previewProgress ? (
+            <p
+              className={`${previewNoteError ? "error" : "muted"} header-action-note`}
+              role={previewNoteError ? "alert" : "status"}
+            >
+              {previewProgress}
+            </p>
+          ) : null}
           {token && templates.length > 0 ? (
             <button
               type="button"
@@ -153,15 +162,14 @@ export function CardsPage() {
               title="Rebuild PNG thumbnails without changing Edited time"
               onClick={() => void refreshAllPreviews()}
             >
-              {refreshingPreviews ? "Creating…" : "Create preview PNG"}
+              {refreshingPreviews ? "Refreshing…" : "Refresh card previews"}
             </button>
           ) : null}
           <Link className="btn-link" to="/cards/new" data-tour="mycards-new">
-            New card
+            Add New card
           </Link>
         </div>
       </header>
-      {previewProgress ? <p className="muted">{previewProgress}</p> : null}
 
       <div className="studio-toolbar">
         <label className="studio-select">
@@ -184,7 +192,6 @@ export function CardsPage() {
       {loading ? <p className="muted">Loading cards…</p> : null}
 
       <section className="panel" data-tour="mycards-list">
-        <h2>My cards</h2>
         {!loading && filtered.length === 0 ? (
           <p className="muted">
             {templates.length === 0
@@ -294,15 +301,11 @@ function TemplateCard({
                   : "Shared - listed under Browse cards"
               }
             >
-              {isPrivate ? <LockIcon /> : <ShareIcon />}
+              {isPrivate ? <LockIcon /> : null}
               <span>{isPrivate ? "Only me" : "Shared"}</span>
             </span>
           </div>
-          <p className="template-card-meta">
-            {template.category?.name ?? "Uncategorized"}
-            {" · "}
-            v{latest?.version ?? 1}
-          </p>
+          <p className="template-card-meta">version {latest?.version ?? 1}</p>
           <p className="template-card-usage">
             {totalUsers} user{totalUsers === 1 ? "" : "s"} total
             {" · "}
@@ -362,17 +365,6 @@ function LockIcon() {
       <path
         fill="currentColor"
         d="M17 8h-1V6a4 4 0 1 0-8 0v2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V6Zm7 14H7V10h10v10Z"
-      />
-    </svg>
-  );
-}
-
-function ShareIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11A2.99 2.99 0 0 0 21 5a3 3 0 1 0-2.97 3c.16 0 .32-.02.47-.05l-7.07 4.13c.05.2.07.41.07.62s-.02.42-.07.62l7.05 4.12c.16-.04.33-.06.51-.06A3 3 0 1 0 18 16.08Z"
       />
     </svg>
   );

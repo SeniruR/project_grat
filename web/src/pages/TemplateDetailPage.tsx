@@ -17,7 +17,6 @@ import {
 } from "../lib/importDesign";
 import { PlaceholderConfigPanel } from "../components/PlaceholderConfigPanel";
 import { ImageSlotConfigPanel } from "../components/ImageSlotConfigPanel";
-import { CategoryCombobox } from "../components/CategoryCombobox";
 import { Breadcrumbs, emailsCrumb, myCardsCrumb } from "../components/Breadcrumbs";
 import {
   FALLBACK_DEFAULT_SUBJECT,
@@ -40,7 +39,6 @@ type EditSnapshot = {
   name: string;
   defaultSubject: string;
   visibility: "PRIVATE" | "SHARED";
-  categoryId: string | null;
   html: string;
   placeholders: PlaceholderDef[];
   ignoredPlaceholders: string[];
@@ -52,7 +50,6 @@ function snapshotKey(s: EditSnapshot) {
     name: s.name,
     defaultSubject: s.defaultSubject,
     visibility: s.visibility,
-    categoryId: s.categoryId,
     html: s.html,
     placeholders: s.placeholders,
     ignoredPlaceholders: s.ignoredPlaceholders,
@@ -73,7 +70,6 @@ export function TemplateDetailPage() {
   const [name, setName] = useState("");
   const [defaultSubject, setDefaultSubject] = useState("");
   const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED">("PRIVATE");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [html, setHtml] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -101,7 +97,6 @@ export function TemplateDetailPage() {
     >;
     const nextName = t.name;
     const nextVisibility = t.visibility;
-    const nextCategoryId = t.category?.id ?? null;
     const nextHtml = t.versions[0]?.compiledHtml ?? "";
     const nextSubject = parseDefaultSubjectFromDesignJson(designJson);
     const nextPlaceholders = parsePlaceholdersFromDesignJson(designJson);
@@ -111,7 +106,6 @@ export function TemplateDetailPage() {
     setTemplate(t);
     setName(nextName);
     setVisibility(nextVisibility);
-    setCategoryId(nextCategoryId);
     setHtml(nextHtml);
     setDefaultSubject(nextSubject);
     setPlaceholders(nextPlaceholders);
@@ -121,7 +115,6 @@ export function TemplateDetailPage() {
       name: nextName,
       defaultSubject: nextSubject,
       visibility: nextVisibility,
-      categoryId: nextCategoryId,
       html: nextHtml,
       placeholders: nextPlaceholders,
       ignoredPlaceholders: nextIgnored,
@@ -244,7 +237,6 @@ export function TemplateDetailPage() {
       name,
       defaultSubject,
       visibility,
-      categoryId,
       html,
       placeholders,
       ignoredPlaceholders,
@@ -254,7 +246,6 @@ export function TemplateDetailPage() {
       name,
       defaultSubject,
       visibility,
-      categoryId,
       html,
       placeholders,
       ignoredPlaceholders,
@@ -268,7 +259,6 @@ export function TemplateDetailPage() {
         name: false,
         defaultSubject: false,
         visibility: false,
-        categoryId: false,
         placeholders: false,
         imageSlots: false,
         html: false,
@@ -278,7 +268,6 @@ export function TemplateDetailPage() {
       name: name !== savedSnap.name,
       defaultSubject: defaultSubject !== savedSnap.defaultSubject,
       visibility: visibility !== savedSnap.visibility,
-      categoryId: categoryId !== savedSnap.categoryId,
       placeholders:
         JSON.stringify(placeholders) !==
           JSON.stringify(savedSnap.placeholders) ||
@@ -293,7 +282,6 @@ export function TemplateDetailPage() {
     name,
     defaultSubject,
     visibility,
-    categoryId,
     placeholders,
     ignoredPlaceholders,
     imageSlots,
@@ -370,7 +358,6 @@ export function TemplateDetailPage() {
         name: name.trim() || "Untitled",
         visibility,
         status: visibility === "SHARED" ? "PUBLISHED" : "DRAFT",
-        categoryId,
       });
       if (pendingZipFile) {
         await applyCanvaZip(pendingZipFile);
@@ -465,7 +452,7 @@ export function TemplateDetailPage() {
     try {
       await regenerateCanvaSnapshot(token, id, body, latestDesignJson);
       await reload();
-      setNotice("Preview PNG created. My cards and Browse cards will use it.");
+      setNotice("Preview PNG created. My designs and Browse cards will use it.");
     } catch (err) {
       setError(
         err instanceof Error
@@ -565,7 +552,6 @@ export function TemplateDetailPage() {
     setName(savedSnap.name);
     setDefaultSubject(savedSnap.defaultSubject);
     setVisibility(savedSnap.visibility);
-    setCategoryId(savedSnap.categoryId);
     setHtml(savedSnap.html);
     setPlaceholders(savedSnap.placeholders);
     setIgnoredPlaceholders(savedSnap.ignoredPlaceholders);
@@ -658,7 +644,7 @@ export function TemplateDetailPage() {
       />
       <header className="page-header page-header-row">
         <div>
-          <p className="eyebrow">My cards</p>
+          <p className="eyebrow">My designs</p>
           <h1>{template.name}</h1>
           <p className="lede">
             owned by {template.owner.displayName} · v{latest?.version ?? 1}
@@ -814,11 +800,6 @@ export function TemplateDetailPage() {
             maxLength={300}
             placeholder={FALLBACK_DEFAULT_SUBJECT}
           />
-          <span className="field-hint muted small">
-            Email subject when this card is sent. You can include{" "}
-            <code>{"{{recipientName}}"}</code>. Leave blank to use{" "}
-            <code>{FALLBACK_DEFAULT_SUBJECT}</code>.
-          </span>
         </label>
 
         <div className="settings-pair">
@@ -844,28 +825,6 @@ export function TemplateDetailPage() {
               <strong>Only me</strong> keeps it in your design studio only.
             </span>
           </div>
-          {token ? (
-            <div
-              className={`field-with-hint${
-                markUnsaved && dirtyFields.categoryId ? " field-unsaved" : ""
-              }`}
-            >
-              <span className="field-label">Category</span>
-              <CategoryCombobox
-                token={token}
-                value={categoryId}
-                onChange={(id) => setCategoryId(id)}
-                disabled={!canEdit || saving}
-                allowClear={false}
-                allowCreate
-                label=""
-              />
-              <p className="field-hint muted small">
-                Groups this card in Browse and My cards. Rename or delete ones
-                you created via Categories.
-              </p>
-            </div>
-          ) : null}
         </div>
 
         <div
@@ -939,17 +898,12 @@ export function TemplateDetailPage() {
             </>
           ) : latestMode === "image_import" ? (
             <>
-              <p className="muted">
-                This card is an <strong>image email</strong> (PNG/PDF fallback).
-                Looks correct in Outlook; <strong>text is not selectable</strong>.
-                For selectable text, create a new card from a Canva HTML ZIP.
-              </p>
               {canEdit ? (
                 <div className="surface-actions import-actions">
                   <label className={`file-pick ${saving ? "is-disabled" : ""}`}>
                     <input
                       type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
                       disabled={saving}
                       onChange={(e) => {
                         void onReimportDesignImage(e.target.files?.[0] ?? null);
@@ -957,7 +911,7 @@ export function TemplateDetailPage() {
                       }}
                     />
                     <span className="file-pick-btn">
-                      {saving ? "Uploading…" : "Replace image / PDF"}
+                      {saving ? "Uploading…" : "Replace image"}
                     </span>
                   </label>
                 </div>

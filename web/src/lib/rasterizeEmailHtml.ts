@@ -184,15 +184,17 @@ async function waitForElementImages(root: HTMLElement) {
     images.map(
       (img) =>
         new Promise<void>((resolve) => {
-          if (img.complete) resolve();
-          else {
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
+          const done = () => resolve();
+          if (img.complete && img.naturalWidth > 0) {
+            done();
+            return;
           }
+          img.onload = done;
+          img.onerror = done;
+          window.setTimeout(done, 4000);
         }),
     ),
   );
-  await new Promise((r) => window.setTimeout(r, 200));
 }
 
 /** True when the snapshot is an empty white rectangle (failed capture). */
@@ -252,8 +254,8 @@ export async function rasterizeEmailHtmlToPng(
     "top:0",
     `width:${w}px`,
     "background:#ffffff",
-    "z-index:2147483646",
-    "opacity:0.01",
+    "z-index:-1",
+    "opacity:1",
     "pointer-events:none",
     "overflow:visible",
   ].join(";");
@@ -306,7 +308,7 @@ export async function rasterizeEmailHtmlToPng(
     const dataUrl = canvas.toDataURL("image/png");
     if (await dataUrlIsMostlyWhite(dataUrl)) {
       throw new Error(
-        "Preview PNG was blank. Keep this tab visible and try Create preview PNG again.",
+        "Could not draw this preview.",
       );
     }
     return {

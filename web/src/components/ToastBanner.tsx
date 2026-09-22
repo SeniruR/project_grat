@@ -6,6 +6,8 @@ type Props = {
   /** Auto-dismiss after this many ms (default 8s). */
   durationMs?: number;
   variant?: "error" | "info";
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 /**
@@ -16,6 +18,8 @@ export function ToastBanner({
   onClose,
   durationMs = 8000,
   variant = "error",
+  actionLabel,
+  onAction,
 }: Props) {
   const [visible, setVisible] = useState(false);
   const [remainingMs, setRemainingMs] = useState(durationMs);
@@ -53,6 +57,15 @@ export function ToastBanner({
     >
       <div className="toast-banner-body">
         <p className="toast-banner-msg">{message}</p>
+        {actionLabel && onAction ? (
+          <button
+            type="button"
+            className="toast-banner-action"
+            onClick={onAction}
+          >
+            {actionLabel}
+          </button>
+        ) : null}
         <button
           type="button"
           className="toast-banner-close"
