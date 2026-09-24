@@ -1,11 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type AdminSendSummaryUser } from "../api/client";
+import {
+  api,
+  type AdminSendSummaryCard,
+  type AdminSendSummaryUser,
+} from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { roleLabel } from "../lib/roles";
 import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
 import { COMPOSE_ENABLED } from "../features";
+
+const PAGE_SIZE = 20;
+
+type CardPage = {
+  items: AdminSendSummaryCard[];
+  total: number;
+  skip: number;
+};
 
 export function AdminSendSummaryPage() {
   const { token, user } = useAuth();
@@ -13,6 +25,9 @@ export function AdminSendSummaryPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [cards, setCards] = useState<CardPage | null>(null);
+  const [cardsLoading, setCardsLoading] = useState(false);
+  const [cardsError, setCardsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -22,11 +37,43 @@ export function AdminSendSummaryPage() {
       .then((res) => setRows(res.users))
       .catch((err) =>
         setError(
-          err instanceof Error ? err.message : "Failed to load send summary",
+          err instanceof Error ? err.message : "Failed to load share summary",
         ),
       )
       .finally(() => setLoading(false));
   }, [token]);
+
+  async function loadCards(userId: string, skip: number) {
+    if (!token) return;
+    setCardsLoading(true);
+    setCardsError(null);
+    try {
+      const res = await api.adminSendSummaryCards(token, userId, {
+        skip,
+        take: PAGE_SIZE,
+      });
+      setCards({ items: res.items, total: res.total, skip: res.skip });
+    } catch (err) {
+      setCards(null);
+      setCardsError(
+        err instanceof Error ? err.message : "Could not load these cards",
+      );
+    } finally {
+      setCardsLoading(false);
+    }
+  }
+
+  function toggleRow(userId: string) {
+    if (expandedId === userId) {
+      setExpandedId(null);
+      setCards(null);
+      setCardsError(null);
+      return;
+    }
+    setExpandedId(userId);
+    setCards(null);
+    void loadCards(userId, 0);
+  }
 
   if (user?.role !== "ADMIN") {
     return (
@@ -40,20 +87,16 @@ export function AdminSendSummaryPage() {
   return (
     <div className="page">
       <Breadcrumbs
-        items={[
-          emailsCrumb,
-          adminCrumb,
-          { label: "Send summary" },
-        ]}
+        items={[emailsCrumb, adminCrumb, { label: "Share summary" }]}
       />
       <AdminSubNav />
       <header className="page-header" data-tour="admin-summary">
         <div>
           <p className="eyebrow">Admin</p>
-          <h1>Send summary</h1>
+          <h1>Share summary</h1>
           <p className="lede">
-            Per-user outbound activity. Click a row to see every job and email -
-            same coverage as Sent for that user.
+            What each person has shared. Open a row to see their cards, one
+            page at a time.
           </p>
         </div>
       </header>
@@ -69,9 +112,9 @@ export function AdminSendSummaryPage() {
                 <tr>
                   <th>User</th>
                   <th>Role</th>
-                  <th>Jobs</th>
-                  <th>Messages</th>
-                  <th>Last send</th>
+                  <th>Shares</th>
+                  <th>Cards</th>
+                  <th>Last share</th>
                 </tr>
               </thead>
               <tbody>
@@ -89,9 +132,11 @@ export function AdminSendSummaryPage() {
                         key={row.id}
                         row={row}
                         open={open}
-                        onToggle={() =>
-                          setExpandedId(open ? null : row.id)
-                        }
+                        cards={open ? cards : null}
+                        cardsLoading={open && cardsLoading}
+                        cardsError={open ? cardsError : null}
+                        onToggle={() => toggleRow(row.id)}
+                        onPage={(skip) => void loadCards(row.id, skip)}
                       />
                     );
                   })
@@ -108,12 +153,25 @@ export function AdminSendSummaryPage() {
 function SummaryRow({
   row,
   open,
+  cards,
+  cardsLoading,
+  cardsError,
   onToggle,
+  onPage,
 }: {
   row: AdminSendSummaryUser;
   open: boolean;
+  cards: CardPage | null;
+  cardsLoading: boolean;
+  cardsError: string | null;
   onToggle: () => void;
+  onPage: (skip: number) => void;
 }) {
+  const from = cards && cards.total > 0 ? cards.skip + 1 : 0;
+  const to = cards ? Math.min(cards.skip + cards.items.length, cards.total) : 0;
+  const hasPrev = Boolean(cards && cards.skip > 0);
+  const hasNext = Boolean(cards && cards.skip + PAGE_SIZE < cards.total);
+
   return (
     <>
       <tr
@@ -136,62 +194,73 @@ function SummaryRow({
         <td>{row.jobCount}</td>
         <td>{row.messageCount}</td>
         <td>
-          {row.lastSentAt
-            ? new Date(row.lastSentAt).toLocaleString()
-            : "-"}
+          {row.lastSentAt ? new Date(row.lastSentAt).toLocaleString() : "-"}
         </td>
       </tr>
       {open ? (
         <tr className="admin-expand-detail">
           <td colSpan={5}>
-            {row.recentJobs.length === 0 ? (
-              <p className="muted small">No send jobs for this user.</p>
-            ) : (
-              <ul className="admin-job-list">
-                {row.recentJobs.map((job) => (
-                  <li key={job.id}>
-                    <div className="admin-job-list-head">
-                      <div>
-                        <strong>{job.templateName}</strong>
-                        {job.categoryName ? (
-                          <span className="muted"> · {job.categoryName}</span>
-                        ) : null}
-                        <div className="muted small">
-                          {job.messageCount} message
-                          {job.messageCount === 1 ? "" : "s"} · {job.status} ·{" "}
-                          {new Date(job.createdAt).toLocaleString()}
+            {cardsError ? <p className="error small">{cardsError}</p> : null}
+            {cardsLoading && !cards ? (
+              <p className="muted small">Loading cards…</p>
+            ) : null}
+            {cards && cards.total === 0 ? (
+              <p className="muted small">No cards shared by this person.</p>
+            ) : null}
+            {cards && cards.items.length > 0 ? (
+              <>
+                <ul className="admin-job-list">
+                  {cards.items.map((card) => (
+                    <li key={card.id}>
+                      <div className="admin-job-list-head">
+                        <div>
+                          <strong>{card.templateName}</strong>
+                          <div className="muted small">
+                            Given to {card.recipientName || card.recipientEmail}
+                            {" · "}
+                            {card.subject}
+                            {" · "}
+                            {new Date(card.createdAt).toLocaleString()}
+                          </div>
                         </div>
+                        {COMPOSE_ENABLED ? (
+                          <Link
+                            className="small"
+                            to={`/drafts/${card.jobId}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Open share
+                          </Link>
+                        ) : null}
                       </div>
-                      {COMPOSE_ENABLED ? (
-                        <Link
-                          className="small"
-                          to={`/drafts/${job.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Open job
-                        </Link>
-                      ) : null}
-                    </div>
-                    {(job.messages?.length ?? 0) > 0 ? (
-                      <ul className="admin-message-list">
-                        {job.messages?.map((m) => (
-                          <li key={m.id}>
-                            <strong>{m.subject}</strong>
-                            <div className="muted small">
-                              → {m.recipientName || m.recipientEmail}
-                              {" · "}
-                              {m.status}
-                              {" · "}
-                              {new Date(m.createdAt).toLocaleString()}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="admin-share-page">
+                  <p className="muted small">
+                    {from}–{to} of {cards.total}
+                  </p>
+                  <div className="admin-share-page-actions">
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={!hasPrev || cardsLoading}
+                      onClick={() => onPage(Math.max(0, cards.skip - PAGE_SIZE))}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={!hasNext || cardsLoading}
+                      onClick={() => onPage(cards.skip + PAGE_SIZE)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </td>
         </tr>
       ) : null}

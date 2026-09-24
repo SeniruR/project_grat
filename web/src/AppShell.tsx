@@ -62,6 +62,26 @@ export function AppShell() {
 
             <div className="topnav-user">
               <ThemeSwitcher />
+              {designer ? (
+                <NavLink
+                  to="/cards"
+                  className={({ isActive }) =>
+                    `topnav-link${isActive ? " is-active" : ""}`
+                  }
+                >
+                  My designs
+                </NavLink>
+              ) : null}
+              {admin ? (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `topnav-link${isActive ? " is-active" : ""}`
+                  }
+                >
+                  Admin
+                </NavLink>
+              ) : null}
               {COMPOSE_ENABLED ? (
                 <NavLink
                   to="/sent"
@@ -114,22 +134,6 @@ export function AppShell() {
                       <strong>{user.displayName}</strong>
                       <span>{roleLabel(user.role)}</span>
                     </div>
-                    <NavLink
-                      to="/marketplace"
-                      role="menuitem"
-                      className="account-menu-item"
-                    >
-                      Cards
-                    </NavLink>
-                    {designer ? (
-                      <NavLink
-                        to="/cards"
-                        role="menuitem"
-                        className="account-menu-item"
-                      >
-                        My cards
-                      </NavLink>
-                    ) : null}
                     {admin ? (
                       <NavLink
                         to="/admin"
@@ -139,16 +143,6 @@ export function AppShell() {
                         Admin
                       </NavLink>
                     ) : null}
-                    {COMPOSE_ENABLED ? (
-                      <NavLink
-                        to="/sent"
-                        role="menuitem"
-                        className="account-menu-item"
-                      >
-                        History
-                      </NavLink>
-                    ) : null}
-                    <hr className="nav-dropdown-sep" />
                     <button
                       type="button"
                       role="menuitem"

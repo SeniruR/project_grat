@@ -5,7 +5,7 @@ import {
   type SiteTheme,
 } from "../lib/theme";
 
-/** Test control: evening / morning / still / open (video, no vines). */
+/** Test control: evening / morning / still / open. */
 export function ThemeSwitcher() {
   const [theme, setTheme] = useState<SiteTheme>(() => readStoredTheme());
 

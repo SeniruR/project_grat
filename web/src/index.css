@@ -209,7 +209,7 @@ button:disabled {
  * menu/chip hovers made labels unreadable.
  */
 button:hover:not(:disabled):where(
-  :not(.ghost):not(.linkish):not(.template-card-hit):not(.marketplace-card-preview):not(.recipient-chip):not(.recipient-chip-remove):not(.compose-subject-tag):not(.draft-card-head):not(.toast-banner-close):not(.category-status-dismiss):not(.template-card-delete):not(.sent-row-head):not(.file-pick-btn):not(.nav-dropdown-trigger):not(.account-trigger):not(.account-menu-item):not(.unsaved-banner-copy):not(.hero-loop-sound-btn):not(.login-demo-swap):not(.login-continue)
+  :not(.ghost):not(.linkish):not(.template-card-hit):not(.marketplace-card-preview):not(.recipient-chip):not(.recipient-chip-remove):not(.compose-subject-tag):not(.draft-card-head):not(.toast-banner-close):not(.toast-banner-action):not(.category-status-dismiss):not(.template-card-delete):not(.sent-row-head):not(.file-pick-btn):not(.nav-dropdown-trigger):not(.account-trigger):not(.account-menu-item):not(.unsaved-banner-copy):not(.hero-loop-sound-btn):not(.login-demo-swap):not(.login-continue):not(.recipient-add-cancel)
 ) {
   background: var(--accent-deep);
   box-shadow: var(--shadow-lift);
@@ -293,15 +293,18 @@ button.ghost:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
-  background: rgba(255, 252, 247, 0.22);
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.42);
   box-shadow:
-    0 28px 64px rgba(40, 32, 20, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(28px) saturate(1.2);
-  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    0 28px 80px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(48px) saturate(1.8);
+  -webkit-backdrop-filter: blur(48px) saturate(1.8);
   animation: rise-in 0.55s ease both;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-sans);
 }
 
 .login-stage-body {
@@ -329,7 +332,7 @@ button.ghost:hover:not(:disabled) {
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  border-right: 1px solid rgba(255, 255, 255, 0.32);
+  border-right: 1px solid rgba(60, 60, 67, 0.12);
 }
 
 .login-hero-copy {
@@ -418,34 +421,37 @@ button.ghost:hover:not(:disabled) {
 
 .login-panel h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.55rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: #2a2622;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-sans);
+  font-size: 1.7rem;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .login-panel .lede {
-  margin: 0.4rem 0 1.5rem;
-  color: #5a534c;
+  margin: 0.4rem 0 1.45rem;
+  color: rgba(60, 60, 67, 0.72);
   max-width: none;
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: 0.94rem;
+  line-height: 1.45;
   font-weight: 400;
 }
 
 .login-continue {
   width: 100%;
-  margin-top: 0.45rem;
-  padding: 0.82rem 1.15rem;
-  background: #3e6d5c;
-  border-radius: 999px;
+  margin-top: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.78rem 1.15rem;
+  background: rgba(0, 113, 227, 0.92);
+  border-radius: 14px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .login-continue:hover:not(:disabled) {
-  background: #335a4c;
+  background: rgba(0, 100, 210, 0.96);
   box-shadow: none;
   transform: none;
 }
@@ -455,14 +461,19 @@ button.ghost:hover:not(:disabled) {
   transform: none;
   left: auto;
   bottom: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
-  padding: 0.7rem 1.5rem 1.05rem;
-  background: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.28);
-  color: #5a534c;
-  font-size: 0.72rem;
+  min-height: 3.1rem;
+  padding: 0.85rem 1.5rem;
+  background: rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  color: rgba(60, 60, 67, 0.62);
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  line-height: 1;
   text-transform: uppercase;
   text-align: center;
   white-space: nowrap;
@@ -509,34 +520,35 @@ button.ghost:hover:not(:disabled) {
 
 .login-form {
   display: grid;
-  gap: 1.05rem;
+  gap: 0.85rem;
 }
 
 .login-form label {
   display: grid;
   gap: 0.4rem;
   font-weight: 600;
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
-  color: #4a433c;
+  font-size: 0.78rem;
+  letter-spacing: -0.01em;
+  color: rgba(60, 60, 67, 0.72);
 }
 
 .login-form input[type="email"],
 .login-form input:not([type="checkbox"]) {
-  border: 0;
-  border-bottom: 1px solid rgba(42, 38, 34, 0.22);
-  border-radius: 0;
-  padding: 0.45rem 0 0.55rem;
-  background: transparent;
-  font-size: 1rem;
-  color: #2a2622;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  padding: 0.78rem 0.9rem;
+  background: rgba(255, 255, 255, 0.48);
+  font-size: 1.02rem;
+  color: rgba(0, 0, 0, 0.88);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.7);
 }
 
 .login-form input[type="email"]:focus,
 .login-form input:not([type="checkbox"]):focus {
   outline: none;
-  border-bottom-color: #3e6d5c;
-  background: transparent;
+  border-color: rgba(0, 113, 227, 0.45);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.16);
 }
 
 .login-form .check {
@@ -559,19 +571,19 @@ button.ghost:hover:not(:disabled) {
 }
 
 .login-demo-swap {
-  margin-top: 1rem;
+  margin-top: 0.85rem;
   width: auto;
-  align-self: flex-start;
-  font-size: 0.78rem;
+  align-self: center;
+  font-size: 0.8rem;
   font-weight: 500;
-  color: #6a625a;
+  color: rgba(0, 113, 227, 0.92);
   border: 0;
   background: transparent;
-  padding: 0;
+  padding: 0.2rem 0;
 }
 
 .login-demo-swap:hover:not(:disabled) {
-  color: #2a2622;
+  color: rgba(0, 90, 200, 1);
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -610,16 +622,14 @@ button.ghost:hover:not(:disabled) {
   z-index: 6;
   flex-shrink: 0;
   margin-top: auto;
-  padding: 1rem 1.35rem 1.25rem;
-  border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--page-wash) 80%, #fff);
+  padding: 0;
+  border: none;
+  background: transparent;
   text-align: center;
 }
 
-.site-footer p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
+.site-footer .login-credit {
+  width: 100%;
 }
 
 .topnav-wrap {
@@ -682,13 +692,18 @@ button.ghost:hover:not(:disabled) {
   align-items: center;
   font-family: var(--font-display);
   font-weight: 700;
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 48, "SOFT" 30, "WONK" 1;
   letter-spacing: -0.03em;
   line-height: 1;
   color: inherit;
 }
 
 .brand-wordmark em {
-  font-style: normal;
+  font-style: italic;
+  font-weight: 600;
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 48, "SOFT" 30, "WONK" 1;
   color: var(--brand-green);
   margin-left: 0.28em;
 }
@@ -1588,42 +1603,104 @@ button.btn-link {
   margin-right: 0.25rem;
 }
 
-.admin-honorific-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.admin-titles-panel {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.85rem;
 }
 
-.admin-honorific-list li {
+.admin-title-table {
+  width: auto;
+}
+
+.admin-title-table th,
+.admin-title-table td {
+  vertical-align: middle;
+  padding: 0.35rem 0.55rem;
+}
+
+.admin-title-table th:nth-child(2),
+.admin-title-table td:nth-child(2) {
+  text-align: center;
+  width: 8.5rem;
+}
+
+.admin-title-table input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.admin-title-table input:not([type="checkbox"]) {
+  width: 8.5rem;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  background: #fff;
+  font: inherit;
+}
+
+.admin-title-actions {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.admin-title-actions .ghost {
+  padding: 0.2rem 0.45rem;
+  min-width: 1.8rem;
+  line-height: 1.2;
+}
+
+.admin-title-actions .linkish {
+  margin-left: 0.35rem;
+}
+
+.admin-title-add {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
 }
 
-.admin-honorific-list input {
-  flex: 1 1 10rem;
-  min-width: 8rem;
+.admin-title-add > input {
+  width: 8.5rem;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  background: #fff;
+  font: inherit;
 }
 
-.admin-honorific-actions {
+.admin-title-add-name {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.admin-honorific-add {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 500;
 }
 
-.admin-honorific-add input {
-  flex: 1 1 12rem;
-  min-width: 8rem;
+.admin-title-add-name input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.admin-title-add > button {
+  padding: 0.4rem 0.85rem;
+}
+
+.admin-share-page {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.admin-share-page-actions {
+  display: inline-flex;
+  gap: 0.4rem;
 }
 
 .admin-expand-row {
@@ -2043,6 +2120,7 @@ button.linkish:disabled {
   max-height: min(85vh, 1400px);
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   padding: 0.35rem 0.15rem 1rem;
   border: 1px solid var(--line);
@@ -2453,6 +2531,10 @@ button.linkish:disabled {
   padding: 0.6rem 0.8rem;
   font: inherit;
   background: #fff;
+}
+
+.studio-toolbar .studio-select {
+  margin-left: auto;
 }
 
 .studio-select {
@@ -3356,6 +3438,10 @@ button.danger-text {
   width: min(480px, 100%);
 }
 
+.app-modal.send-confirm-modal h2 {
+  margin-bottom: 1.1rem;
+}
+
 .send-confirm-list {
   list-style: none;
   margin: 0 0 1rem;
@@ -3454,6 +3540,7 @@ button.danger-text {
   max-height: min(85vh, 1100px);
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -3689,6 +3776,29 @@ button.danger-text {
   flex: 1 1 auto;
   min-width: 0;
   text-align: left;
+}
+
+.recipient-add-cancel {
+  flex: 0 0 auto;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin-top: -0.1rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.45rem;
+  line-height: 1;
+  box-shadow: none;
+  transform: none;
+}
+
+.recipient-add-cancel:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 8%, #fff);
+  color: var(--ink);
+  box-shadow: none;
+  transform: none;
 }
 
 .compose-section-title {
@@ -4113,6 +4223,21 @@ button.danger-text {
   gap: 0.5rem;
 }
 
+.recipient-add-open-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.recipient-add-open-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.recipient-add-open-row .recipient-add-cancel {
+  margin-top: 0.15rem;
+}
+
 .recipient-add-more-btn {
   align-self: flex-start;
   margin: 0;
@@ -4303,8 +4428,20 @@ button.ghost.recipient-add-all {
   height: var(--recipient-hit-row);
 }
 
-.recipient-hits li + li {
-  border-top: 1px solid var(--line);
+.recipient-hits li.recipient-hit-notice {
+  height: auto;
+  min-height: var(--recipient-hit-row);
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+}
+
+.recipient-hit-notice p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .recipient-hits button {
@@ -4600,6 +4737,29 @@ button.ghost.recipient-add-all {
 .toast-banner-close:hover {
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   color: var(--ink);
+}
+
+button.toast-banner-action {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: none;
+  transform: none;
+}
+
+button.toast-banner-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  color: var(--accent-deep);
+  box-shadow: none;
+  transform: none;
 }
 
 .toast-banner-meta {
@@ -4948,6 +5108,12 @@ button.ghost.recipient-add-all {
   background: #fff;
 }
 
+.draft-card-body .outlook-dual-scroll {
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+
 .draft-card-body .outlook-preview-subject {
   padding: 0 0 0.75rem;
 }
@@ -4969,6 +5135,12 @@ button.ghost.recipient-add-all {
   flex-wrap: wrap;
   gap: 0.55rem;
   align-items: center;
+}
+
+.header-action-note {
+  margin: 0;
+  max-width: 22rem;
+  text-align: right;
 }
 
 .marketplace-toolbar {
@@ -5246,6 +5418,7 @@ button.ghost.recipient-add-all {
   max-height: min(72vh, 860px);
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   padding: 0.85rem;
   border: 1px solid var(--line);
@@ -5517,15 +5690,16 @@ button.ghost.recipient-add-all {
   --vine-inner-w: min(16vw, 170px);
   --vine-inner-inset: clamp(4.5rem, 14vw, 11rem);
 
-  /* Scroll with the page, painted above page content */
+  /* Stay inside the page so the right vine is not clipped by the scrollbar */
   position: absolute;
   top: -1.5rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  width: auto;
+  margin: 0;
   height: min(72vw, 580px);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
   overflow: visible;
 }
 
@@ -5762,6 +5936,16 @@ button.ghost.recipient-add-all {
   display: none;
 }
 
+/* Evening, Morning, and Still: the two outer vines only. */
+[data-theme="evening"] .gift-vine--inner-left,
+[data-theme="evening"] .gift-vine--inner-right,
+[data-theme="morning"] .gift-vine--inner-left,
+[data-theme="morning"] .gift-vine--inner-right,
+[data-theme="still"] .gift-vine--inner-left,
+[data-theme="still"] .gift-vine--inner-right {
+  display: none;
+}
+
 [data-theme="still"] .gift-hero-cover {
   border-radius: 0;
   border-color: transparent;
@@ -5942,7 +6126,7 @@ button.ghost.recipient-add-all {
 
 .gift-hero-cover-copy h1,
 .gift-hero-copy-panel h1 {
-  margin: 0;
+  margin: 0 0 1.15rem;
   max-width: 22ch;
   font-family: var(--font-display);
   font-size: clamp(1.85rem, 3.8vw, 2.55rem);
@@ -5987,7 +6171,7 @@ button.ghost.recipient-add-all {
 
 .gift-shelf-card .marketplace-card-preview {
   border: 1px solid color-mix(in srgb, var(--petal) 14%, var(--line));
-  border-radius: calc(var(--radius) + 2px);
+  border-radius: 1.5rem;
   width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
@@ -6043,25 +6227,32 @@ button.ghost.recipient-add-all {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0 0.7rem 0.85rem;
+  padding: 0.7rem 0.7rem 0.85rem;
+  background: none;
   border: 0;
   border-radius: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 42%,
-    color-mix(in srgb, var(--ink) 18%, transparent) 68%,
-    color-mix(in srgb, var(--ink) 52%, transparent) 100%
-  );
-  color: #fff;
-  font-weight: 650;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   box-shadow: none;
   opacity: 0;
   transform: none;
   pointer-events: none;
   transition: opacity 0.28s linear;
+}
+
+.gift-give-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in srgb, #fff 70%, #0071e3);
+  background: #0071e3;
+  color: #fff;
+  font-weight: 650;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 20px rgba(0, 113, 227, 0.28);
 }
 
 .gift-shelf-card:hover .gift-give-overlay {
@@ -6097,7 +6288,7 @@ button.ghost.recipient-add-all {
 }
 
 .gift-on-way h1 {
-  max-width: 16ch;
+  margin-bottom: 0.2rem;
 }
 
 .page > .notice {

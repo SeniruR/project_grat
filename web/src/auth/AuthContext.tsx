@@ -17,7 +17,7 @@ type AuthState = {
   loading: boolean;
   login: (input: {
     email: string;
-    displayName: string;
+    employeeNumber: string;
     role?: "USER" | "DESIGNER" | "ADMIN";
   }) => Promise<void>;
   logout: () => void;
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (input: {
       email: string;
-      displayName: string;
+      employeeNumber: string;
       role?: "USER" | "DESIGNER" | "ADMIN";
     }) => {
       const { token: nextToken, user: nextUser } = await api.devLogin(input);

@@ -37,6 +37,8 @@ model User {
   /// Azure AD object id later; for now a stable fake oid
   aadOid      String   @unique @map("aad_oid")
   email       String   @unique
+  /// Staff id used at sign-in. The display name stays on the directory record.
+  employeeNumber String @unique @map("employee_number")
   displayName String   @map("display_name")
   role        Role     @default(USER)
   /// Directory entries appear in recipient picker even if they never logged in

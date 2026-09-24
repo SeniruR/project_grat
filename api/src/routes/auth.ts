@@ -2,10 +2,11 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { config } from "../config.js";
 import { getAuthProvider } from "../providers/auth/index.js";
+import { DevLoginRejected } from "../providers/auth/types.js";
 
 const loginBody = z.object({
   email: z.string().email(),
-  displayName: z.string().min(1).max(120),
+  employeeNumber: z.string().trim().min(1).max(20),
   role: z.enum(["USER", "DESIGNER", "ADMIN"]).optional(),
 });
 
@@ -40,7 +41,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(500).send({ error: "Dev login not available" });
     }
 
-    const user = await provider.loginDev(parsed.data);
+    let user;
+    try {
+      user = await provider.loginDev(parsed.data);
+    } catch (err) {
+      if (err instanceof DevLoginRejected) {
+        return reply.code(401).send({ error: err.message });
+      }
+      throw err;
+    }
     const token = await reply.jwtSign({
       sub: user.id,
       role: user.role,

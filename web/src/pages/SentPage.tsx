@@ -80,7 +80,14 @@ export function SentPage() {
 
         {!loading && items.length > 0 ? (
           <ul className="sent-list sent-keepsake">
-            {items.map((item) => (
+            {items.map((item) => {
+              const meta = [
+                item.subject,
+                isAdmin(user) ? `from ${item.job.requester.displayName}` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
               <li key={item.id} className="sent-row">
                 <button
                   type="button"
@@ -89,22 +96,15 @@ export function SentPage() {
                 >
                   <div className="sent-keepsake-row">
                     <strong>{item.job.template.name}</strong>
-                    <span className="sent-keepsake-to">
-                      Given to {item.recipientName || item.recipientEmail}
-                    </span>
-                    <span className="meta">
-                      {item.subject}
-                      {isAdmin(user)
-                        ? ` · from ${item.job.requester.displayName}`
-                        : ""}
-                    </span>
+                    {meta ? <span className="meta">{meta}</span> : null}
                   </div>
                   <span className="muted small">
                     {new Date(item.createdAt).toLocaleString()}
                   </span>
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : null}
       </div>

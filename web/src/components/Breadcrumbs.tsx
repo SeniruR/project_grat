@@ -10,7 +10,7 @@ type Props = {
   items: Crumb[];
 };
 
-/** Trail like Cards › Prepare › Preview */
+/** Trail like Home › Prepare › Preview */
 export function Breadcrumbs({ items }: Props) {
   if (items.length === 0) return null;
   const currentIndex = items.findIndex((item) => item.current);
@@ -52,15 +52,15 @@ export function Breadcrumbs({ items }: Props) {
   );
 }
 
-/** Shared Cards section crumb. Browse cards is home for every role. */
-export const cardsCrumb: Crumb = { label: "Cards", to: "/marketplace" };
+/** First crumb on every page. Opens the card shelf, which is home for every role. */
+export const cardsCrumb: Crumb = { label: "Home", to: "/marketplace" };
 
 export const chooseCardCrumb: Crumb = {
   label: "Choose a card",
   to: "/marketplace",
 };
 
-export const myCardsCrumb: Crumb = { label: "My cards", to: "/cards" };
+export const myCardsCrumb: Crumb = { label: "My designs", to: "/cards" };
 
 export const historyCrumb: Crumb = { label: "History", to: "/sent" };
 

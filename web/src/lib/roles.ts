@@ -10,7 +10,7 @@ export function canManageDesigns(user: ApiUser | null | undefined) {
   return user?.role === "DESIGNER" || user?.role === "ADMIN";
 }
 
-/** Everyone lands on Browse cards. My cards and Admin stay in the account menu. */
+/** Everyone lands on Browse cards. My designs and Admin stay available from the top bar. */
 export function homePath(_user?: ApiUser | null) {
   return "/marketplace";
 }

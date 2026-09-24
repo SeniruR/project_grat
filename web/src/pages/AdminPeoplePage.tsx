@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import { roleLabel } from "../lib/roles";
 import { Breadcrumbs, emailsCrumb, adminCrumb } from "../components/Breadcrumbs";
 import { AdminSubNav } from "../components/AdminSubNav";
+import { ToastBanner } from "../components/ToastBanner";
 
 type AdminUser = {
   id: string;
@@ -17,15 +18,28 @@ type AdminUser = {
   _count: { ownedTemplates: number; draftJobs: number };
 };
 
+type RoleName = "USER" | "DESIGNER" | "ADMIN";
+
+type RoleUndo = { id: string; role: RoleName };
+
 export function AdminPeoplePage() {
   const { token, user } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [undoRole, setUndoRole] = useState<RoleUndo | null>(null);
+  const [roleChange, setRoleChange] = useState<{
+    person: AdminUser;
+    next: RoleName;
+  } | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const dismissNotice = useCallback(() => {
+    setNotice(null);
+    setUndoRole(null);
+  }, []);
 
   function canDeleteUser(u: AdminUser) {
     return (
@@ -55,21 +69,45 @@ export function AdminPeoplePage() {
 
   async function changeRole(
     id: string,
-    role: "USER" | "DESIGNER" | "ADMIN",
+    role: RoleName,
+    opts?: { notice?: string; undo?: RoleUndo | null },
   ) {
-    if (!token) return;
+    if (!token) return false;
     setSavingId(id);
     setError(null);
-    setNotice(null);
     try {
       await api.adminUpdateUser(token, id, { role });
       await reload();
-      setNotice(`Updated role to ${roleLabel(role)}.`);
+      if (opts && "undo" in opts) setUndoRole(opts.undo ?? null);
+      else setUndoRole(null);
+      setNotice(opts?.notice ?? null);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Role update failed");
+      return false;
     } finally {
       setSavingId(null);
     }
+  }
+
+  function askRoleChange(person: AdminUser, next: RoleName) {
+    if (next === person.role) return;
+    setRoleChange({ person, next });
+  }
+
+  async function confirmRoleChange() {
+    if (!roleChange) return;
+    const { person, next } = roleChange;
+    setRoleChange(null);
+    await changeRole(person.id, next, {
+      notice: `Updated ${person.displayName} to ${roleLabel(next)}.`,
+      undo: { id: person.id, role: person.role },
+    });
+  }
+
+  async function undoRoleChange() {
+    if (!undoRole) return;
+    await changeRole(undoRole.id, undoRole.role);
   }
 
   async function confirmDelete() {
@@ -79,6 +117,7 @@ export function AdminPeoplePage() {
     setNotice(null);
     try {
       await api.adminDeleteUser(token, deleteTarget.id);
+      setUndoRole(null);
       setNotice(`Deleted ${deleteTarget.displayName}.`);
       setDeleteTarget(null);
       await reload();
@@ -114,13 +153,20 @@ export function AdminPeoplePage() {
           <h1>People</h1>
           <p className="lede">
             Assign Admin, Designer, or User roles. Designers manage cards;
-            users browse and send.
+            users browse and share.
           </p>
         </div>
       </header>
 
       {error ? <p className="error">{error}</p> : null}
-      {notice ? <p className="notice">{notice}</p> : null}
+      <ToastBanner
+        message={notice}
+        onClose={dismissNotice}
+        variant="info"
+        durationMs={7000}
+        actionLabel={undoRole ? "Undo" : undefined}
+        onAction={undoRole ? () => void undoRoleChange() : undefined}
+      />
       {loading ? <p className="muted">Loading people…</p> : null}
 
       {!loading ? (
@@ -134,7 +180,7 @@ export function AdminPeoplePage() {
                   <th>Email</th>
                   <th>Role</th>
                   <th>Cards</th>
-                  <th>Jobs</th>
+                  <th>Shares</th>
                   <th></th>
                 </tr>
               </thead>
@@ -149,9 +195,9 @@ export function AdminPeoplePage() {
                         value={u.role}
                         disabled={savingId === u.id || deleting}
                         onChange={(e) =>
-                          void changeRole(
-                            u.id,
-                            e.target.value as "USER" | "DESIGNER" | "ADMIN",
+                          askRoleChange(
+                            u,
+                            e.target.value as RoleName,
                           )
                         }
                       >
@@ -184,6 +230,49 @@ export function AdminPeoplePage() {
         </section>
       ) : null}
 
+      {roleChange
+        ? createPortal(
+            <div
+              className="app-modal-backdrop"
+              role="presentation"
+              onClick={() => !savingId && setRoleChange(null)}
+            >
+              <div
+                className="app-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="role-change-title"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 id="role-change-title">Change role?</h2>
+                <p>
+                  Change <strong>{roleChange.person.displayName}</strong> from{" "}
+                  {roleLabel(roleChange.person.role)} to{" "}
+                  {roleLabel(roleChange.next)}?
+                </p>
+                <div className="app-modal-actions">
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={Boolean(savingId)}
+                    onClick={() => setRoleChange(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={Boolean(savingId)}
+                    onClick={() => void confirmRoleChange()}
+                  >
+                    {savingId ? "Saving…" : "Change role"}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
       {deleteTarget
         ? createPortal(
             <div
@@ -200,7 +289,7 @@ export function AdminPeoplePage() {
                 <h2>Delete user?</h2>
                 <p>
                   Remove <strong>{deleteTarget.displayName}</strong> (
-                  {deleteTarget.email})? They have no templates or send jobs.
+                  {deleteTarget.email})? They have no designs or shares.
                 </p>
                 <div className="app-modal-actions">
                   <button

@@ -15,11 +15,12 @@ export function isSiteTheme(value: unknown): value is SiteTheme {
 export function readStoredTheme(): SiteTheme {
   try {
     const raw = localStorage.getItem(SITE_THEME_KEY);
+    if (raw === "open2") return "open";
     if (isSiteTheme(raw)) return raw;
   } catch {
     /* ignore */
   }
-  return "evening";
+  return "open";
 }
 
 export function applySiteTheme(theme: SiteTheme) {

@@ -69,7 +69,7 @@ const USER_STEPS: TourStep[] = [
   },
 ];
 
-/** Designer: add a design, create categories, share cards. */
+/** Designer: add a design and share cards. */
 const DESIGNER_STEPS: TourStep[] = [
   {
     id: "mycards-new",
@@ -145,15 +145,15 @@ const ADMIN_STEPS: TourStep[] = [
   {
     id: "admin-summary",
     target: "admin-summary",
-    title: "Send summary",
-    body: "See what each person has sent - jobs, message counts, and recent cards.",
+    title: "Share summary",
+    body: "See what each person has shared. Open a row to page through their cards.",
     path: () => "/admin/summary",
   },
   {
     id: "admin-settings",
     target: "admin-settings",
-    title: "Send settings",
-    body: "Choose which name titles (Mr., Mrs., Sir, …) become recipient groups when sending.",
+    title: "Manage titles",
+    body: "Choose which name titles (Mr., Mrs., Sir, …) people can use when they share.",
     path: () => "/admin/settings",
   },
   {
@@ -167,7 +167,7 @@ const ADMIN_STEPS: TourStep[] = [
     id: "mycards-list",
     target: "mycards-list",
     title: "You can design too",
-    body: "Open your name in the top right, then My cards - create the designs others will give.",
+    body: "Open My designs in the top bar to create the designs others will give.",
     path: () => "/cards",
   },
 ];
