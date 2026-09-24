@@ -886,11 +886,11 @@ export function ComposePage() {
   }
 
   const advancedCompose = canUseAdvancedCompose(user);
-
   const usesRecipientName = useMemo(() => {
     if (placeholders.some((p) => p.source === "recipientName")) return true;
-    return detectMergeFields(subject).some((k) => isRecipientNameToken(k));
-  }, [placeholders, subject]);
+    if (detectMergeFields(subject).some((k) => isRecipientNameToken(k))) return true;
+    return detectMergeFields(compiled).some((k) => isRecipientNameToken(k));
+  }, [placeholders, subject, compiled]);
 
   useEffect(() => {
     if (!confirmSend) return;

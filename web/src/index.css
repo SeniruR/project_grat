@@ -2533,6 +2533,10 @@ button.linkish:disabled {
   background: #fff;
 }
 
+.studio-toolbar .studio-select {
+  margin-left: auto;
+}
+
 .studio-select {
   flex: 0 0 auto;
   margin: 0;
@@ -3432,6 +3436,10 @@ button.danger-text {
 
 .app-modal.send-confirm-modal {
   width: min(480px, 100%);
+}
+
+.app-modal.send-confirm-modal h2 {
+  margin-bottom: 1.1rem;
 }
 
 .send-confirm-list {

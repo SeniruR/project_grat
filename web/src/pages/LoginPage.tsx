@@ -42,7 +42,7 @@ export function LoginPage() {
       await login({
         email,
         employeeNumber,
-        ...(showDemo ? { role } : {}),
+        role: showDemo ? role : "USER",
       });
     } catch (err) {
       setTourPending(false);
@@ -74,7 +74,7 @@ export function LoginPage() {
                 <span>Bloom</span>
               </h1>
               <p className="login-tagline">
-                Strong connection with appreciation
+                Strong connections begins with appreciation
               </p>
             </div>
           </section>

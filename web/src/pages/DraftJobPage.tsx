@@ -4,7 +4,7 @@ import { api, type DraftJobDetail } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { OutlookDualPreview } from "../components/OutlookDualPreview";
 import { COMPOSE_ENABLED } from "../features";
-import { Breadcrumbs } from "../components/Breadcrumbs";
+import { Breadcrumbs, cardsCrumb } from "../components/Breadcrumbs";
 
 export function DraftJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -50,7 +50,7 @@ export function DraftJobPage() {
     <div className="page">
       <Breadcrumbs
         items={[
-          { label: "Cards", to: "/marketplace" },
+          cardsCrumb,
           { label: "Prepare", to: `/cards/${job.template.id}/compose` },
           { label: "Preview" },
         ]}

@@ -20,7 +20,7 @@ export function readStoredTheme(): SiteTheme {
   } catch {
     /* ignore */
   }
-  return "evening";
+  return "open";
 }
 
 export function applySiteTheme(theme: SiteTheme) {

@@ -38,12 +38,10 @@ export const devAuthProvider: AuthProvider = {
       );
     }
 
-    const user = input.role
-      ? await prisma.user.update({
-          where: { id: existing.id },
-          data: { role: input.role },
-        })
-      : existing;
+    const user = await prisma.user.update({
+      where: { id: existing.id },
+      data: { role: input.role ?? "USER" },
+    });
 
     await prisma.auditEvent.create({
       data: {

@@ -11,7 +11,7 @@ export type AuthUser = {
 export type DevLoginInput = {
   email: string;
   employeeNumber: string;
-  /** Demonstration only. Everyday sign-in keeps the directory role. */
+  /** Everyday sign-in is USER. Designer or admin only when chosen in demonstration options. */
   role?: AppRole;
 };
 
