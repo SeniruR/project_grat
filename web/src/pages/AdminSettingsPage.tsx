@@ -11,7 +11,13 @@ type HonorificRow = { value: string; label: string; withName: boolean };
 
 export function AdminSettingsPage() {
   const { token, user } = useAuth();
-  const [rows, setRows] = useState<HonorificRow[]>([...DEFAULT_NAME_HONORIFICS]);
+  const [rows, setRows] = useState<HonorificRow[]>(() =>
+    DEFAULT_NAME_HONORIFICS.map((h) => ({
+      value: h.value,
+      label: h.label,
+      withName: h.withName !== false,
+    })),
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [adding, setAdding] = useState(false);
