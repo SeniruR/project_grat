@@ -2197,8 +2197,8 @@ button.linkish:disabled {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: fill;
-  object-position: top left;
+  object-fit: contain;
+  object-position: top center;
   background: #fff;
 }
 
@@ -5281,9 +5281,9 @@ button.toast-banner-action:hover:not(:disabled) {
 }
 
 .gift-shelf-card .marketplace-card-preview img {
-  object-fit: fill;
+  object-fit: cover;
   object-position: top center;
-  background: transparent;
+  background: #fff;
 }
 
 .marketplace-card-fallback {
@@ -6037,9 +6037,26 @@ button.toast-banner-action:hover:not(:disabled) {
   min-height: inherit;
 }
 
+.hero-loop-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 65% center;
+  pointer-events: none;
+}
+
+.hero-loop-video.is-playing .hero-loop-poster {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .hero-loop-video-layer {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
@@ -6047,13 +6064,22 @@ button.toast-banner-action:hover:not(:disabled) {
   object-position: 65% center;
   border: 0;
   opacity: 0;
-  transition: opacity 0.9s ease-in-out;
   pointer-events: none;
 }
 
 .hero-loop-video-layer.is-front {
   opacity: 1;
-  z-index: 1;
+  z-index: 2;
+}
+
+.hero-loop-video.is-seam .hero-loop-video-layer.is-front {
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.hero-loop-video.is-seam .hero-loop-video-layer:not(.is-front) {
+  opacity: 1;
+  transition: none;
 }
 
 .hero-loop-sound-btn {
@@ -6187,15 +6213,12 @@ button.toast-banner-action:hover:not(:disabled) {
 .gift-shelf-card .email-card-thumb,
 .gift-shelf-card .email-card-thumb-png {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
+  inset: 0;
   width: 100%;
-  height: auto;
-  object-fit: fill;
+  height: 100%;
+  object-fit: cover;
   object-position: top center;
-  background: transparent;
+  background: #fff;
   transform-origin: center center;
   transition: transform 0.28s linear;
 }

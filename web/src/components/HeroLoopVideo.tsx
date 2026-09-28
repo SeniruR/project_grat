@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const BLEND_SEC = 0.9;
+const BLEND_SEC = 0.5;
 
 type Props = {
   src: string;
@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * Looped hero video with a soft crossfade at the loop seam.
+ * Looped hero video. The end blends into the start over half a second.
  * Tries unmuted autoplay; if the browser blocks it, starts muted and
  * enables sound on the first user gesture.
  */
@@ -26,7 +26,9 @@ export function HeroLoopVideo({
   const blendingRef = useRef(false);
   const soundEnabledRef = useRef(false);
   const [front, setFront] = useState<"a" | "b">("a");
+  const [seam, setSeam] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
+  const [hasFrame, setHasFrame] = useState(false);
 
   function applySound(frontKey: "a" | "b", enabled: boolean) {
     const a = aRef.current;
@@ -45,17 +47,19 @@ export function HeroLoopVideo({
     if (!primary || !secondary) return;
 
     let cancelled = false;
+    setHasFrame(false);
+    setSeam(false);
+    blendingRef.current = false;
     primary.currentTime = 0;
     secondary.pause();
+    secondary.preload = "auto";
 
-    async function start(
-      frontEl: HTMLVideoElement,
-      backEl: HTMLVideoElement,
-    ) {
+    async function start(frontEl: HTMLVideoElement, backEl: HTMLVideoElement) {
       if (!withAudio) {
         frontEl.muted = true;
         backEl.muted = true;
         await frontEl.play().catch(() => undefined);
+        if (!cancelled && !frontEl.paused) setHasFrame(true);
         return;
       }
 
@@ -69,12 +73,15 @@ export function HeroLoopVideo({
         if (!cancelled) {
           soundEnabledRef.current = true;
           setNeedsGesture(false);
+          setHasFrame(true);
         }
       } catch {
-        // Browsers usually block unmuted autoplay — start muted, unlock on gesture.
         frontEl.muted = true;
         await frontEl.play().catch(() => undefined);
-        if (!cancelled) setNeedsGesture(true);
+        if (!cancelled) {
+          setNeedsGesture(true);
+          if (!frontEl.paused) setHasFrame(true);
+        }
       }
     }
 
@@ -92,8 +99,8 @@ export function HeroLoopVideo({
       const b = bRef.current;
       if (!a || !b) return;
       applySound(front, true);
-      void a.play().catch(() => undefined);
-      void b.play().catch(() => undefined);
+      const current = front === "a" ? a : b;
+      void current.play().catch(() => undefined);
       setNeedsGesture(false);
     }
 
@@ -113,52 +120,113 @@ export function HeroLoopVideo({
 
     applySound(front, soundEnabledRef.current && withAudio);
 
-    function onTime() {
-      if (!frontEl || !backEl || blendingRef.current) return;
-      const dur = frontEl.duration;
-      if (!Number.isFinite(dur) || dur <= BLEND_SEC + 0.2) return;
-      if (frontEl.currentTime < dur - BLEND_SEC) return;
+    let fadeTimer = 0;
+    let swapTimer = 0;
 
-      blendingRef.current = true;
-      backEl.currentTime = 0;
-      // Only the new front should carry audio during the crossfade.
-      const nextFront = front === "a" ? "b" : "a";
-      applySound(nextFront, soundEnabledRef.current && withAudio);
-      void backEl.play().catch(() => undefined);
-      setFront(nextFront);
+    let prepared = false;
 
-      window.setTimeout(() => {
-        frontEl.pause();
-        blendingRef.current = false;
-      }, BLEND_SEC * 1000);
+    function prepareBack() {
+      if (!backEl || prepared) return;
+      prepared = true;
+      if (backEl.currentTime <= 0.02) return;
+      const hold = () => backEl.pause();
+      backEl.addEventListener("seeked", hold, { once: true });
+      try {
+        backEl.currentTime = 0;
+      } catch {
+        prepared = false;
+      }
     }
 
-    frontEl.addEventListener("timeupdate", onTime);
-    return () => frontEl.removeEventListener("timeupdate", onTime);
+    function beginBlend() {
+      if (!frontEl || !backEl || blendingRef.current) return;
+      blendingRef.current = true;
+      const nextFront = front === "a" ? "b" : "a";
+
+      const reveal = () => {
+        applySound(nextFront, soundEnabledRef.current && withAudio);
+        setSeam(true);
+        swapTimer = window.setTimeout(() => {
+          setFront(nextFront);
+          setSeam(false);
+          frontEl.pause();
+          blendingRef.current = false;
+        }, BLEND_SEC * 1000);
+      };
+
+      const startBack = () => {
+        void backEl
+          .play()
+          .then(() => {
+            if (typeof backEl.requestVideoFrameCallback === "function") {
+              backEl.requestVideoFrameCallback(() => reveal());
+            } else {
+              reveal();
+            }
+          })
+          .catch(() => {
+            blendingRef.current = false;
+          });
+      };
+
+      if (backEl.currentTime > 0.05) {
+        backEl.addEventListener("seeked", startBack, { once: true });
+        try {
+          backEl.currentTime = 0;
+        } catch {
+          startBack();
+        }
+      } else {
+        startBack();
+      }
+    }
+
+    function armBlend() {
+      if (!frontEl || blendingRef.current) return;
+      const dur = frontEl.duration;
+      if (!Number.isFinite(dur) || dur <= BLEND_SEC + 0.2) return;
+      const remaining = dur - frontEl.currentTime;
+      if (remaining < BLEND_SEC + 0.4) prepareBack();
+      window.clearTimeout(fadeTimer);
+      const waitMs = (remaining - BLEND_SEC) * 1000;
+      if (waitMs <= 0) beginBlend();
+      else fadeTimer = window.setTimeout(beginBlend, waitMs);
+    }
+
+    frontEl.addEventListener("timeupdate", armBlend);
+    frontEl.addEventListener("playing", armBlend);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(swapTimer);
+      frontEl.removeEventListener("timeupdate", armBlend);
+      frontEl.removeEventListener("playing", armBlend);
+    };
   }, [front, src, withAudio]);
 
   return (
-    <div className={`hero-loop-video${className ? ` ${className}` : ""}`}>
+    <div
+      className={`hero-loop-video${hasFrame ? " is-playing" : ""}${seam ? " is-seam" : ""}${className ? ` ${className}` : ""}`}
+    >
+      {poster ? (
+        <img className="hero-loop-poster" src={poster} alt="" />
+      ) : null}
       <video
         ref={aRef}
         className={`hero-loop-video-layer${front === "a" ? " is-front" : ""}`}
         src={src}
-        poster={poster}
         playsInline
         preload="auto"
         autoPlay
-        loop={false}
         aria-hidden
+        onPlaying={() => setHasFrame(true)}
       />
       <video
         ref={bRef}
         className={`hero-loop-video-layer${front === "b" ? " is-front" : ""}`}
         src={src}
-        poster={poster}
         playsInline
         preload="auto"
         muted
-        loop={false}
         aria-hidden
       />
       {needsGesture ? (
@@ -167,7 +235,8 @@ export function HeroLoopVideo({
           className="hero-loop-sound-btn"
           onClick={() => {
             applySound(front, true);
-            void aRef.current?.play().catch(() => undefined);
+            const current = front === "a" ? aRef.current : bRef.current;
+            void current?.play().catch(() => undefined);
             setNeedsGesture(false);
           }}
         >

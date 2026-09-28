@@ -59,7 +59,7 @@ export function MarketplacePage() {
           <div className="gift-hero-media" aria-hidden>
             <HeroLoopVideo
               className="gift-hero-evening-media"
-              src="/meadow-hero-whatsapp.mp4"
+              src="/meadow-hero-loop.mp4?v=3"
               poster="/marketplace-hero-illustration.png"
             />
             <img
