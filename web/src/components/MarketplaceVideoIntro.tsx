@@ -48,7 +48,7 @@ export function MarketplaceVideoIntro({ onEnter }: Props) {
     >
       <HeroLoopVideo
         className="marketplace-video-intro-media"
-        src="/meadow-hero-whatsapp.mp4"
+        src="/meadow-hero-loop.mp4?v=3"
         poster="/marketplace-hero-illustration.png"
       />
       <div className="marketplace-video-intro-shade" aria-hidden />
