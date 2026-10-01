@@ -371,10 +371,6 @@ export type TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput = {
   deleteMany?: Prisma.TemplateCategoryScalarWhereInput | Prisma.TemplateCategoryScalarWhereInput[]
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type TemplateCategoryCreateNestedOneWithoutTemplatesInput = {
   create?: Prisma.XOR<Prisma.TemplateCategoryCreateWithoutTemplatesInput, Prisma.TemplateCategoryUncheckedCreateWithoutTemplatesInput>
   connectOrCreate?: Prisma.TemplateCategoryCreateOrConnectWithoutTemplatesInput

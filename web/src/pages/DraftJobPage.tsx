@@ -82,8 +82,8 @@ export function DraftJobPage() {
         </p>
       ) : mailMode === "graph" ? (
         <p className="notice">
-          Graph mode - drafts were created in Outlook (mailbox from the signed-in
-          user email, or <code>GRAPH_MAILBOX_UPN</code>).
+          Microsoft 365 mail. A work-account sign-in sends each card from that
+          mailbox. Older jobs may still be Outlook drafts.
         </p>
       ) : null}
 

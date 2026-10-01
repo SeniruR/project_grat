@@ -20,6 +20,7 @@ type AuthState = {
     employeeNumber: string;
     role?: "USER" | "DESIGNER" | "ADMIN";
   }) => Promise<void>;
+  acceptToken: (token: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -74,6 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const acceptToken = useCallback(async (nextToken: string) => {
+    const { user: nextUser } = await api.me(nextToken);
+    localStorage.setItem(TOKEN_KEY, nextToken);
+    setToken(nextToken);
+    setUser(nextUser);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -81,8 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, logout }),
-    [user, token, loading, login, logout],
+    () => ({ user, token, loading, login, acceptToken, logout }),
+    [user, token, loading, login, acceptToken, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

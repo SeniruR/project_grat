@@ -6,5 +6,9 @@ export type DirectoryPerson = {
 
 export interface DirectoryProvider {
   readonly mode: "mock" | "graph";
-  search(query: string, limit?: number): Promise<DirectoryPerson[]>;
+  search(
+    query: string,
+    limit?: number,
+    accessToken?: string,
+  ): Promise<DirectoryPerson[]>;
 }

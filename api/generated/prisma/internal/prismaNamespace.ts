@@ -1213,6 +1213,7 @@ export const UserScalarFieldEnum = {
   displayName: 'displayName',
   role: 'role',
   isDirectory: 'isDirectory',
+  azureRefreshToken: 'azureRefreshToken',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

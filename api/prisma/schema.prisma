@@ -43,6 +43,8 @@ model User {
   role        Role     @default(USER)
   /// Directory entries appear in recipient picker even if they never logged in
   isDirectory Boolean  @default(true) @map("is_directory")
+  /// Delegated Microsoft Graph refresh token after Azure AD sign-in
+  azureRefreshToken String? @map("azure_refresh_token")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
