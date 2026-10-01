@@ -24,7 +24,7 @@ pdflatex system-requirements.tex
 Local source (ignored by Git): `project-guidelines.tex`  
 Committed deliverable: `project-guidelines.pdf`
 
-RHEL VM deploy checklist (`dnf`, firewalld, nginx `conf.d`, SELinux notes).
+RHEL VM deploy checklist (`dnf`, firewalld, nginx `conf.d` on port 443 only, SELinux notes) and the Azure AD work-account setup (sign-in, directory search, send as the signed-in user). Inbound ports are 22 and 443. Port 80 is not opened.
 
 ```bash
 cd documents

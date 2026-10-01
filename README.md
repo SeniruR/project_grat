@@ -2,13 +2,13 @@
 
 Phase 0 scaffold + Phases 1–3: templates, Canva HTML import, **compose → mock/SMTP drafts**.
 
-Providers are swap-ready:
+Providers:
 
-| Mode env | Now | Later |
-|----------|-----|--------|
+| Mode env | Local default | Work account |
+|----------|---------------|--------------|
 | `AUTH_MODE` | `dev` | `azure` |
 | `DIRECTORY_MODE` | `mock` | `graph` |
-| `MAIL_MODE` | `mock` | `smtp` (Gmail), `graph` (Outlook drafts) |
+| `MAIL_MODE` | `mock` | `graph` (send as the signed-in user) or `smtp` |
 
 ### Gmail SMTP (`MAIL_MODE=smtp`)
 
@@ -34,27 +34,29 @@ PUBLIC_API_URL=https://your-public-api-host
 
 Recipients get the full HTML MIME (usually closer to Canva than paste-into-compose). Embedded images must load from `PUBLIC_API_URL` (use ngrok locally if needed).
 
-### Graph Outlook drafts (`MAIL_MODE=graph`)
+### Azure AD work account (`AUTH_MODE=azure`)
 
-Works with current **dev login** using an Azure AD **app registration** (client credentials):
+Sign-in, the recipient list, and sending all use one Azure AD app registration. The Azure portal lists that registration under **Microsoft Entra ID**. Full host steps are in `documents/project-guidelines.pdf` (section “Azure AD sign-in, directory, and mail”).
 
-1. Register an app in Entra ID → add **Application** permission `Mail.ReadWrite` → grant admin consent.
-2. Create a client secret.
-3. In `api/.env`:
+Until the identity team sends the three IDs, leave `AUTH_MODE=dev`. When you have them, put this in `api/.env` and restart the API:
 
 ```env
+AUTH_MODE=azure
+DIRECTORY_MODE=graph
 MAIL_MODE=graph
-AZURE_TENANT_ID=...
-AZURE_CLIENT_ID=...
-AZURE_CLIENT_SECRET=...
-# Optional: put every draft in one shared mailbox
-# GRAPH_MAILBOX_UPN=gratitude@yourtenant.com
+AZURE_TENANT_ID=
+AZURE_CLIENT_ID=
+AZURE_CLIENT_SECRET=
+AZURE_REDIRECT_URI=http://localhost:3001/auth/azure/callback
+AZURE_WEB_ORIGIN=http://localhost:5173
+AZURE_ADMIN_EMAILS=you@yourcompany.com
 ```
 
-4. Sign in with an email that exists as a mailbox in that tenant (or set `GRAPH_MAILBOX_UPN`).
-5. Compose → drafts appear in that mailbox’s **Drafts** folder.
+The redirect URI registered on the app must match `AZURE_REDIRECT_URI`. Delegated permissions, with admin consent: `User.Read`, `User.ReadBasic.All`, `Mail.Send`.
 
-Delegated `/me` (user’s own Drafts without app mailbox rights) needs `AUTH_MODE=azure` + a user Graph token later; the mail provider already accepts an optional `accessToken` for that path.
+`AZURE_ADMIN_EMAILS` is who becomes an application admin the first time they sign in. Everyone else is a normal sender. A designer role is still assigned in the app after that.
+
+Sign-in opens Microsoft, then returns to Gratitude. Recipient search reads the company directory. Send delivers from that person’s mailbox.
 
 ## Prerequisites
 
@@ -122,7 +124,7 @@ After CI succeeds on a push to `main`, [`.github/workflows/cd-production.yml`](.
 
 Create a GitHub **Environment** named `production` if you want a manual approval gate before deploy.
 
-**One-time on the RHEL server** (after the app is cloned and systemd/nginx are set up — see `documents/project-guidelines.pdf`):
+**One-time on the RHEL server** (after the app is cloned and systemd/nginx are set up — see `documents/project-guidelines.pdf`). Inbound access is SSH on port 22 and HTTPS on port 443. Port 80 stays closed; nginx listens on 443 with the organization TLS certificate.
 
 ```bash
 sudo mkdir -p /etc/gratitude
@@ -177,7 +179,7 @@ In `web/`, run `npm install` (includes `html-to-image` for sharper Canva snapsho
 3. ~~Compose → recipients → mock drafts~~ **done (Phase 3)**  
    - Graph Outlook drafts: set `MAIL_MODE=graph` + Azure app creds (see above)  
    - Gmail SMTP: set `MAIL_MODE=smtp` (see above)  
-4. Richer admin previews + Azure AD user login (`AUTH_MODE=azure`)  
+4. Azure AD user login, directory search, and send-as-user — **implemented**; turn on with the env block above  
 
 ## Repo layout
 

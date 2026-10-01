@@ -32,6 +32,7 @@ export type UserMinAggregateOutputType = {
   displayName: string | null
   role: $Enums.Role | null
   isDirectory: boolean | null
+  azureRefreshToken: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -44,6 +45,7 @@ export type UserMaxAggregateOutputType = {
   displayName: string | null
   role: $Enums.Role | null
   isDirectory: boolean | null
+  azureRefreshToken: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -56,6 +58,7 @@ export type UserCountAggregateOutputType = {
   displayName: number
   role: number
   isDirectory: number
+  azureRefreshToken: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -70,6 +73,7 @@ export type UserMinAggregateInputType = {
   displayName?: true
   role?: true
   isDirectory?: true
+  azureRefreshToken?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -82,6 +86,7 @@ export type UserMaxAggregateInputType = {
   displayName?: true
   role?: true
   isDirectory?: true
+  azureRefreshToken?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -94,6 +99,7 @@ export type UserCountAggregateInputType = {
   displayName?: true
   role?: true
   isDirectory?: true
+  azureRefreshToken?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -179,6 +185,7 @@ export type UserGroupByOutputType = {
   displayName: string
   role: $Enums.Role
   isDirectory: boolean
+  azureRefreshToken: string | null
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
@@ -212,6 +219,7 @@ export type UserWhereInput = {
   displayName?: Prisma.StringFilter<"User"> | string
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   isDirectory?: Prisma.BoolFilter<"User"> | boolean
+  azureRefreshToken?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   ownedTemplates?: Prisma.TemplateListRelationFilter
@@ -229,6 +237,7 @@ export type UserOrderByWithRelationInput = {
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
+  azureRefreshToken?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   ownedTemplates?: Prisma.TemplateOrderByRelationAggregateInput
@@ -249,6 +258,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   displayName?: Prisma.StringFilter<"User"> | string
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   isDirectory?: Prisma.BoolFilter<"User"> | boolean
+  azureRefreshToken?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   ownedTemplates?: Prisma.TemplateListRelationFilter
@@ -266,6 +276,7 @@ export type UserOrderByWithAggregationInput = {
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
+  azureRefreshToken?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -284,6 +295,7 @@ export type UserScalarWhereWithAggregatesInput = {
   displayName?: Prisma.StringWithAggregatesFilter<"User"> | string
   role?: Prisma.EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
   isDirectory?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  azureRefreshToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -296,6 +308,7 @@ export type UserCreateInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
@@ -313,6 +326,7 @@ export type UserUncheckedCreateInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
@@ -330,6 +344,7 @@ export type UserUpdateInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
@@ -347,6 +362,7 @@ export type UserUncheckedUpdateInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
@@ -364,6 +380,7 @@ export type UserCreateManyInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -376,6 +393,7 @@ export type UserUpdateManyMutationInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -388,6 +406,7 @@ export type UserUncheckedUpdateManyInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -400,6 +419,7 @@ export type UserCountOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
+  azureRefreshToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -412,6 +432,7 @@ export type UserMaxOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
+  azureRefreshToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -424,6 +445,7 @@ export type UserMinOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isDirectory?: Prisma.SortOrder
+  azureRefreshToken?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -448,6 +470,10 @@ export type EnumRoleFieldUpdateOperationsInput = {
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -536,6 +562,7 @@ export type UserCreateWithoutCreatedCategoriesInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
@@ -552,6 +579,7 @@ export type UserUncheckedCreateWithoutCreatedCategoriesInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
@@ -584,6 +612,7 @@ export type UserUpdateWithoutCreatedCategoriesInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
@@ -600,6 +629,7 @@ export type UserUncheckedUpdateWithoutCreatedCategoriesInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
@@ -616,6 +646,7 @@ export type UserCreateWithoutOwnedTemplatesInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   createdCategories?: Prisma.TemplateCategoryCreateNestedManyWithoutCreatedByInput
@@ -632,6 +663,7 @@ export type UserUncheckedCreateWithoutOwnedTemplatesInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   createdCategories?: Prisma.TemplateCategoryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -664,6 +696,7 @@ export type UserUpdateWithoutOwnedTemplatesInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdCategories?: Prisma.TemplateCategoryUpdateManyWithoutCreatedByNestedInput
@@ -680,6 +713,7 @@ export type UserUncheckedUpdateWithoutOwnedTemplatesInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdCategories?: Prisma.TemplateCategoryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -696,6 +730,7 @@ export type UserCreateWithoutFavoritesInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
@@ -712,6 +747,7 @@ export type UserUncheckedCreateWithoutFavoritesInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
@@ -744,6 +780,7 @@ export type UserUpdateWithoutFavoritesInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
@@ -760,6 +797,7 @@ export type UserUncheckedUpdateWithoutFavoritesInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
@@ -776,6 +814,7 @@ export type UserCreateWithoutDraftJobsInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
@@ -792,6 +831,7 @@ export type UserUncheckedCreateWithoutDraftJobsInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
@@ -824,6 +864,7 @@ export type UserUpdateWithoutDraftJobsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
@@ -840,6 +881,7 @@ export type UserUncheckedUpdateWithoutDraftJobsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
@@ -856,6 +898,7 @@ export type UserCreateWithoutAuditEventsInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateCreateNestedManyWithoutOwnerInput
@@ -872,6 +915,7 @@ export type UserUncheckedCreateWithoutAuditEventsInput = {
   displayName: string
   role?: $Enums.Role
   isDirectory?: boolean
+  azureRefreshToken?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ownedTemplates?: Prisma.TemplateUncheckedCreateNestedManyWithoutOwnerInput
@@ -904,6 +948,7 @@ export type UserUpdateWithoutAuditEventsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUpdateManyWithoutOwnerNestedInput
@@ -920,6 +965,7 @@ export type UserUncheckedUpdateWithoutAuditEventsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   isDirectory?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  azureRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownedTemplates?: Prisma.TemplateUncheckedUpdateManyWithoutOwnerNestedInput
@@ -1003,6 +1049,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
+  azureRefreshToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   ownedTemplates?: boolean | Prisma.User$ownedTemplatesArgs<ExtArgs>
@@ -1021,6 +1068,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
+  azureRefreshToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1033,6 +1081,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
+  azureRefreshToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1045,11 +1094,12 @@ export type UserSelectScalar = {
   displayName?: boolean
   role?: boolean
   isDirectory?: boolean
+  azureRefreshToken?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aadOid" | "email" | "employeeNumber" | "displayName" | "role" | "isDirectory" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aadOid" | "email" | "employeeNumber" | "displayName" | "role" | "isDirectory" | "azureRefreshToken" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownedTemplates?: boolean | Prisma.User$ownedTemplatesArgs<ExtArgs>
   createdCategories?: boolean | Prisma.User$createdCategoriesArgs<ExtArgs>
@@ -1087,6 +1137,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      * Directory entries appear in recipient picker even if they never logged in
      */
     isDirectory: boolean
+    /**
+     * Delegated Microsoft Graph refresh token after Azure AD sign-in
+     */
+    azureRefreshToken: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -1524,6 +1578,7 @@ export interface UserFieldRefs {
   readonly displayName: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'Role'>
   readonly isDirectory: Prisma.FieldRef<"User", 'Boolean'>
+  readonly azureRefreshToken: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }

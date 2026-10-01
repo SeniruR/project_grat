@@ -188,8 +188,14 @@ export function ComposePage() {
         : DIRECTORY_PAGE_SIZE;
       api
         .directorySearch(token, q, limit)
-        .then((res) => setHits(res.people))
-        .catch(() => setHits([]))
+        .then((res) => {
+          setHits(res.people);
+          setError(null);
+        })
+        .catch((err) => {
+          setHits([]);
+          setError(err instanceof Error ? err.message : "People search failed");
+        })
         .finally(() => setSearching(false));
     }, 220);
     return () => window.clearTimeout(handle);

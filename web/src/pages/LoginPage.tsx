@@ -2,12 +2,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { apiBaseUrl } from "../lib/mediaUrl";
 import { homePath, type AppRole } from "../lib/roles";
 import { SiteCredit } from "../components/SiteFooter";
 import { setTourPending } from "../tour/storage";
 
 export function LoginPage() {
-  const { user, login, loading } = useAuth();
+  const { user, login, acceptToken, loading } = useAuth();
   const [employeeNumber, setEmployeeNumber] = useState("100001");
   const [email, setEmail] = useState("admin@example.com");
   const [role, setRole] = useState<AppRole>("USER");
@@ -16,18 +17,42 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [modes, setModes] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<string | null>(null);
+  const [azureReady, setAzureReady] = useState(false);
 
   useEffect(() => {
-    if (!showDemo) return;
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const azureToken = params.get("token");
+    const azureError = params.get("azure_error");
+    if (!azureToken && !azureError) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    if (azureError) {
+      setError(azureError);
+      return;
+    }
+    setSubmitting(true);
+    acceptToken(azureToken!)
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Sign-in failed");
+      })
+      .finally(() => setSubmitting(false));
+  }, [acceptToken]);
+
+  useEffect(() => {
     api
       .getMode()
-      .then((m) =>
+      .then((m) => {
+        setAuthMode(m.authMode);
+        setAzureReady(Boolean(m.azureReady));
         setModes(
           `auth=${m.authMode} · directory=${m.directoryMode} · mail=${m.mailMode}`,
-        ),
-      )
-      .catch(() => setModes("API offline"));
-  }, [showDemo]);
+        );
+      })
+      .catch(() => {
+        setAuthMode("dev");
+        setModes("API offline");
+      });
+  }, []);
 
   if (!loading && user) {
     return <Navigate to={homePath(user)} replace />;
@@ -81,6 +106,32 @@ export function LoginPage() {
 
           <section className="login-panel">
             <h2>Sign in</h2>
+            {authMode === null ? (
+              <p className="lede">Checking sign-in…</p>
+            ) : authMode === "azure" ? (
+              <>
+                <p className="lede">
+                  Use your work account. People search and sent cards use that
+                  same mailbox.
+                </p>
+                {error ? <p className="error">{error}</p> : null}
+                {azureReady ? (
+                  <a
+                    className="login-continue"
+                    href={`${apiBaseUrl()}/auth/azure/start`}
+                  >
+                    {submitting ? "Signing in…" : "Sign in with work account"}
+                  </a>
+                ) : (
+                  <p className="error">
+                    Azure AD details are not in the API yet. Add the tenant id,
+                    client id, and client secret in api/.env, set AUTH_MODE=azure,
+                    then restart the API.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
             <p className="lede">
               Enter your employee number and office email to continue.
             </p>
@@ -172,6 +223,8 @@ export function LoginPage() {
                 : "Demonstration options"}
             </button>
             {showDemo && modes ? <p className="mode-line">{modes}</p> : null}
+              </>
+            )}
           </section>
         </div>
         <SiteCredit />

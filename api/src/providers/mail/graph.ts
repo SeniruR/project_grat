@@ -22,10 +22,9 @@ function mailboxUserPath(senderEmail: string) {
 }
 
 /**
- * Creates Outlook drafts via Microsoft Graph.
- * - With delegated `accessToken`: POST /me/messages
- * - Otherwise (app credentials): POST /users/{upn}/messages
- *   (needs Application permission Mail.ReadWrite + admin consent)
+ * Microsoft Graph mail.
+ * - With the signed-in user's token: send from that mailbox (`Mail.Send`).
+ * - Without it: create an Outlook draft with the app credential (`Mail.ReadWrite`).
  */
 export const graphMailProvider: MailProvider = {
   mode: "graph",
@@ -49,11 +48,36 @@ export const graphMailProvider: MailProvider = {
       ],
     };
 
-    const accessToken =
-      input.accessToken?.trim() || (await getGraphAppToken());
-    const path = input.accessToken?.trim()
-      ? "/me/messages"
-      : mailboxUserPath(input.senderEmail ?? "");
+    const delegated = input.accessToken?.trim();
+    if (delegated) {
+      const attachments = (input.inlineAttachments ?? []).map((file) => ({
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        name: file.filename,
+        contentType: file.contentType ?? "application/octet-stream",
+        contentBytes: file.content.toString("base64"),
+        isInline: true,
+        contentId: file.cid,
+      }));
+      await graphFetch<unknown>("/me/sendMail", {
+        method: "POST",
+        accessToken: delegated,
+        body: {
+          message: {
+            ...payload,
+            ...(attachments.length ? { attachments } : {}),
+          },
+          saveToSentItems: true,
+        },
+      });
+      return {
+        mode: "graph",
+        draftId: `sent-${Date.now()}`,
+        sent: true,
+      };
+    }
+
+    const accessToken = await getGraphAppToken();
+    const path = mailboxUserPath(input.senderEmail ?? "");
 
     const message = await graphFetch<GraphMessage>(path, {
       method: "POST",

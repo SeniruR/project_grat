@@ -456,6 +456,15 @@ button.ghost:hover:not(:disabled) {
   transform: none;
 }
 
+a.login-continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+  color: #fff;
+}
+
 .login-credit {
   position: static;
   transform: none;

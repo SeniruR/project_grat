@@ -6,6 +6,7 @@ import { buildOutboundBodyHtml, applyMergeFields, buildMergeFieldMap, parseImage
 import { embedLocalUploadImages, inlineLocalUploadImagesAsDataUrls } from "../lib/embedEmailImages.js";
 import { config } from "../config.js";
 import { getMailProvider } from "../providers/mail/index.js";
+import { getDelegatedGraphToken } from "../providers/azure/session.js";
 import { canComposeTemplate, canUseAdvancedCompose, isAdmin } from "../lib/roles.js";
 
 const recipientBody = z.object({
@@ -396,6 +397,18 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
       const imageSlots = parseImageSlotsFromDesignJson(version.designJson);
 
       const mail = await getMailProvider();
+      let graphAccessToken: string | undefined;
+      if (mail.mode === "graph" && config.authMode === "azure") {
+        try {
+          graphAccessToken = await getDelegatedGraphToken(user.id);
+        } catch (err) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : "Azure mail token is missing. Sign in with your work account again.";
+          return reply.code(400).send({ error: message });
+        }
+      }
       const job = await prisma.draftJob.create({
         data: {
           requesterId: user.id,
@@ -465,7 +478,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
         let inlineAttachments:
           | Awaited<ReturnType<typeof embedLocalUploadImages>>["attachments"]
           | undefined;
-        if (mail.mode === "smtp") {
+        if (mail.mode === "smtp" || (mail.mode === "graph" && graphAccessToken)) {
           const embedded = await embedLocalUploadImages(
             bodyHtml,
             config.publicApiUrl,
@@ -479,6 +492,7 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
             senderUserId: user.id,
             senderEmail: sender.email,
             senderName: sender.displayName,
+            accessToken: graphAccessToken,
             recipientEmail: recipient.email,
             recipientName: recipient.displayName,
             recipientOid: recipient.aadOid,
@@ -503,7 +517,9 @@ export const draftRoutes: FastifyPluginAsync = async (app) => {
                 result.mode === "mock"
                   ? "mock_created"
                   : result.mode === "graph"
-                    ? "graph_draft"
+                    ? result.sent
+                      ? "graph_sent"
+                      : "graph_draft"
                     : "smtp_sent",
             },
           });

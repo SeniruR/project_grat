@@ -202,6 +202,7 @@ export const api = {
       authMode: string;
       directoryMode: string;
       mailMode: string;
+      azureReady?: boolean;
       smtpFrom?: string | null;
       smtpFromName?: string | null;
     }>("/auth/mode"),

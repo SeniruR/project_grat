@@ -71,6 +71,7 @@ export async function graphFetch<T>(
     method?: string;
     accessToken: string;
     body?: unknown;
+    headers?: Record<string, string>;
   },
 ): Promise<T> {
   const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
@@ -78,6 +79,7 @@ export async function graphFetch<T>(
     headers: {
       Authorization: `Bearer ${options.accessToken}`,
       "Content-Type": "application/json",
+      ...options.headers,
     },
     body: options.body == null ? undefined : JSON.stringify(options.body),
   });

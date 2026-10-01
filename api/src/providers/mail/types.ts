@@ -25,6 +25,8 @@ export type CreateDraftResult = {
   draftId: string;
   graphMessageId?: string;
   smtpMessageId?: string;
+  /** True when the message was delivered, not only saved as a draft. */
+  sent?: boolean;
 };
 
 /**
