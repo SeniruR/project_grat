@@ -1,0 +1,20 @@
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+distinguished_name = dn
+req_extensions     = req_ext
+
+[ dn ]
+C  = LK
+ST = Western
+L  = Colombo
+O  = Sri Lanka Telecom PLC
+OU = IT Systems
+CN = thoughts.slt.com.lk
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = thoughts.slt.com.lk

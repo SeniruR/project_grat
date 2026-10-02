@@ -129,7 +129,7 @@ Create a GitHub **Environment** named `production` if you want a manual approval
 ```bash
 sudo mkdir -p /etc/gratitude
 sudo tee /etc/gratitude/deploy.env <<'EOF'
-VITE_API_URL=https://YOUR_API_HOSTNAME
+VITE_API_URL=https://thoughts.slt.com.lk/api
 EOF
 sudo chmod 640 /etc/gratitude/deploy.env
 ```

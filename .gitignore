@@ -7,3 +7,4 @@ dist/
 web/dist/
 api/dist/
 api/uploads/
+documents/tls/*.key

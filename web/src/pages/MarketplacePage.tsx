@@ -52,7 +52,7 @@ export function MarketplacePage() {
         <div className="gift-hero-cover">
           <div className="gift-hero-copy-panel">
             <h1>
-              <BrandLogo size={42} />
+              <BrandLogo size={118} />
             </h1>
             {/* <p className="lede">Thank a colleague.</p> */}
           </div>

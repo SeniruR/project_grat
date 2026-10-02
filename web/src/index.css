@@ -325,7 +325,7 @@ button.ghost:hover:not(:disabled) {
 }
 
 .login-hero {
-  padding: 3rem 2.75rem 2.6rem 3.1rem;
+  padding: 8rem 2.75rem 6.6rem 4.1rem;
   color: #2c2824;
   background: transparent;
   display: flex;
@@ -691,7 +691,7 @@ a.login-continue {
   flex: none;
   display: block;
   width: auto;
-  height: 1.15em;
+  height: auto;
   object-fit: contain;
   object-position: left center;
 }
