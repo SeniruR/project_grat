@@ -6,7 +6,6 @@ import { COMPOSE_ENABLED } from "./features";
 import { TourProvider } from "./tour/TourContext";
 import { ProductTour } from "./tour/ProductTour";
 import { SiteFooter } from "./components/SiteFooter";
-import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { BrandLogo } from "./components/BrandLogo";
 
 export function AppShell() {
@@ -57,11 +56,10 @@ export function AppShell() {
         <header className="topnav-wrap">
           <nav className="topnav">
             <Link to={homePath(user)} className="brand">
-              <BrandLogo size={26} />
+              <BrandLogo size={44} />
             </Link>
 
             <div className="topnav-user">
-              <ThemeSwitcher />
               {designer ? (
                 <NavLink
                   to="/cards"

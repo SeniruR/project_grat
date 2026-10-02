@@ -691,7 +691,7 @@ a.login-continue {
   flex: none;
   display: block;
   width: auto;
-  height: 1.15em;
+  height: auto;
   object-fit: contain;
   object-position: left center;
 }

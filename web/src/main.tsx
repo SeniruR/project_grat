@@ -1,10 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import { applySiteTheme, readStoredTheme } from "./lib/theme";
+import { applySiteTheme } from "./lib/theme";
 import "./index.css";
 
-applySiteTheme(readStoredTheme());
+applySiteTheme("open");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

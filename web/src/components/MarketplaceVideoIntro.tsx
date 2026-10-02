@@ -54,7 +54,7 @@ export function MarketplaceVideoIntro({ onEnter }: Props) {
       <div className="marketplace-video-intro-shade" aria-hidden />
       <div className="marketplace-video-intro-copy">
         <p className="marketplace-video-intro-brand">
-          <BrandLogo size={36} />
+          <BrandLogo size={80} />
         </p>
         <p className="marketplace-video-intro-lede">
           Thank a colleague with a ready-made card.

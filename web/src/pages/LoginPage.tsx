@@ -87,16 +87,19 @@ export function LoginPage() {
       />
       <div className="login-stage">
         <div className="login-stage-body">
-          <section className="login-hero" aria-label="Gratitude Bloom">
+          <section className="login-hero" aria-label="Simply Thoughts">
             <div className="login-hero-copy">
-              <img
+              {/* <img
                 className="login-mark"
                 src="/slt-logo.png"
                 alt="SLT Mobitel"
-              />
+              /> */}
               <h1 className="login-brand">
-                Gratitude
-                <span>Bloom</span>
+                <img
+                  src="/thoughts-logo.png"
+                  alt="Simply Thoughts"
+                  style={{ height: "7rem", width: "auto" }}
+                />
               </h1>
               <p className="login-tagline">
                 Strong connections begins with appreciation
