@@ -10,7 +10,6 @@ export function DraftJobPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const { token } = useAuth();
   const [job, setJob] = useState<DraftJobDetail | null>(null);
-  const [mailMode, setMailMode] = useState("mock");
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -20,7 +19,6 @@ export function DraftJobPage() {
       .draftJob(token, jobId)
       .then((res) => {
         setJob(res.job);
-        setMailMode(res.mailMode);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load job"),
@@ -45,6 +43,10 @@ export function DraftJobPage() {
   }
 
   const failCount = job.drafts.filter((d) => d.status === "failed").length;
+  const deliveredTitle =
+    job.drafts.length === 1
+      ? "Your card has been delivered"
+      : "Your cards have been delivered";
 
   return (
     <div className="page">
@@ -57,9 +59,10 @@ export function DraftJobPage() {
       />
       <header className="page-header page-header-row gift-on-way">
         <div>
-          <h1>Card sent</h1>
+          <h1>{deliveredTitle}</h1>
           <p className="lede">
-            Below is the list of people who will receive the card you sent.
+            Below is the list of people who will receive the{" "}
+            {job.drafts.length === 1 ? "card" : "cards"} you sent.
             {failCount
               ? ` ${failCount} could not be sent.`
               : ""}
@@ -76,17 +79,6 @@ export function DraftJobPage() {
 
       {error ? <p className="error">{error}</p> : null}
 
-      {mailMode === "smtp" ? (
-        <p className="notice">
-          
-        </p>
-      ) : mailMode === "graph" ? (
-        <p className="notice">
-          Microsoft 365 mail. A work-account sign-in sends each card from that
-          mailbox. Older jobs may still be Outlook drafts.
-        </p>
-      ) : null}
-
       <ul className="draft-list">
         {job.drafts.map((d) => {
           const open = openId === d.id;
@@ -102,9 +94,11 @@ export function DraftJobPage() {
                   <span className="meta">{d.recipientEmail}</span>
                 </div>
                 <div className="draft-card-meta">
-                  <span className={`draft-status draft-status--${d.status}`}>
-                    {d.status}
-                  </span>
+                  {d.status === "failed" ? (
+                    <span className="draft-status draft-status--failed">
+                      Failed
+                    </span>
+                  ) : null}
                   <span className="muted small">{open ? "Hide preview" : "Show preview"}</span>
                 </div>
               </button>
